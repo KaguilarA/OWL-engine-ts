@@ -1,3 +1,4 @@
+import { signalValue, type SignalValue } from 'reactive-values';
 import { Dimensions, GameContext } from '../../core';
 import type { AtlasAnimation, AtlasRegion } from '../../interfaces';
 
@@ -100,16 +101,18 @@ export default class Sprite {
   private animationLoop = false;
   /**
    * Stores the animation playing state.
-   * @property {boolean} animationPlaying
+   * @property {SignalValue<boolean>} animationPlaying
    * @private
+   * @readonly
    */
-  private animationPlaying = false;
+  private readonly animationPlaying: SignalValue<boolean> = signalValue(false);
   /**
    * Stores the frame index state.
-   * @property {number} frameIndex
+   * @property {SignalValue<number>} frameIndex
    * @private
+   * @readonly
    */
-  private frameIndex = 0;
+  private readonly frameIndex: SignalValue<number> = signalValue(0);
   /**
    * Stores the frame elapsed state.
    * @property {number} frameElapsed
@@ -178,10 +181,10 @@ export default class Sprite {
    * @return {void}
    */
   public update(deltaSeconds: number): void {
-    if (!this.animationPlaying || this.animationFrameRate <= 0) return;
+    if (!this.animationPlaying() || this.animationFrameRate <= 0) return;
     if (this.animationEnd <= this.animationStart) {
       if (!this.animationLoop) {
-        this.animationPlaying = false;
+        this.animationPlaying.set(false);
         this.frameElapsed = 0;
       }
       return;
@@ -192,12 +195,12 @@ export default class Sprite {
 
     while (this.frameElapsed >= frameDuration) {
       this.frameElapsed -= frameDuration;
-      if (this.frameIndex < this.animationEnd) {
-        this.frameIndex += 1;
+      if (this.frameIndex() < this.animationEnd) {
+        this.frameIndex.set(this.frameIndex() + 1);
       } else if (this.animationLoop) {
-        this.frameIndex = this.animationStart;
+        this.frameIndex.set(this.animationStart);
       } else {
-        this.animationPlaying = false;
+        this.animationPlaying.set(false);
         this.frameElapsed = 0;
         break;
       }
@@ -237,8 +240,8 @@ export default class Sprite {
     this.atlasFrames = undefined;
     this.animationLoop = loop;
     this.animationFrameRate = frameRate;
-    this.animationPlaying = true;
-    this.frameIndex = startFrame;
+    this.animationPlaying.set(true);
+    this.frameIndex.set(startFrame);
     this.frameElapsed = 0;
   }
 
@@ -260,8 +263,8 @@ export default class Sprite {
       this.animationStart = 0;
       this.animationEnd = 0;
       this.animationLoop = false;
-      this.animationPlaying = false;
-      this.frameIndex = 0;
+      this.animationPlaying.set(false);
+      this.frameIndex.set(0);
       this.frameElapsed = 0;
       return;
     }
@@ -318,8 +321,8 @@ export default class Sprite {
       throw new RangeError('Invalid sprite frame.');
     }
 
-    this.animationPlaying = false;
-    this.frameIndex = frame;
+    this.animationPlaying.set(false);
+    this.frameIndex.set(frame);
     this.frameElapsed = 0;
   }
 
@@ -330,7 +333,7 @@ export default class Sprite {
    * @return {boolean} Whether the current animation is still playing.
    */
   public get isAnimationPlaying(): boolean {
-    return this.animationPlaying;
+    return this.animationPlaying();
   }
 
   /**
@@ -350,12 +353,12 @@ export default class Sprite {
     const pivotY = this.dimensions.getPivotY();
     const originX = pivotX === 0 ? 0 : -width * pivotX;
     const originY = pivotY === 0 ? 0 : -height * pivotY;
-    const atlasFrame = this.atlasFrames?.[this.frameIndex];
+    const atlasFrame = this.atlasFrames?.[this.frameIndex()];
     const framesPerRow = Math.max(1, this.animationFramesPerRow);
     const frameSourceX = atlasFrame?.x ?? this.sourceX
-      + (this.frameIndex % framesPerRow) * (this.sourceWidth ?? 0);
+      + (this.frameIndex() % framesPerRow) * (this.sourceWidth ?? 0);
     const frameSourceY = atlasFrame?.y ?? this.sourceY
-      + Math.floor(this.frameIndex / framesPerRow) * (this.sourceHeight ?? 0);
+      + Math.floor(this.frameIndex() / framesPerRow) * (this.sourceHeight ?? 0);
     const sourceWidth = atlasFrame?.width ?? this.sourceWidth;
     const sourceHeight = atlasFrame?.height ?? this.sourceHeight;
 

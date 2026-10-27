@@ -49,6 +49,14 @@ const atlasModules = import.meta.glob<string>('../../assets/animations/**/*.atla
  */
 class Loader {
   /**
+   * The single asset loader shared by engine clients.
+   * @property {Loader} instance
+   * @public
+   * @readonly
+   */
+  public static readonly instance = new Loader();
+
+  /**
    * Stores the images state.
    * @property {Map<string, HTMLImageElement>} images
    * @private
@@ -81,6 +89,13 @@ class Loader {
    * @private
    */
   private loading: Promise<void> | undefined;
+
+  /**
+   * Creates the shared asset loader.
+   * @private
+   * @return {void}
+   */
+  private constructor() {}
 
   /**
    * Loads every supported image, atlas, and MP3/WAV/OGG asset in `src/assets`.
@@ -390,6 +405,4 @@ class Loader {
   }
 }
 
-const GameLoader = new Loader();
-
-export default GameLoader;
+export default Loader.instance;

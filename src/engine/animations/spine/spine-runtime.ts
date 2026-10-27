@@ -966,49 +966,118 @@ export class SpineRuntime {
    */
   public update(deltaSeconds: number): void {
     if (!this.animationPlaying() || deltaSeconds <= 0) return;
-
-    if (this.blending()) {
-      const nextBlend = this.blendTime() + deltaSeconds;
-      this.blendTime.set(nextBlend);
-      if (nextBlend >= this.blendDuration()) {
-        this.blending.set(false);
-        this.previousAnimation.set(undefined);
-      } else {
-        const prevAnim = this.previousAnimation();
-        if (prevAnim) {
-          const prevDuration = this.getAnimationDuration(prevAnim);
-          let prevNext = this.previousAnimationTime() + deltaSeconds;
-          if (prevDuration > 0 && prevNext >= prevDuration && this.previousAnimationLooping()) {
-            prevNext %= prevDuration;
-          }
-          this.previousAnimationTime.set(prevNext);
-        }
-      }
-    }
-
+    this.updateBlend(deltaSeconds);
     const name = this.currentAnimation();
     if (!name) return;
+    this.advanceAnimation(name, deltaSeconds);
+    this.evaluatePose();
+    this.startQueuedAnimation();
+  }
+
+  /**
+   * Advances cross-fade timing and the previous animation playhead.
+   * @private
+   * @param {number} deltaSeconds Duration of the frame in seconds.
+   * @return {void}
+   */
+  /**
+   * Advances cross-fade timing and the previous animation playhead.
+   * @private
+   * @param {number} deltaSeconds Duration of the frame in seconds.
+   * @return {void}
+   */
+  private updateBlend(deltaSeconds: number): void {
+    if (!this.blending()) return;
+    const nextBlend = this.blendTime() + deltaSeconds;
+    this.blendTime.set(nextBlend);
+    if (nextBlend >= this.blendDuration()) {
+      this.blending.set(false);
+      this.previousAnimation.set(undefined);
+      return;
+    }
+    const previousName = this.previousAnimation();
+    if (!previousName) return;
+    const duration = this.getAnimationDuration(previousName);
+    let nextTime = this.previousAnimationTime() + deltaSeconds;
+    if (duration > 0 && nextTime >= duration && this.previousAnimationLooping()) {
+      nextTime %= duration;
+    }
+    this.previousAnimationTime.set(nextTime);
+  }
+
+  /**
+   * Advances the active playhead and emits events crossed during this frame.
+   * @private
+   * @param {string} name Active animation name.
+   * @param {number} deltaSeconds Duration of the frame in seconds.
+   * @return {void}
+   */
+  /**
+   * Advances the active playhead and emits events crossed during this frame.
+   * @private
+   * @param {string} name Active animation name.
+   * @param {number} deltaSeconds Duration of the frame in seconds.
+   * @return {void}
+   */
+  private advanceAnimation(name: string, deltaSeconds: number): void {
     const duration = this.getAnimationDuration(name);
     const previous = this.animationTime();
-    let next = previous + deltaSeconds;
-    if (duration > 0 && next >= duration) {
-      if (this.animationLooping()) {
-        this.emitEventsBetween(name, previous, duration);
-        const overflow = next - duration;
-        const completeLoops = Math.floor(overflow / duration);
-        for (let loop = 0; loop < completeLoops; loop++) this.emitEventsBetween(name, -Number.EPSILON, duration);
-        next = overflow % duration;
-        this.emitEventsBetween(name, -Number.EPSILON, next);
-      } else {
-        this.emitEventsBetween(name, previous, duration);
-        next = duration;
-        this.animationPlaying.set(false);
-      }
-    } else {
+    const next = previous + deltaSeconds;
+    if (duration <= 0 || next < duration) {
       this.emitEventsBetween(name, previous, next);
+      this.animationTime.set(next);
+      return;
     }
-    this.animationTime.set(next);
-    this.evaluatePose();
+    if (!this.animationLooping()) {
+      this.emitEventsBetween(name, previous, duration);
+      this.animationTime.set(duration);
+      this.animationPlaying.set(false);
+      return;
+    }
+    this.advanceLoopingAnimation(name, previous, next, duration);
+  }
+
+  /**
+   * Wraps a looping playhead while emitting events for each crossed cycle.
+   * @private
+   * @param {string} name Active animation name.
+   * @param {number} previous Previous animation time.
+   * @param {number} next Unwrapped animation time.
+   * @param {number} duration Animation duration.
+   * @return {void}
+   */
+  /**
+   * Wraps a looping playhead while emitting events for each crossed cycle.
+   * @private
+   * @param {string} name Active animation name.
+   * @param {number} previous Previous animation time.
+   * @param {number} next Unwrapped animation time.
+   * @param {number} duration Animation duration.
+   * @return {void}
+   */
+  private advanceLoopingAnimation(name: string, previous: number, next: number, duration: number): void {
+    this.emitEventsBetween(name, previous, duration);
+    const overflow = next - duration;
+    const completeLoops = Math.floor(overflow / duration);
+    for (let loop = 0; loop < completeLoops; loop++) {
+      this.emitEventsBetween(name, -Number.EPSILON, duration);
+    }
+    const wrappedTime = overflow % duration;
+    this.emitEventsBetween(name, -Number.EPSILON, wrappedTime);
+    this.animationTime.set(wrappedTime);
+  }
+
+  /**
+   * Starts and evaluates the queued animation after a non-looping clip ends.
+   * @private
+   * @return {void}
+   */
+  /**
+   * Starts and evaluates the queued animation after a non-looping clip ends.
+   * @private
+   * @return {void}
+   */
+  private startQueuedAnimation(): void {
     if (!this.animationPlaying() && this.queuedAnimation()) {
       const queued = this.queuedAnimation();
       this.currentAnimation.set(queued);

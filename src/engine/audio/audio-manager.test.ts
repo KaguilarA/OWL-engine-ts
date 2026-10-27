@@ -3,7 +3,11 @@ import { AudioManager } from './audio-manager';
 
 describe('AudioManager', () => {
   it('manages volumes and clamps values within [0, 1]', () => {
-    const audio = new AudioManager();
+    const audio = AudioManager.instance;
+    audio.setMasterVolume(1);
+    audio.setSfxVolume(1);
+    audio.setBgmVolume(0.7);
+    audio.setMuted(false);
 
     audio.setMasterVolume(0.5);
     expect(audio.masterVolume()).toBe(0.5);
@@ -22,7 +26,8 @@ describe('AudioManager', () => {
   });
 
   it('manages mute and toggleMute', () => {
-    const audio = new AudioManager();
+    const audio = AudioManager.instance;
+    audio.setMuted(false);
 
     expect(audio.muted()).toBe(false);
     expect(audio.toggleMute()).toBe(true);

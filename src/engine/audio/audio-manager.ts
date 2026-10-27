@@ -8,6 +8,14 @@ import { GameLoader } from '../assets';
  */
 export class AudioManager {
   /**
+   * The single audio service shared by engine clients.
+   * @property {AudioManager} instance
+   * @public
+   * @readonly
+   */
+  public static readonly instance = new AudioManager();
+
+  /**
    * Stores master volume multiplier.
    * @property {SignalValue<number>} masterVolume
    * @public
@@ -41,10 +49,11 @@ export class AudioManager {
 
   /**
    * Stores the current BGM audio element.
-   * @property {HTMLAudioElement | undefined} currentBgm
+   * @property {SignalValue<HTMLAudioElement | undefined>} currentBgm
    * @private
+   * @readonly
    */
-  private currentBgm: HTMLAudioElement | undefined;
+  private readonly currentBgm: SignalValue<HTMLAudioElement | undefined> = signalValue<HTMLAudioElement | undefined>(undefined);
 
   /**
    * Stores the current BGM track name.
@@ -56,24 +65,31 @@ export class AudioManager {
 
   /**
    * Stores the volume scaling factor for the active BGM.
-   * @property {number} currentBgmScale
+   * @property {SignalValue<number>} currentBgmScale
    * @private
+   * @readonly
    */
-  private currentBgmScale = 1.0;
+  private readonly currentBgmScale: SignalValue<number> = signalValue(1.0);
 
   /**
    * Stores whether BGM was active before window blur.
-   * @property {boolean} bgmWasPlayingBeforeBlur
+   * @property {SignalValue<boolean>} bgmWasPlayingBeforeBlur
    * @private
+   * @readonly
    */
-  private bgmWasPlayingBeforeBlur = false;
+  private readonly bgmWasPlayingBeforeBlur: SignalValue<boolean> = signalValue(false);
 
   /**
    * Creates an audio manager instance.
    * @public
    * @return {void}
    */
-  public constructor() {
+  /**
+   * Creates the shared audio service.
+   * @private
+   * @return {void}
+   */
+  private constructor() {
     this.installVisibilityListener();
   }
 
@@ -116,7 +132,8 @@ export class AudioManager {
    * @return {void}
    */
   public playBgm(name: string, loop = true, volumeScale = 1.0): void {
-    if (this.currentBgmName() === name && this.currentBgm && !this.currentBgm.paused) {
+    const currentBgm = this.currentBgm();
+    if (this.currentBgmName() === name && currentBgm && !currentBgm.paused) {
       return;
     }
 
@@ -124,14 +141,15 @@ export class AudioManager {
 
     try {
       const source = GameLoader.getAudio(name);
-      this.currentBgm = source.cloneNode(true) as HTMLAudioElement;
+      const audio = source.cloneNode(true) as HTMLAudioElement;
+      this.currentBgm.set(audio);
       this.currentBgmName.set(name);
-      this.currentBgmScale = volumeScale;
-      this.currentBgm.loop = loop;
+      this.currentBgmScale.set(volumeScale);
+      audio.loop = loop;
       this.applyBgmVolume();
 
       if (!this.muted()) {
-        const playback = this.currentBgm.play();
+        const playback = audio.play();
         if (playback) {
           playback.catch((error: unknown) => {
             console.warn(`[AudioManager] Unable to play BGM "${name}":`, error);
@@ -149,10 +167,11 @@ export class AudioManager {
    * @return {void}
    */
   public stopBgm(): void {
-    if (this.currentBgm) {
-      this.currentBgm.pause();
-      this.currentBgm.currentTime = 0;
-      this.currentBgm = undefined;
+    const currentBgm = this.currentBgm();
+    if (currentBgm) {
+      currentBgm.pause();
+      currentBgm.currentTime = 0;
+      this.currentBgm.set(undefined);
       this.currentBgmName.set(undefined);
     }
   }
@@ -163,8 +182,9 @@ export class AudioManager {
    * @return {void}
    */
   public pauseBgm(): void {
-    if (this.currentBgm && !this.currentBgm.paused) {
-      this.currentBgm.pause();
+    const currentBgm = this.currentBgm();
+    if (currentBgm && !currentBgm.paused) {
+      currentBgm.pause();
     }
   }
 
@@ -174,8 +194,9 @@ export class AudioManager {
    * @return {void}
    */
   public resumeBgm(): void {
-    if (this.currentBgm && this.currentBgm.paused && !this.muted()) {
-      const playback = this.currentBgm.play();
+    const currentBgm = this.currentBgm();
+    if (currentBgm && currentBgm.paused && !this.muted()) {
+      const playback = currentBgm.play();
       if (playback) {
         playback.catch((error: unknown) => {
           console.warn(`[AudioManager] Unable to resume BGM "${this.currentBgmName()}":`, error);
@@ -221,13 +242,15 @@ export class AudioManager {
   public setMuted(muted: boolean): void {
     this.muted.set(muted);
     if (muted) {
-      if (this.currentBgm && !this.currentBgm.paused) {
-        this.currentBgm.pause();
+      const currentBgm = this.currentBgm();
+      if (currentBgm && !currentBgm.paused) {
+        currentBgm.pause();
       }
     } else {
       this.applyBgmVolume();
-      if (this.currentBgm && this.currentBgm.paused) {
-        void this.currentBgm.play().catch(() => {});
+      const currentBgm = this.currentBgm();
+      if (currentBgm && currentBgm.paused) {
+        void currentBgm.play().catch(() => {});
       }
     }
   }
@@ -249,11 +272,12 @@ export class AudioManager {
    * @return {void}
    */
   private applyBgmVolume(): void {
-    if (this.currentBgm) {
+    const currentBgm = this.currentBgm();
+    if (currentBgm) {
       const effectiveVolume = this.muted()
         ? 0
-        : MathUtils.clamp(this.masterVolume() * this.bgmVolume() * this.currentBgmScale, 0, 1);
-      this.currentBgm.volume = effectiveVolume;
+        : MathUtils.clamp(this.masterVolume() * this.bgmVolume() * this.currentBgmScale(), 0, 1);
+      currentBgm.volume = effectiveVolume;
     }
   }
 
@@ -267,21 +291,21 @@ export class AudioManager {
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        if (this.currentBgm && !this.currentBgm.paused) {
-          this.bgmWasPlayingBeforeBlur = true;
-          this.currentBgm.pause();
+        const currentBgm = this.currentBgm();
+        if (currentBgm && !currentBgm.paused) {
+          this.bgmWasPlayingBeforeBlur.set(true);
+          currentBgm.pause();
         } else {
-          this.bgmWasPlayingBeforeBlur = false;
+          this.bgmWasPlayingBeforeBlur.set(false);
         }
       } else {
-        if (this.bgmWasPlayingBeforeBlur && !this.muted()) {
+        if (this.bgmWasPlayingBeforeBlur() && !this.muted()) {
           this.resumeBgm();
         }
-        this.bgmWasPlayingBeforeBlur = false;
+        this.bgmWasPlayingBeforeBlur.set(false);
       }
     });
   }
 }
 
-const GameAudio = new AudioManager();
-export default GameAudio;
+export default AudioManager.instance;

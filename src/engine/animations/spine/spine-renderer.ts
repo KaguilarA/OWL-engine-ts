@@ -14,7 +14,10 @@ import { SpineRuntime } from './spine-runtime';
 
 const REGION_TRIANGLES = [0, 1, 2, 2, 3, 0];
 
-/** Canvas renderer for Spine region and mesh attachments. */
+/**
+ * Canvas renderer for Spine region and mesh attachments.
+ * @class SpineRenderer
+ */
 export class SpineRenderer {
   private readonly context = GameContext.context;
   private readonly tintedAtlases = new WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>();
@@ -26,52 +29,149 @@ export class SpineRenderer {
     const scaleY = height / Math.max(1, runtime.height);
     const drawables = runtime.getDrawables();
     const clipEnds: string[] = [];
-    const closeClipsAtSlot = (slotName: string): void => {
-      while (clipEnds.at(-1) && clipEnds.at(-1) === slotName) {
-        clipEnds.pop();
-        this.context.restore();
+    try {
+      for (const drawable of drawables) {
+        this.drawDrawable(runtime, atlas, image, drawable, centerX, centerY, scaleX, scaleY, clipEnds);
       }
-    };
-    for (const drawable of drawables) {
-      const attachment = drawable.attachment;
-      const path = String(attachment.path ?? attachment.name ?? '');
-      if (attachment.type === 'clipping') {
-        const vertices = this.createWorldVertices(runtime, drawable.bone, drawable.slot.name,
-          drawable.slot.attachmentName ?? path, attachment);
-        if (vertices.length >= 6) {
-          this.context.save();
-          this.context.beginPath();
-          this.context.moveTo(centerX + vertices[0] * scaleX, centerY - vertices[1] * scaleY);
-          for (let index = 2; index + 1 < vertices.length; index += 2) {
-            this.context.lineTo(centerX + vertices[index] * scaleX, centerY - vertices[index + 1] * scaleY);
-          }
-          this.context.closePath();
-          this.context.clip();
-          clipEnds.push(String(attachment.end ?? ''));
-        }
-        closeClipsAtSlot(drawable.slot.name);
-        continue;
-      }
-      let region: AtlasRegion;
-      try {
-        region = atlas.getRegion(path);
-      } catch {
-        // Spine exports may contain optional attachments not present on the
-        // currently loaded page. Skip only that attachment and keep rendering.
-        closeClipsAtSlot(drawable.slot.name);
-        continue;
-      }
-      const mesh = this.createMesh(runtime, drawable.bone, drawable.slot.name, drawable.slot.attachmentName ?? path, attachment);
-      if (!mesh) {
-        closeClipsAtSlot(drawable.slot.name);
-        continue;
-      }
-      const color = this.multiplyColor(drawable.slot.color, attachment.color ?? 'FFFFFFFF');
-      const tint = this.getTintedAtlas(image, color, drawable.slot.darkColor);
-      this.drawMesh(tint, atlas, region, mesh.vertices, mesh.uvs, mesh.triangles, centerX, centerY, scaleX, scaleY,
-        this.alpha(color), drawable.slot.blendMode);
-      closeClipsAtSlot(drawable.slot.name);
+    } finally {
+      this.closeAllClips(clipEnds);
     }
+  }
+
+  /**
+   * Draws one Spine drawable and closes clips that end at its slot.
+   * @private
+   * @param {SpineRuntime} runtime Evaluated skeleton runtime.
+   * @param {Atlas} atlas Atlas containing drawable textures.
+   * @param {HTMLImageElement} image Source atlas image.
+   * @param {{ slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord }} drawable Drawable to render.
+   * @param {number} centerX Horizontal screen center.
+   * @param {number} centerY Vertical screen center.
+   * @param {number} scaleX Horizontal world-to-screen scale.
+   * @param {number} scaleY Vertical world-to-screen scale.
+   * @param {string[]} clipEnds Active clip ending slots.
+   * @return {void}
+   */
+  private drawDrawable(
+    runtime: SpineRuntime,
+    atlas: Atlas,
+    image: HTMLImageElement,
+    drawable: { slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord },
+    centerX: number,
+    centerY: number,
+    scaleX: number,
+    scaleY: number,
+    clipEnds: string[]
+  ): void {
+    const { slot, attachment } = drawable;
+    const path = String(attachment.path ?? attachment.name ?? '');
+    if (attachment.type === 'clipping') {
+      this.beginClip(runtime, drawable, path, centerX, centerY, scaleX, scaleY, clipEnds);
+    } else {
+      this.drawAttachment(runtime, atlas, image, drawable, path, centerX, centerY, scaleX, scaleY);
+    }
+    this.closeClipsAtSlot(clipEnds, slot.name);
+  }
+
+  /**
+   * Creates a canvas clip for a Spine clipping attachment.
+   * @private
+   * @param {SpineRuntime} runtime Evaluated skeleton runtime.
+   * @param {{ slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord }} drawable Clipping drawable.
+   * @param {string} path Attachment atlas path.
+   * @param {number} centerX Horizontal screen center.
+   * @param {number} centerY Vertical screen center.
+   * @param {number} scaleX Horizontal world-to-screen scale.
+   * @param {number} scaleY Vertical world-to-screen scale.
+   * @param {string[]} clipEnds Active clip ending slots.
+   * @return {void}
+   */
+  private beginClip(
+    runtime: SpineRuntime,
+    drawable: { slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord },
+    path: string,
+    centerX: number,
+    centerY: number,
+    scaleX: number,
+    scaleY: number,
+    clipEnds: string[]
+  ): void {
+    const { slot, bone, attachment } = drawable;
+    const vertices = this.createWorldVertices(runtime, bone, slot.name, slot.attachmentName ?? path, attachment);
+    if (vertices.length < 6) return;
+    this.context.save();
+    this.context.beginPath();
+    this.context.moveTo(centerX + vertices[0] * scaleX, centerY - vertices[1] * scaleY);
+    for (let index = 2; index + 1 < vertices.length; index += 2) {
+      this.context.lineTo(centerX + vertices[index] * scaleX, centerY - vertices[index + 1] * scaleY);
+    }
+    this.context.closePath();
+    this.context.clip();
+    clipEnds.push(String(attachment.end ?? ''));
+  }
+
+  /**
+   * Resolves an attachment region and draws its transformed mesh.
+   * @private
+   * @param {SpineRuntime} runtime Evaluated skeleton runtime.
+   * @param {Atlas} atlas Atlas containing drawable regions.
+   * @param {HTMLImageElement} image Source atlas image.
+   * @param {{ slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord }} drawable Drawable to render.
+   * @param {string} path Attachment atlas path.
+   * @param {number} centerX Horizontal screen center.
+   * @param {number} centerY Vertical screen center.
+   * @param {number} scaleX Horizontal world-to-screen scale.
+   * @param {number} scaleY Vertical world-to-screen scale.
+   * @return {void}
+   */
+  private drawAttachment(
+    runtime: SpineRuntime,
+    atlas: Atlas,
+    image: HTMLImageElement,
+    drawable: { slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord },
+    path: string,
+    centerX: number,
+    centerY: number,
+    scaleX: number,
+    scaleY: number
+  ): void {
+    let region: AtlasRegion;
+    try {
+      region = atlas.getRegion(path);
+    } catch {
+      // Optional attachments may not exist on the currently loaded atlas page.
+      return;
+    }
+    const { slot, bone, attachment } = drawable;
+    const mesh = this.createMesh(runtime, bone, slot.name, slot.attachmentName ?? path, attachment);
+    if (!mesh) return;
+    const color = this.multiplyColor(slot.color, attachment.color ?? 'FFFFFFFF');
+    const tint = this.getTintedAtlas(image, color, slot.darkColor);
+    this.drawMesh(tint, atlas, region, mesh.vertices, mesh.uvs, mesh.triangles, centerX, centerY, scaleX, scaleY,
+      this.alpha(color), slot.blendMode);
+  }
+
+  /**
+   * Restores active clips when their ending slot is reached.
+   * @private
+   * @param {string[]} clipEnds Active clip ending slots.
+   * @param {string} slotName Current slot name.
+   * @return {void}
+   */
+  private closeClipsAtSlot(clipEnds: string[], slotName: string): void {
+    while (clipEnds.at(-1) && clipEnds.at(-1) === slotName) {
+      clipEnds.pop();
+      this.context.restore();
+    }
+  }
+
+  /**
+   * Restores any clip state left active after the draw pass.
+   * @private
+   * @param {string[]} clipEnds Active clip ending slots.
+   * @return {void}
+   */
+  private closeAllClips(clipEnds: string[]): void {
     while (clipEnds.length > 0) {
       clipEnds.pop();
       this.context.restore();
