@@ -4,24 +4,25 @@ A browser-based 2D game engine written in TypeScript and built on Canvas 2D. The
 
 ## Composition
 
-- **Core (`core/`)**: `GameContext` manages the canvas and game-area dimensions. `BaseGame` centralizes lifecycle, updates, pause, restart, shared controls, and cleanup. This module also provides dimensions, in-place `Vector2`, `ObjectPool` and `GamePools` for zero-allocation recycling, physics, collision detection, health, and math utilities.
+- **Core (`core/`)**: `GameContext` manages the canvas and game-area dimensions. `BaseGame` centralizes lifecycle, updates, pause, restart, shared controls, and cleanup. This module also provides dimensions, in-place `Vector2`, `ObjectPool` and `GamePools` for zero-allocation recycling, `PhysicsBody`, the scene-scoped fixed-step `PhysicsWorld`, collision helpers, health, and math utilities.
 - **Scene (`scene/`)**: `WorldScene` coordinates the camera and layers; `Camera2D` transforms between world and screen coordinates, follows targets, and supports zoom; `SceneLayer` controls visibility, draw order, parallax, and stable rendering; `Tilemap` renders maps from a tileset; `Container` organizes UI elements.
 - **Entities (`entities/`)**: `Entity` combines components with a transform; `Component` defines a functional unit's lifecycle; `SpriteRendererComponent` connects an entity to a drawable; `Prefab` and `PrefabRegistry` create and register reusable configurations. The module also includes entities for common use cases.
 - **Assets (`assets/`)**: `GameLoader` loads and caches images, audio, and atlases; `AtlasParser`, `Atlas`, and `AtlasAnimationCatalog` handle regions and animations.
 - **Audio (`audio/`)**: `GameAudio` (`AudioManager`) centralizes master, SFX, and BGM volume controls, provides mute toggling, and automatically pauses/resumes audio on window visibility changes.
-- **Animation (`animations/`)**: atlas-based animated sprites and the studio-grade native Spine 2D engine (`SpineRuntime`, `SpineRenderer`, `SpineSprite`, `SpineBinaryParser`) featuring smooth animation blending / cross-fading, 1-bone and 2-bone Inverse Kinematics (IK) with runtime target aiming, and dual JSON / compact binary (`.skel`) format support.
+- **Animation (`animations/`)**: atlas-based animated sprites and a native Spine 2D runtime (`SpineRuntime`, `SpineRenderer`, `SpineSprite`, `SpineBinaryParser`) with animation blending and cross-fading, one-bone and two-bone inverse kinematics (IK) with runtime target aiming, and JSON and compact binary (`.skel`) format support.
 - **Particles (`particles/`)**: native, zero-allocation particle engine using contiguous `Float32Array` buffers; `ParticleSystem`, `ParticleEmitter`, and ready-to-use `ParticlePresets` (jackpot coin showers, confetti, sparkles, explosions, sparks).
 - **Rendering (`rendering/`)**: textures, canvas icons, and backgrounds.
 - **Input (`input/`)**: keyboard and pointer events, shared controls, and touch controls.
 - **UI (`ui/`)**: labels, numeric labels, and buttons.
 - **Slots (`slots/`)**: reusable primitives for reels, symbols, icons, and reel animation.
+- **Gameplay (`gameplay/`)**: reusable genre primitives for platform and top-down movement, grid boards, turn order, RPG inventories, stats, and quest progress, card decks, projectiles and weapons, weighted outcomes, and in-game casino bankrolls.
 - **Interfaces (`interfaces/`)**: contracts and types shared across engine modules.
 
 ## Design rules
 
-1. **`reactive-values`**: observable, mutable engine state uses signals (`SignalValue`) and derived values instead of duplicating reactive state in plain fields.
-2. **Abstraction always**: each module provides a clear responsibility and interface; higher-level modules depend on engine contracts instead of duplicating low-level details.
-3. **SOLID SINGLETON**: follow SOLID principles and keep shared global engine services—such as `GameContext`, `GameLoader`, `GameEvents`, `GameAudio`, and `GamePools`—as singletons. Objects whose state belongs to a scene or game remain scoped to that scene or game.
+1. **Reactive state (`reactive-values`)**: observable, mutable engine state uses signals (`SignalValue`) and derived values instead of duplicating reactive state in plain fields.
+2. **Module responsibilities**: each module has a clear responsibility and interface. Higher-level modules depend on engine contracts instead of duplicating low-level details.
+3. **Shared services**: follow SOLID principles and keep shared engine services—such as `GameContext`, `GameLoader`, `GameEvents`, `GameAudio`, and `GamePools`—as singletons. State that belongs to a scene or game remains scoped to that scene or game.
 
 ## Importing the engine
 
