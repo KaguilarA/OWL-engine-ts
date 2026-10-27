@@ -9,4 +9,5 @@ export * from './animations';
 export * from './ui';
 export * from './scene';
 export * from './slots';
+export * from './gameplay';
 export type * from './interfaces';
