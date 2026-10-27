@@ -1,11 +1,14 @@
 import { signalValue, type SignalValue } from 'reactive-values';
 import {
   BaseGame,
+  GameBackground,
   GameContext,
   GameEvents,
+  GameLoader,
   Inventory,
   MathUtils,
   QuestLog,
+  Sprite,
   TurnQueue
 } from '../../engine';
 
@@ -49,6 +52,14 @@ export default class CrystalOathGame extends BaseGame {
   private readonly guardian = new RpgCombatant('THE CRYSTAL WARDEN', 'enemy', {
     hp: 170, maxHp: 170, mp: 0, maxMp: 0, attack: 13, defense: 7, speed: 4
   });
+
+  /**
+   * Animated boss sprite reused from the engine's existing enemy atlas.
+   * @property {Sprite} guardianSprite
+   * @private
+   * @readonly
+   */
+  private readonly guardianSprite = new Sprite(GameLoader.getImage('boss8'), 180, 180, 0, 0, 0.5, 0.5);
 
   /**
    * Orders living combatants by speed and advances the active turn.
@@ -154,6 +165,7 @@ export default class CrystalOathGame extends BaseGame {
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu);
+    this.guardianSprite.playAtlasClip(GameLoader.getAtlas('boss8').getAnimation('idle-row-6'));
     this.inventory.add('potion', 2);
     this.questLog.start('crystal-oath', [1, 1]);
     this.message.set('FIND THE SUN CRYSTAL IN THE EASTERN WOODS.');
@@ -182,6 +194,7 @@ export default class CrystalOathGame extends BaseGame {
       return;
     }
     if (this.phase() !== 'battle' || this.result() !== 'active') return;
+    this.guardianSprite.update(_deltaSeconds);
     const navigationPressed = GameEvents.isKeyPressed('ArrowLeft')
       || GameEvents.isKeyPressed('ArrowRight')
       || GameEvents.isKeyPressed('a')
@@ -330,7 +343,11 @@ export default class CrystalOathGame extends BaseGame {
    */
   private drawOverworld(width: number, height: number, scale: number): void {
     GameContext.clear();
-    GameContext.drawRect(0, 0, width, height, '#182a3c');
+    GameBackground.draw(
+      GameLoader.getImage('background1080x1920'),
+      GameLoader.getImage('background1920x1080'),
+      'rgba(17, 35, 42, 0.62)'
+    );
     const tile = Math.min((width - 28) / WORLD_COLUMNS, (height * 0.68) / WORLD_ROWS);
     const mapWidth = tile * WORLD_COLUMNS;
     const mapHeight = tile * WORLD_ROWS;
@@ -410,7 +427,11 @@ export default class CrystalOathGame extends BaseGame {
    */
   private drawAdventureEnding(width: number, height: number, scale: number): void {
     GameContext.clear();
-    GameContext.drawRect(0, 0, width, height, '#17243a');
+    GameBackground.draw(
+      GameLoader.getImage('background1080x1920'),
+      GameLoader.getImage('background1920x1080'),
+      'rgba(16, 24, 40, 0.58)'
+    );
     this.drawLabel(this.phase() === 'victory' ? 'THE SUNWARD MARCH IS SAVED' : 'THE PARTY HAS FALLEN',
       width * 0.5, height * 0.42, 24 * scale, '#dff8ed', 'center', width * 0.9);
     this.drawLabel(this.phase() === 'victory' ? 'THE CRYSTAL OATH IS FULFILLED' : 'RETURN TO THE VILLAGE AND TRY AGAIN',
@@ -429,13 +450,14 @@ export default class CrystalOathGame extends BaseGame {
    */
   private drawBattlefield(width: number, height: number, scale: number): void {
     GameContext.clear();
-    GameContext.drawRect(0, 0, width, height, '#11182d');
-    GameContext.drawRect(0, height * 0.12, width, height * 0.42, '#25385b');
-    GameContext.drawCircle(width * 0.78, height * 0.19, 36 * scale, '#b6f6ef');
-    GameContext.drawRect(0, height * 0.53, width, height * 0.47, '#20253b');
-    this.drawMountain(width * 0.2, height * 0.54, 0.24, '#394b68');
-    this.drawMountain(width * 0.53, height * 0.53, 0.32, '#34435d');
-    GameContext.drawRect(0, height * 0.81, width, height * 0.19, '#151b2b');
+    GameBackground.draw(
+      GameLoader.getImage('background1080x1920'),
+      GameLoader.getImage('background1920x1080'),
+      'rgba(12, 17, 34, 0.46)'
+    );
+    this.drawMountain(width * 0.2, height * 0.54, 0.24, 'rgba(57, 75, 104, 0.46)');
+    this.drawMountain(width * 0.53, height * 0.53, 0.32, 'rgba(52, 67, 93, 0.46)');
+    GameContext.drawRect(0, height * 0.81, width, height * 0.19, 'rgba(15, 22, 36, 0.72)');
     this.drawLabel('CRYSTAL OATH', width * 0.5, height * 0.075,
       21 * scale, '#c4f7ff', 'center', width * 0.8);
   }
@@ -469,12 +491,9 @@ export default class CrystalOathGame extends BaseGame {
     const y = height * 0.47;
     const size = 74 * scale;
     const hp = this.guardian.stats.get('hp');
-    GameContext.drawRect(x - size * 0.5, y - size, size, size * 0.4, '#6b83aa');
-    GameContext.drawRect(x - size * 0.38, y - size * 0.64, size * 0.76, size * 0.72, '#8da5ca');
-    GameContext.drawRect(x - size * 0.58, y - size * 0.37, size * 0.2, size * 0.35, '#a9c1dd');
-    GameContext.drawRect(x + size * 0.38, y - size * 0.37, size * 0.2, size * 0.35, '#a9c1dd');
-    GameContext.drawRect(x - size * 0.22, y - size * 0.48, size * 0.1, size * 0.08, '#80fff0');
-    GameContext.drawRect(x + size * 0.12, y - size * 0.48, size * 0.1, size * 0.08, '#80fff0');
+    this.guardianSprite.dimensions.setSize(size * 1.25, size * 1.25);
+    this.guardianSprite.dimensions.setPosition(x, y - size * 0.38);
+    this.guardianSprite.draw();
     this.drawHealthBar(x, y + 12 * scale, 120 * scale, hp / this.guardian.stats.get('maxHp'), '#7ce9dd');
     this.drawLabel(this.guardian.name, x, y + 34 * scale, 12 * scale, '#e4f7ff', 'center', width * 0.46);
   }

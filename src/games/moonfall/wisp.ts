@@ -1,4 +1,5 @@
 import { signalValue, type SignalValue } from 'reactive-values';
+import { GameLoader, Sprite } from '../../engine';
 
 /**
  * A roaming crystal spirit that guards the citadel's exit.
@@ -36,6 +37,14 @@ export default class MoonWisp {
    * @readonly
    */
   private readonly maximumHealth: number;
+
+  /**
+   * Existing phantom enemy atlas used for the spirit's idle animation.
+   * @property {Sprite} sprite
+   * @private
+   * @readonly
+   */
+  private readonly sprite: Sprite;
 
   /**
    * Current horizontal world position.
@@ -86,6 +95,8 @@ export default class MoonWisp {
     this.maximumHealth = health;
     this.x = signalValue(startX);
     this.health = signalValue(health);
+    this.sprite = new Sprite(GameLoader.getImage('phantommorph'), 64, 64, 0, 0, 0.5, 0.5);
+    this.sprite.playAtlasClip(GameLoader.getAtlas('phantommorph').getAnimation('idle'));
   }
 
   /**
@@ -116,6 +127,7 @@ export default class MoonWisp {
    */
   public update(deltaSeconds: number): void {
     if (!this.isAlive) return;
+    this.sprite.update(deltaSeconds);
     let nextX = this.x() + this.direction() * 54 * deltaSeconds;
     if (nextX <= this.minimumX || nextX >= this.maximumX) {
       this.direction.set(-this.direction());
@@ -136,5 +148,20 @@ export default class MoonWisp {
     }
     this.health.set(Math.max(0, this.health() - damage));
     return !this.isAlive;
+  }
+
+  /**
+   * Draws the animated phantom at a screen position and requested size.
+   * @param screenX Horizontal screen coordinate.
+   * @param screenY Vertical screen coordinate.
+   * @param size Rendered width and height.
+   * @public
+   * @return {void}
+   */
+  public drawAt(screenX: number, screenY: number, size: number): void {
+    if (!this.isAlive) return;
+    this.sprite.dimensions.setSize(size, size);
+    this.sprite.dimensions.setPosition(screenX, screenY);
+    this.sprite.draw();
   }
 }

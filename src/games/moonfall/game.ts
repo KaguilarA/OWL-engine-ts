@@ -2,11 +2,14 @@ import { signalValue, type SignalValue } from 'reactive-values';
 import {
   BaseGame,
   Collision2D,
+  GameBackground,
   GameContext,
   GameEvents,
+  GameLoader,
   MathUtils,
   PlatformerController,
   Projectile,
+  Sprite,
   Weapon
 } from '../../engine';
 import type { CollisionRect } from '../../engine';
@@ -32,6 +35,21 @@ export default class MoonfallGame extends BaseGame {
     jumpBufferDuration: 0.14,
     coyoteDuration: 0.12
   });
+
+  /**
+   * Reused platform hero sprite animated through its existing idle and run clips.
+   * @property {Sprite} playerSprite
+   * @private
+   * @readonly
+   */
+  private readonly playerSprite: Sprite;
+
+  /**
+   * Current movement animation assigned to the platform hero.
+   * @property {'idle' | 'run'} activePlayerClip
+   * @private
+   */
+  private activePlayerClip: 'idle' | 'run' = 'idle';
 
   /**
    * Ranged weapon used to defend against the citadel's crystal spirit.
@@ -163,6 +181,8 @@ export default class MoonfallGame extends BaseGame {
     super(onReturnToMenu);
     const width = GameContext.gameDimensionsModel.getWidth();
     this.wisp = new MoonWisp(width * 2.65, width * 2.54, width * 2.78, 5);
+    this.playerSprite = new Sprite(GameLoader.getImage('mario'), 64, 80, 0, 0, 0.5, 1);
+    this.playerSprite.playAtlasClip(GameLoader.getAtlas('mario').getAnimation('idle'));
     this.restartGame();
     this.start();
   }
@@ -197,6 +217,7 @@ export default class MoonfallGame extends BaseGame {
     this.updateJumpInput();
     this.updateDashInput(deltaSeconds, width);
     this.advanceController(deltaSeconds, horizontal);
+    this.updatePlayerAnimation(deltaSeconds, horizontal);
     const drawingScale = MathUtils.clamp(Math.min(width, height) / 720, 0.58, 1.15);
     this.updateWispAndProjectiles(deltaSeconds, playerWidth, playerHeight, floor, height, drawingScale);
     this.resolvePlatforms(previousY, playerWidth, playerHeight, floor, width, height);
@@ -220,14 +241,19 @@ export default class MoonfallGame extends BaseGame {
     const cameraX = MathUtils.clamp(this.controller.body.x() - width * 0.42, 0, worldWidth - width);
     const floor = height * 0.82;
     GameContext.clear();
-    this.drawSky(width, height, cameraX, scale);
+    GameBackground.draw(
+      GameLoader.getImage('background1080x1920'),
+      GameLoader.getImage('background1920x1080'),
+      'rgba(12, 16, 38, 0.50)'
+    );
+    this.drawSky(width, height);
     this.drawTerrain(width, height, cameraX, floor);
     this.drawPlatforms(width, height, cameraX);
     this.drawMoonShard(width, height, cameraX, scale);
     this.drawGate(width, height, cameraX, floor, scale);
     this.drawWisp(width, height, cameraX, floor, scale);
     this.drawProjectiles(cameraX, scale);
-    this.drawExplorer(height, cameraX, scale);
+    this.drawExplorer(height, cameraX);
     this.drawHud(width, height, cameraX, scale);
     if (this.isGameOver) this.drawEnding(width, height, scale);
   }
@@ -245,6 +271,8 @@ export default class MoonfallGame extends BaseGame {
     this.controller.body.setPosition(width * 0.08, floor - playerWidth * 1.55);
     this.controller.body.stop();
     this.controller.grounded.set(true);
+    this.activePlayerClip = 'idle';
+    this.playerSprite.playAtlasClip(GameLoader.getAtlas('mario').getAnimation('idle'));
     this.hearts.set(3);
     this.hasDash.set(false);
     this.gateOpen.set(false);
@@ -340,6 +368,22 @@ export default class MoonfallGame extends BaseGame {
       this.controller.body.x.set(this.controller.body.x() + this.facing() * 500 * deltaSeconds);
       this.controller.body.velocityX.set(this.facing() * 760);
     }
+  }
+
+  /**
+   * Updates the reused platform character's animation from current movement.
+   * @param deltaSeconds Duration of the frame in seconds.
+   * @param horizontal Horizontal input.
+   * @private
+   * @return {void}
+   */
+  private updatePlayerAnimation(deltaSeconds: number, horizontal: number): void {
+    const nextClip = horizontal === 0 && this.dashRemaining() === 0 ? 'idle' : 'run';
+    if (this.activePlayerClip !== nextClip) {
+      this.playerSprite.playAtlasClip(GameLoader.getAtlas('mario').getAnimation(nextClip));
+      this.activePlayerClip = nextClip;
+    }
+    this.playerSprite.update(deltaSeconds);
   }
 
   /**
@@ -540,24 +584,14 @@ export default class MoonfallGame extends BaseGame {
   }
 
   /**
-   * Paints the night sky and parallax stars behind the level.
+   * Adds a translucent atmosphere over the existing space background.
    * @param width Canvas width.
    * @param height Canvas height.
-   * @param cameraX Camera offset.
-   * @param scale Responsive drawing scale.
    * @private
    * @return {void}
    */
-  private drawSky(width: number, height: number, cameraX: number, scale: number): void {
-    GameContext.drawRect(0, 0, width, height, '#11172d');
-    GameContext.drawRect(0, height * 0.12, width, height * 0.62, '#202b4b');
-    for (let index = 0; index < 32; index++) {
-      const worldX = (index * 127 + 44) % (width * ROOM_NAMES.length);
-      const screenX = worldX - cameraX * 0.32;
-      if (screenX < -4 || screenX > width + 4) continue;
-      const starY = height * (0.13 + (index * 37 % 44) / 100);
-      GameContext.drawCircle(screenX, starY, (index % 3 + 1) * scale, '#b8d7ff');
-    }
+  private drawSky(width: number, height: number): void {
+    GameContext.drawRect(0, 0, width, height * 0.72, 'rgba(24, 31, 57, 0.22)');
   }
 
   /**
@@ -653,10 +687,7 @@ export default class MoonfallGame extends BaseGame {
     const x = this.wisp.x() - cameraX;
     const y = floor - playerHeight * 0.68 - height * 0.015;
     if (x < -40 || x > width + 40) return;
-    GameContext.drawCircle(x, y, 25 * scale, 'rgba(142, 111, 235, 0.22)');
-    GameContext.drawCircle(x, y, 17 * scale, '#a98aef');
-    GameContext.drawRect(x - 12 * scale, y - 3 * scale, 7 * scale, 4 * scale, '#f2f1ff');
-    GameContext.drawRect(x + 5 * scale, y - 3 * scale, 7 * scale, 4 * scale, '#f2f1ff');
+    this.wisp.drawAt(x, y, 58 * scale);
     GameContext.drawRect(x - 21 * scale, y - 31 * scale, 42 * scale, 4 * scale, '#1a1930');
     GameContext.drawRect(x - 21 * scale, y - 31 * scale,
       42 * scale * this.wisp.health() / 5, 4 * scale, '#d7a4ff');
@@ -679,14 +710,12 @@ export default class MoonfallGame extends BaseGame {
 
   /**
    * Draws the explorer and the active dash trail.
-   * @param width Canvas width.
    * @param height Canvas height.
    * @param cameraX Camera offset.
-   * @param scale Responsive drawing scale.
    * @private
    * @return {void}
    */
-  private drawExplorer(height: number, cameraX: number, scale: number): void {
+  private drawExplorer(height: number, cameraX: number): void {
     const playerWidth = Math.max(28, height * 0.055);
     const playerHeight = playerWidth * 1.55;
     const x = this.controller.body.x() - cameraX;
@@ -695,12 +724,10 @@ export default class MoonfallGame extends BaseGame {
       GameContext.drawRect(x - this.facing() * playerWidth * 1.2, y + playerHeight * 0.4,
         playerWidth * 1.4, playerHeight * 0.22, 'rgba(124, 248, 233, 0.65)');
     }
-    GameContext.drawRect(x + playerWidth * 0.18, y + playerHeight * 0.4,
-      playerWidth * 0.64, playerHeight * 0.6, '#c7d6e8');
-    GameContext.drawRect(x + playerWidth * 0.12, y + playerHeight * 0.08,
-      playerWidth * 0.76, playerHeight * 0.4, '#6e9fba');
-    GameContext.drawRect(x + (this.facing() > 0 ? playerWidth * 0.62 : playerWidth * 0.25),
-      y + playerHeight * 0.22, 4 * scale, 4 * scale, '#eafff6');
+    this.playerSprite.dimensions.setSize(playerWidth * 1.15, playerHeight);
+    this.playerSprite.dimensions.setPosition(x + playerWidth * 0.5, y + playerHeight);
+    this.playerSprite.dimensions.setScale(this.facing(), 1);
+    this.playerSprite.draw();
   }
 
   /**
