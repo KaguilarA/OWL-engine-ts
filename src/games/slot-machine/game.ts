@@ -10,6 +10,7 @@ import {
   Label,
   MathUtils,
   NumberLabel,
+  CasinoBankroll,
   ReelBank,
   Texture,
 } from '../../engine';
@@ -47,7 +48,20 @@ export class SlotMachineGame extends BaseGame {
    * @private
    * @readonly
    */
-  private readonly credits = signalValue(100);
+  /**
+   * Owns the available credits and current spin wager.
+   * @property {CasinoBankroll} bankroll
+   * @private
+   * @readonly
+   */
+  private readonly bankroll = new CasinoBankroll(100);
+  /**
+   * Exposes bankroll credits to the existing reactive interface.
+   * @property {SignalValue<number>} credits
+   * @private
+   * @readonly
+   */
+  private get credits() { return this.bankroll.credits; }
   /**
    * Defines the fixed credit cost of each spin.
    * @property {number} bet
@@ -292,7 +306,7 @@ export class SlotMachineGame extends BaseGame {
    * @return {void}
    */
   protected restartGame(): void {
-    this.credits.set(100);
+    this.bankroll.reset(100);
     this.spinning.set(false);
     this.stopRequested.set(false);
     this.spaceWasPressed.set(false);
@@ -314,9 +328,7 @@ export class SlotMachineGame extends BaseGame {
       }
       return;
     }
-    if (this.credits() < this.bet) return;
-
-    this.credits.set(this.credits() - this.bet);
+    if (!this.bankroll.placeWager(this.bet)) return;
     this.spinning.set(true);
     this.stopRequested.set(false);
     this.message.set('GOOD LUCK!');
@@ -336,16 +348,16 @@ export class SlotMachineGame extends BaseGame {
     if (first === second && second === third) {
       this.startWinningAnimation(first, [0, 1, 2]);
       const multiplier = first === ALIEN_SYMBOLS.length - 1 ? 10 : 5;
-      const payout = this.bet * multiplier;
-      this.credits.set(this.credits() + payout);
+      const payout = this.bankroll.settle(multiplier);
       this.message.set(first === ALIEN_SYMBOLS.length - 1 ? `JACKPOT! +${payout}` : `THREE MATCH! +${payout}`);
     } else if (first === second || second === third) {
       const symbol = first === second ? first : second;
       const reelIndices = first === second ? [0, 1] : [1, 2];
       this.startWinningAnimation(symbol, reelIndices);
-      this.credits.set(this.credits() + this.bet * 2);
-      this.message.set(`PAIR! +${this.bet * 2}`);
+      const payout = this.bankroll.settle(2);
+      this.message.set(`PAIR! +${payout}`);
     } else {
+      this.bankroll.settle(0);
       this.message.set('NO MATCH — TRY AGAIN');
     }
   }

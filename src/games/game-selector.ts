@@ -23,6 +23,8 @@ import { Game as SpaceHuntersGame } from './space-hunters/game';
 import { SlotMachineGame } from './slot-machine/game';
 import { SpacePatternsGame } from './space-patterns/game';
 import { TankFrontierGame } from './tank-frontier';
+import CrystalOathGame from './crystal-oath/game';
+import MoonfallGame from './moonfall/game';
 
 import type { GameChoice } from './interfaces/game-choice';
 
@@ -95,6 +97,16 @@ export class GameSelector {
       title: 'MEADOW QUEST',
       description: 'AN ORIGINAL SIDE-SCROLLING PLATFORM ADVENTURE',
       start: (onReturnToMenu) => { new MeadowQuestGame(onReturnToMenu); }
+    },
+    {
+      title: 'CRYSTAL OATH',
+      description: 'EXPLORE, FIND THE SUN CRYSTAL, DEFEAT THE WARDEN',
+      start: (onReturnToMenu) => { new CrystalOathGame(onReturnToMenu); }
+    },
+    {
+      title: 'MOONFALL',
+      description: 'A METROIDVANIA THROUGH A SUNKEN CITADEL',
+      start: (onReturnToMenu) => { new MoonfallGame(onReturnToMenu); }
     }
   ];
   private readonly choicesContainer = new Container({ width: 0, height: 0, clipChildren: true, scrollable: true });

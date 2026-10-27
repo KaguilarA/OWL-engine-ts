@@ -5,6 +5,7 @@ import {
   GameContext,
   GameEvents,
   GameLoader,
+  WeightedTable,
   type GamePointer
 } from '../../engine';
 
@@ -20,6 +21,16 @@ const WIN_ANIMATION_DURATION = 2;
 
 /** Coordinates scratch-card rules and rendering through the shared game lifecycle. */
 export class ScratchCardGame extends BaseGame {
+  /**
+   * Selects whether a newly generated card contains a winning match.
+   * @property {WeightedTable<boolean>} winOutcome
+   * @private
+   * @readonly
+   */
+  private readonly winOutcome = new WeightedTable([
+    { value: true, weight: 35 },
+    { value: false, weight: 65 }
+  ] as const);
   private readonly icons = signalValue<readonly ScratchIcon[]>([]);
   private readonly scratchSurface = new ScratchSurface(() => this.getCardBounds());
   private readonly revealed = this.scratchSurface.revealed;
@@ -126,7 +137,7 @@ export class ScratchCardGame extends BaseGame {
 
   private createCardSymbols(): readonly string[] {
     const first = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-    if (Math.random() < 0.35) return [first, first, first];
+    if (this.winOutcome.draw()) return [first, first, first];
     return [
       first,
       SYMBOLS[(SYMBOLS.indexOf(first) + 1) % SYMBOLS.length],

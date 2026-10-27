@@ -3,7 +3,9 @@ import {
   GameEvents,
   GameContext,
   Collision2D,
-  TouchControls
+  TouchControls,
+  PlatformerController,
+  QuestLog
 } from '../../engine';
 
 import { createLevel, type Coin, type Platform } from './level';
@@ -13,6 +15,20 @@ import { PlatformerRenderer } from './renderer';
 export class MeadowQuestGame extends BaseGame {
   private readonly touchControls = new TouchControls({ showVerticalControls: false });
   private readonly renderer = new PlatformerRenderer();
+  /**
+   * Applies platform movement, gravity, buffered jumps, and coyote time.
+   * @property {PlatformerController} playerController
+   * @private
+   * @readonly
+   */
+  private readonly playerController = new PlatformerController();
+  /**
+   * Tracks the collectible objective for the current run.
+   * @property {QuestLog} questLog
+   * @private
+   * @readonly
+   */
+  private readonly questLog = new QuestLog();
   private readonly worldWidth = 3600;
   private platforms: Platform[] = [];
   private coins: Coin[] = [];
@@ -49,19 +65,18 @@ export class MeadowQuestGame extends BaseGame {
     const left = GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a');
     const right = GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d');
     const jump = GameEvents.isKeyPressed(' ') || GameEvents.isKeyPressed('ArrowUp') || GameEvents.isKeyPressed('w');
-    const speed = Math.min(320, viewport.getWidth() * 0.7);
     this.velocityX = (right ? 1 : 0) - (left ? 1 : 0);
     if (this.velocityX !== 0) this.facing = Math.sign(this.velocityX);
-    this.playerX = Math.max(18, Math.min(this.worldWidth - 100, this.playerX + this.velocityX * speed * deltaSeconds));
-
-    if (jump && !this.jumpWasPressed && this.grounded) {
-      this.velocityY = -Math.max(470, height * 1.08);
-      this.grounded = false;
-    }
+    if (jump && !this.jumpWasPressed) this.playerController.requestJump();
     this.jumpWasPressed = jump;
-    this.velocityY += Math.max(1250, height * 2.9) * deltaSeconds;
+    this.playerController.body.x.set(this.playerX);
+    this.playerController.body.y.set(this.playerY);
+    this.playerController.body.velocityY.set(this.velocityY);
+    this.playerController.update(deltaSeconds, this.velocityX, this.grounded);
+    this.velocityY = this.playerController.body.velocityY();
     const previousY = this.playerY;
-    this.playerY += this.velocityY * deltaSeconds;
+    this.playerY = this.playerController.body.y();
+    this.playerX = Math.max(18, Math.min(this.worldWidth - 100, this.playerController.body.x()));
     this.grounded = false;
 
     const playerW = Math.max(25, height * 0.045);
@@ -89,6 +104,9 @@ export class MeadowQuestGame extends BaseGame {
         this.grounded = true;
       }
     }
+    this.playerController.body.x.set(this.playerX);
+    this.playerController.body.y.set(this.playerY);
+    this.playerController.body.velocityY.set(this.velocityY);
 
     this.enemyX += this.enemyDirection * 95 * deltaSeconds;
     if (this.enemyX < 760 || this.enemyX > 1050) this.enemyDirection *= -1;
@@ -106,6 +124,7 @@ export class MeadowQuestGame extends BaseGame {
         && Math.abs(this.playerY + playerH / 2 - coin.y) < playerH) {
         coin.collected = true;
         this.score += 50;
+        this.questLog.advance('collect-meadow-coins', 0);
       }
     });
     if (this.playerY > height + 100) this.loseLife();
@@ -135,10 +154,16 @@ export class MeadowQuestGame extends BaseGame {
     const level = createLevel(height, this.worldWidth);
     this.platforms = level.platforms;
     this.coins = level.coins;
+    this.questLog.abandon('collect-meadow-coins');
+    this.questLog.start('collect-meadow-coins', [Math.max(1, this.coins.length)]);
     this.playerX = 90;
     this.playerY = height * 0.79 - Math.max(25, height * 0.045) * 1.35;
     this.velocityX = 0;
     this.velocityY = 0;
+    this.playerController.body.x.set(this.playerX);
+    this.playerController.body.y.set(this.playerY);
+    this.playerController.body.velocityX.set(0);
+    this.playerController.body.velocityY.set(0);
     this.grounded = true;
     this.jumpWasPressed = false;
     this.facing = 1;
@@ -157,6 +182,10 @@ export class MeadowQuestGame extends BaseGame {
     this.playerX = Math.max(20, this.playerX - 110);
     this.playerY = GameContext.gameDimensionsModel.getHeight() * 0.79 - Math.max(25, GameContext.gameDimensionsModel.getHeight() * 0.045) * 1.35;
     this.velocityY = 0;
+    this.playerController.body.x.set(this.playerX);
+    this.playerController.body.y.set(this.playerY);
+    this.playerController.body.velocityX.set(0);
+    this.playerController.body.velocityY.set(0);
     this.cameraX = Math.max(0, this.playerX - GameContext.gameDimensionsModel.getWidth() * 0.36);
   }
 

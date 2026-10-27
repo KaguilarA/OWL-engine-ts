@@ -4,7 +4,8 @@ import {
   GameEvents,
   GameLoader,
   MathUtils,
-  Sprite
+  Sprite,
+  TopDownController
 } from '../../engine';
 
 import { oppositePolarity, type Polarity } from './polarity';
@@ -32,6 +33,13 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
    * @private
    */
   private bottomMargin = 32;
+  /**
+   * Applies acceleration-based eight-direction ship movement.
+   * @property {TopDownController} movement
+   * @private
+   * @readonly
+   */
+  private readonly movement = new TopDownController(0, 0, { maxSpeed: 280 });
 
   /**
    * Returns the polarity currently used to absorb or match projectiles.
@@ -94,6 +102,10 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
       dimensions.getWidth() * 0.5,
       dimensions.getHeight() - this.height * 0.5 - this.bottomMargin
     );
+    this.movement.body.x.set(this.x);
+    this.movement.body.y.set(this.y);
+    this.movement.body.velocityX.set(0);
+    this.movement.body.velocityY.set(0);
     this.syncJetsToShip();
     this.polarity = 'light';
   }
@@ -119,7 +131,6 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
   public update(deltaSeconds: number): void {
     this.updateSize();
     const dimensions = GameContext.gameDimensionsModel;
-    const speed = 280;
     const horizontal = (
       Number(GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d'))
       - Number(GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a'))
@@ -128,23 +139,21 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
       Number(GameEvents.isKeyPressed('ArrowDown') || GameEvents.isKeyPressed('s'))
       - Number(GameEvents.isKeyPressed('ArrowUp') || GameEvents.isKeyPressed('w'))
     );
-    this.advanceMovement(
-      deltaSeconds,
-      horizontal * speed,
-      vertical * speed
-    );
+    this.movement.body.x.set(this.x);
+    this.movement.body.y.set(this.y);
+    this.movement.update(deltaSeconds, horizontal, vertical);
     const x = Math.max(
       this.width * 0.5,
       Math.min(
         dimensions.getWidth() - this.width * 0.5,
-        this.x
+        this.movement.body.x()
       )
     );
     const y = Math.max(
       dimensions.getHeight() * 0.45,
       Math.min(
         dimensions.getHeight() - this.height * 0.5 - this.bottomMargin,
-        this.y
+          this.movement.body.y()
       )
     );
     this.updateSprite(deltaSeconds);
@@ -160,6 +169,8 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
 
     this.polarityKeyWasPressed = polarityKeyPressed;
     this.setPosition(x, y);
+    this.movement.body.x.set(x);
+    this.movement.body.y.set(y);
     this.syncJetsToShip();
   }
 }

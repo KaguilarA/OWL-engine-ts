@@ -1,4 +1,4 @@
-import { signalValue, type SignalValue } from 'reactive-values';
+import { GridBoard } from '../../engine';
 
 import type { BoardCell } from './interfaces/board-cell';
 import type { PatternFall } from './interfaces/pattern-fall';
@@ -16,7 +16,7 @@ export class PatternBoard {
    * @private
    * @readonly
    */
-  private readonly cells: SignalValue<number[][]>;
+  private readonly grid: GridBoard<number>;
   /**
    * Stores the columns state.
    * @property {number} columns
@@ -48,12 +48,7 @@ export class PatternBoard {
     this.columns = columns;
     this.rows = rows;
     this.patternCount = patternCount;
-    this.cells = signalValue(
-      Array.from(
-        { length: rows },
-        () => Array.from({ length: columns }, () => EMPTY_CELL)
-      )
-    );
+    this.grid = new GridBoard(columns, rows);
     this.reset();
   }
 
@@ -63,7 +58,7 @@ export class PatternBoard {
    * @return {number}
    */
   public get(cell: BoardCell): number {
-    return this.cells()[cell.row][cell.column];
+    return this.grid.get(cell.column, cell.row) ?? EMPTY_CELL;
   }
 
   /**
@@ -81,7 +76,7 @@ export class PatternBoard {
         cells[row][column] = this.createPattern(row, column, cells);
       }
     }
-    this.cells.set(cells);
+    this.setCells(cells);
   }
 
   /**
@@ -92,7 +87,7 @@ export class PatternBoard {
   public trySwap(first: BoardCell, second: BoardCell): BoardCell[] | undefined {
     if (!this.areAdjacent(first, second)) return undefined;
 
-    const cells = this.cells().map((row) => [...row]);
+    const cells = this.getCells();
     this.swap(first, second, cells);
     const matches = this.findMatches(cells);
     if (matches.size === 0) {
@@ -100,7 +95,7 @@ export class PatternBoard {
       return undefined;
     }
 
-    this.cells.set(cells);
+    this.setCells(cells);
     return this.toCells(matches);
   }
 
@@ -110,7 +105,7 @@ export class PatternBoard {
    * @return {BoardCell[]}
    */
   public findCurrentMatches(): BoardCell[] {
-    return this.toCells(this.findMatches(this.cells()));
+    return this.toCells(this.findMatches(this.getCells()));
   }
 
   /**
@@ -121,7 +116,7 @@ export class PatternBoard {
    * @return {PatternFall[]} Movements for surviving and newly created patterns.
    */
   public collapse(matches: readonly BoardCell[]): PatternFall[] {
-    const cells = this.cells().map((row) => [...row]);
+    const cells = this.getCells();
     matches.forEach((cell) => {
       cells[cell.row][cell.column] = EMPTY_CELL;
     });
@@ -162,7 +157,7 @@ export class PatternBoard {
       }
     }
 
-    this.cells.set(nextCells);
+    this.setCells(nextCells);
     return falls;
   }
 
@@ -345,5 +340,26 @@ export class PatternBoard {
    */
   private toCells(matches: Set<string>): BoardCell[] {
     return [...matches].map((key) => this.parseCellKey(key));
+  }
+
+  /**
+   * Copies reactive grid cells into the matrix used by match resolution.
+   * @private
+   * @return {number[][]}
+   */
+  private getCells(): number[][] {
+    return Array.from({ length: this.rows }, (_, row) => (
+      Array.from({ length: this.columns }, (_, column) => this.get({ row, column }))
+    ));
+  }
+
+  /**
+   * Replaces the reactive grid contents from a row-based board matrix.
+   * @param cells Matrix containing each row's pattern indices.
+   * @private
+   * @return {void}
+   */
+  private setCells(cells: number[][]): void {
+    this.grid.cells.set(cells.flat());
   }
 }

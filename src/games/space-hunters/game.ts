@@ -7,6 +7,7 @@ import {
   GameBackground,
   GameContext,
   GameEvents,
+  Weapon,
   GameLoader,
   MathUtils,
   TouchControls
@@ -167,7 +168,13 @@ export class Game extends BaseGame {
    * @property {number} shootCooldown
    * @private
    */
-  private shootCooldown = 0;
+  /**
+   * Controls the player's firing cadence.
+   * @property {Weapon} playerWeapon
+   * @private
+   * @readonly
+   */
+  private readonly playerWeapon = new Weapon(0.22);
 
   /**
    * Initializes the player, first enemy wave, projectiles, and controls.
@@ -566,13 +573,12 @@ export class Game extends BaseGame {
    * @return {void}
    */
   private updatePlayerShooting(deltaSeconds: number): void {
-    this.shootCooldown -= deltaSeconds;
+    this.playerWeapon.update(deltaSeconds);
 
     const wantsToShoot = GameEvents.isKeyPressed(' ');
 
-    if (wantsToShoot && this.shootCooldown <= 0) {
+    if (wantsToShoot && this.playerWeapon.tryFire()) {
       this.shootProjectile();
-      this.shootCooldown = 0.22;
     }
   }
 
