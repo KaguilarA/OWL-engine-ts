@@ -11,6 +11,14 @@ type WheelListener = (pointer: GamePointer, deltaY: number) => boolean;
  */
 class Events {
   /**
+   * The single input event service shared by engine clients.
+   * @property {Events} instance
+   * @public
+   * @readonly
+   */
+  public static readonly instance = new Events();
+
+  /**
    * Stores the keys state.
    * @property {Set<string>} keys
    * @private
@@ -157,7 +165,12 @@ class Events {
    * @public
    * @return {void}
    */
-  constructor() {
+  /**
+   * Creates the shared input event service.
+   * @private
+   * @return {void}
+   */
+  private constructor() {
     this.initEvents();
   }
 
@@ -351,6 +364,4 @@ class Events {
   }
 }
 
-const GameEvents = new Events();
-
-export default GameEvents;
+export default Events.instance;
