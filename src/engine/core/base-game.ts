@@ -28,8 +28,19 @@ type LabelRenderState = {
  * @abstract
  */
 export default abstract class BaseGame {
-  /** Scene graph available to games that use the world APIs. */
+  /**
+   * Scene graph available to games that use the world APIs.
+   * @property {WorldScene} worldScene
+   * @protected
+   * @readonly
+   */
   protected readonly worldScene = new WorldScene();
+  /**
+   * Default layer for actors updated by the game loop.
+   * @property {SceneLayer} worldActors
+   * @protected
+   * @readonly
+   */
   protected readonly worldActors = new SceneLayer({ name: 'Actors', updateObjects: false });
   /**
    * Shared game controls.
@@ -73,13 +84,31 @@ export default abstract class BaseGame {
    * @private
    */
   private readonly cleanups: Array<() => void> = [];
-  /** @property {number | undefined} pendingViewportLayout @private */
+  /**
+   * Pending debounced viewport layout callback.
+   * @property {number | undefined} pendingViewportLayout
+   * @private
+   */
   private pendingViewportLayout: number | undefined;
-  /** @property {Map<number, Label>} labels @private */
+  /**
+   * Reusable labels indexed by their draw order.
+   * @property {Map<number, Label>} labels
+   * @private
+   * @readonly
+   */
   private readonly labels = new Map<number, Label>();
-  /** @property {LabelRenderState[]} labelRenderStates @private */
+  /**
+   * Cached render properties for each reusable label.
+   * @property {LabelRenderState[]} labelRenderStates
+   * @private
+   * @readonly
+   */
   private readonly labelRenderStates: LabelRenderState[] = [];
-  /** @property {number} labelCursor @private */
+  /**
+   * Current label draw-order slot.
+   * @property {number} labelCursor
+   * @private
+   */
   private labelCursor = 0;
 
   /**
@@ -145,7 +174,11 @@ export default abstract class BaseGame {
    */
   protected abstract get isGameOver(): boolean;
 
-  /** Draws the engine world at the chosen point in the game's render order. */
+  /**
+   * Draws the engine world at the chosen point in the game's render order.
+   * @protected
+   * @return {void}
+   */
   protected drawWorldScene(): void {
     this.worldScene.draw();
   }
@@ -197,33 +230,53 @@ export default abstract class BaseGame {
 
     const deltaSeconds = MathUtils.clamp((time - this.lastFrameTime()) / 1000, 0, 0.05);
     this.lastFrameTime.set(time);
-    const viewportWidth = GameContext.viewportWidth();
-    const viewportHeight = GameContext.viewportHeight();
+    this.syncViewport();
+    this.updateFrame(deltaSeconds);
+    this.drawFrame();
+    requestAnimationFrame(this.gameLoop);
+  };
 
-    if (
-      viewportWidth !== this.viewportWidth()
-      || viewportHeight !== this.viewportHeight()
-    ) {
-      this.viewportWidth.set(viewportWidth);
-      this.viewportHeight.set(viewportHeight);
-      this.scheduleViewportLayout();
-    }
+  /**
+   * Synchronizes the game viewport and coalesces resize callbacks.
+   * @private
+   * @return {void}
+   */
+  private syncViewport(): void {
+    const width = GameContext.viewportWidth();
+    const height = GameContext.viewportHeight();
+    if (width === this.viewportWidth() && height === this.viewportHeight()) return;
+    this.viewportWidth.set(width);
+    this.viewportHeight.set(height);
+    this.scheduleViewportLayout();
+  }
 
-    if (!this.controls.isPaused && !this.isGameOver) {
-      this.updateGame(deltaSeconds);
-      this.worldScene.update(deltaSeconds);
-    }
+  /**
+   * Advances game and scene state when the game is active.
+   * @private
+   * @param {number} deltaSeconds Duration of the frame in seconds.
+   * @return {void}
+   */
+  private updateFrame(deltaSeconds: number): void {
+    if (this.controls.isPaused || this.isGameOver) return;
+    this.updateGame(deltaSeconds);
+    this.worldScene.update(deltaSeconds);
+  }
 
+  /**
+   * Draws the game and the shared controls in lifecycle order.
+   * @private
+   * @return {void}
+   */
+  private drawFrame(): void {
     this.labelCursor = 0;
     this.drawGame();
     if (this.isGameOver) {
       this.drawEndActions();
       this.controls.drawFullscreenOnly();
-    } else {
-      this.controls.draw();
+      return;
     }
-    requestAnimationFrame(this.gameLoop);
-  };
+    this.controls.draw();
+  }
 
   /**
    * Draws a cached Label in the same anchor position and size used by the
@@ -241,72 +294,145 @@ export default abstract class BaseGame {
     maxWidth?: number
   ): void {
     const index = this.labelCursor++;
-    let label = this.labels.get(index);
     const width = maxWidth !== undefined && maxWidth > 0 ? maxWidth : 0;
     const pivotX = align === 'center' ? 0.5 : align === 'right' ? 1 : 0;
+    const state = this.getLabelRenderState(index, align, fontSize);
+    const fittedFontSize = this.fitLabelFontSize(state, text, fontSize, width);
+    const label = this.getOrCreateLabel(index, text, x, y, width, fittedFontSize, color, align, pivotX);
+    this.updateLabel(label, state, text, x, y, fontSize, width, fittedFontSize, color, align, pivotX);
+    label.draw();
+  }
+
+  /**
+   * Returns or initializes the cached render state for a label slot.
+   * @private
+   * @param {number} index Label draw-order slot.
+   * @param {CanvasTextAlign} align Horizontal text alignment.
+   * @param {number} fontSize Requested font size.
+   * @return {LabelRenderState}
+   */
+  private getLabelRenderState(index: number, align: CanvasTextAlign, fontSize: number): LabelRenderState {
     let state = this.labelRenderStates[index];
-    if (state === undefined) {
-      state = { text: '', fontSize: -1, fittedFontSize: fontSize, width: -1, color: '', align, x: NaN, y: NaN };
-      this.labelRenderStates[index] = state;
-    }
-    const fitChanged = state.text !== text || state.fontSize !== fontSize || state.width !== width;
-    let fittedFontSize = state.fittedFontSize;
-    if (fitChanged) {
-      fittedFontSize = fontSize;
-    }
-    if (fitChanged && width > 0) {
-      const context = GameContext.context;
-      context.save();
+    if (state !== undefined) return state;
+    state = { text: '', fontSize: -1, fittedFontSize: fontSize, width: -1, color: '', align, x: NaN, y: NaN };
+    this.labelRenderStates[index] = state;
+    return state;
+  }
+
+  /**
+   * Calculates a fitted font size only when text or width inputs change.
+   * @private
+   * @param {LabelRenderState} state Cached label render state.
+   * @param {string} text Text to measure.
+   * @param {number} fontSize Requested font size.
+   * @param {number} width Available label width.
+   * @return {number}
+   */
+  private fitLabelFontSize(state: LabelRenderState, text: string, fontSize: number, width: number): number {
+    if (state.text === text && state.fontSize === fontSize && state.width === width) return state.fittedFontSize;
+    if (width <= 0) return fontSize;
+    const context = GameContext.context;
+    context.save();
+    let measuredWidth: number;
+    try {
       context.font = `${fontSize}px sans-serif`;
-      const measuredWidth = context.measureText(text).width;
+      measuredWidth = context.measureText(text).width;
+    } finally {
       context.restore();
-      if (measuredWidth > width) {
-        fittedFontSize = Math.max(9, Math.floor(fontSize * width / measuredWidth));
-      }
     }
-    const textChanged = state.text !== text;
-    const styleChanged = state.fittedFontSize !== fittedFontSize || state.color !== color || state.align !== align;
-    const positionChanged = state.x !== x || state.y !== y;
-    const pivotChanged = state.align !== align;
+    return measuredWidth > width ? Math.max(9, Math.floor(fontSize * width / measuredWidth)) : fontSize;
+  }
 
-    if (label === undefined) {
-      label = new Label(text, {
-        width,
-        height: Math.max(12, fittedFontSize * 1.4),
-        x,
-        y,
-        pivotX,
-        pivotY: 0,
-        fontSize: fittedFontSize,
-        color,
-        align,
-        baseline: 'alphabetic'
-      });
-      this.labels.set(index, label);
-    }
+  /**
+   * Creates and stores a label the first time its draw slot is used.
+   * @private
+   * @param {number} index Label draw-order slot.
+   * @param {string} text Label contents.
+   * @param {number} x Horizontal label position.
+   * @param {number} y Vertical label position.
+   * @param {number} width Label width.
+   * @param {number} fontSize Fitted font size.
+   * @param {string} color Label color.
+   * @param {CanvasTextAlign} align Horizontal text alignment.
+   * @param {number} pivotX Horizontal label pivot.
+   * @return {Label}
+   */
+  private getOrCreateLabel(
+    index: number,
+    text: string,
+    x: number,
+    y: number,
+    width: number,
+    fontSize: number,
+    color: string,
+    align: CanvasTextAlign,
+    pivotX: number
+  ): Label {
+    let label = this.labels.get(index);
+    if (label !== undefined) return label;
+    label = new Label(text, {
+      width,
+      height: Math.max(12, fontSize * 1.4),
+      x,
+      y,
+      pivotX,
+      pivotY: 0,
+      fontSize,
+      color,
+      align,
+      baseline: 'alphabetic'
+    });
+    this.labels.set(index, label);
+    return label;
+  }
 
-    if (textChanged) label.setText(text);
-    if (styleChanged) {
+  /**
+   * Updates only the label properties whose cached values changed.
+   * @private
+   * @param {Label} label Label to update.
+   * @param {LabelRenderState} state Cached label render state.
+   * @param {string} text Label contents.
+   * @param {number} x Horizontal label position.
+   * @param {number} y Vertical label position.
+   * @param {number} fontSize Requested font size.
+   * @param {number} width Label width.
+   * @param {number} fittedFontSize Fitted font size.
+   * @param {string} color Label color.
+   * @param {CanvasTextAlign} align Horizontal text alignment.
+   * @param {number} pivotX Horizontal label pivot.
+   * @return {void}
+   */
+  private updateLabel(
+    label: Label,
+    state: LabelRenderState,
+    text: string,
+    x: number,
+    y: number,
+    fontSize: number,
+    width: number,
+    fittedFontSize: number,
+    color: string,
+    align: CanvasTextAlign,
+    pivotX: number
+  ): void {
+    if (state.text !== text) label.setText(text);
+    if (state.fittedFontSize !== fittedFontSize || state.color !== color || state.align !== align) {
       label.setStyle({ fontSize: fittedFontSize, color, align, baseline: 'alphabetic' });
     }
-    if (positionChanged) label.dimensions.setPosition(x, y);
+    if (state.x !== x || state.y !== y) label.dimensions.setPosition(x, y);
     const height = Math.max(12, fittedFontSize * 1.4);
     if (label.dimensions.getWidth() !== width || label.dimensions.getHeight() !== height) {
       label.dimensions.setSize(width, height);
     }
-    if (pivotChanged) label.dimensions.setPivot(pivotX, 0);
-    state.text = text;
-    state.fontSize = fontSize;
-    state.fittedFontSize = fittedFontSize;
-    state.width = width;
-    state.color = color;
-    state.align = align;
-    state.x = x;
-    state.y = y;
-    label.draw();
+    if (state.align !== align) label.dimensions.setPivot(pivotX, 0);
+    Object.assign(state, { text, fontSize, fittedFontSize, width, color, align, x, y });
   }
 
-  /** Coalesces viewport hooks until a resize gesture settles. */
+  /**
+   * Coalesces viewport hooks until a resize gesture settles.
+   * @private
+   * @return {void}
+   */
   private scheduleViewportLayout(): void {
     if (this.pendingViewportLayout !== undefined) {
       window.clearTimeout(this.pendingViewportLayout);

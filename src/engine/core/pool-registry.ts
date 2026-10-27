@@ -7,12 +7,27 @@ import type { Poolable } from '../interfaces/poolable';
  */
 class PoolRegistry {
   /**
+   * The single registry for engine-wide object pools.
+   * @property {PoolRegistry} instance
+   * @public
+   * @readonly
+   */
+  public static readonly instance = new PoolRegistry();
+
+  /**
    * Stores registered pools by name.
    * @property {Map<string, ObjectPool<any>>} pools
    * @private
    * @readonly
    */
   private readonly pools = new Map<string, ObjectPool<any>>();
+
+  /**
+   * Creates the shared object pool registry.
+   * @private
+   * @return {void}
+   */
+  private constructor() {}
 
   /**
    * Registers a named object pool.
@@ -54,4 +69,4 @@ class PoolRegistry {
   }
 }
 
-export default new PoolRegistry();
+export default PoolRegistry.instance;

@@ -7,13 +7,6 @@ import Dimensions from './dimensions';
  */
 class Context {
   /**
-   * Canvas element owned by this engine context.
-   * @property {HTMLCanvasElement} canvas
-   * @public
-   * @readonly
-   */
-  public readonly canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-  /**
    * Stores the dimensions state.
    * @property {Dimensions} dimensions
    * @private
@@ -53,6 +46,13 @@ class Context {
    */
   private backingPixelRatio = 1;
   /**
+   * Canvas element owned by this engine context.
+   * @property {HTMLCanvasElement} canvas
+   * @public
+   * @readonly
+   */
+  public readonly canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+  /**
    * Reactive viewport width in CSS pixels.
    * @property {Signal} viewportWidth
    * @public
@@ -61,6 +61,14 @@ class Context {
   public readonly viewportWidth = signalValue(
     this.getParentDimensions().width
   );
+  /**
+   * The single canvas context shared by engine clients.
+   * @property {Context} instance
+   * @public
+   * @static
+   * @readonly
+   */
+  public static readonly instance = new Context();
 
   /**
    * Reactive viewport height in CSS pixels.
@@ -168,7 +176,7 @@ class Context {
     };
   }
 
-  constructor() {
+  private constructor() {
     if (!this.canvas) {
       throw new Error('Failed to find the canvas element with id "game-canvas".');
     }
@@ -423,4 +431,4 @@ class Context {
 
 }
 
-export default new Context();
+export default Context.instance;

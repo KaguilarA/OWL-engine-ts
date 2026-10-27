@@ -4,6 +4,14 @@
  */
 class MathUtils {
   /**
+   * The single math utility instance shared by engine clients.
+   * @property {MathUtils} instance
+   * @public
+   * @readonly
+   */
+  public static readonly instance = new MathUtils();
+
+  /**
    * Degrees to radians conversion multiplier.
    * @property {number} DEG_TO_RAD
    * @public
@@ -18,6 +26,13 @@ class MathUtils {
    * @readonly
    */
   public readonly RAD_TO_DEG = 180 / Math.PI;
+
+  /**
+   * Creates the shared math utility.
+   * @private
+   * @return {void}
+   */
+  private constructor() {}
 
   /**
    * Clamps numeric value to range.
@@ -161,4 +176,4 @@ class MathUtils {
 }
 
 
-export default new MathUtils();
+export default MathUtils.instance;

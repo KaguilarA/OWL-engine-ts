@@ -4,8 +4,10 @@ export { default as Dimensions } from './dimensions';
 export { default as Health } from './health';
 export { default as ObjectPool } from './object-pool';
 export { default as PhysicsBody } from './physics';
+export { default as PhysicsWorld } from './physics-world';
 export { default as Vector2 } from './vector2';
 
 export { default as GameContext } from './context';
 export { default as MathUtils } from './math-utils';
 export { default as PoolRegistry } from './pool-registry';
+export { default as GamePools } from './pool-registry';
