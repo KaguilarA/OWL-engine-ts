@@ -94,6 +94,18 @@ export default class CasinoBankroll {
   }
 
   /**
+   * Restores the bankroll to a starting balance and clears any active wager.
+   * @param startingCredits New available credit balance.
+   * @public
+   * @return {void}
+   */
+  public reset(startingCredits: number): void {
+    this.assertAmount(startingCredits, 'Starting credits', true);
+    this.credits.set(startingCredits);
+    this.wager.set(0);
+  }
+
+  /**
    * Validates a finite non-negative amount and optionally requires a positive value.
    * @param amount Amount to validate.
    * @param label Description used in the error.

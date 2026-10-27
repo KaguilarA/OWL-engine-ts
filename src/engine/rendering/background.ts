@@ -1,15 +1,17 @@
 import { GameContext } from '../core';
 
-/** Draws orientation-specific full-screen imagery and an optional color wash. */
+/**
+ * Draws orientation-specific full-screen imagery and an optional color wash.
+ * @class BackgroundRenderer
+ */
 class BackgroundRenderer {
-  private static singleton: BackgroundRenderer | undefined;
-
-  public static get instance(): BackgroundRenderer {
-    if (BackgroundRenderer.singleton === undefined) {
-      BackgroundRenderer.singleton = new BackgroundRenderer();
-    }
-    return BackgroundRenderer.singleton;
-  }
+  /**
+   * The single background renderer shared by engine clients.
+   * @property {BackgroundRenderer} instance
+   * @public
+   * @readonly
+   */
+  public static readonly instance = new BackgroundRenderer();
 
   private constructor() {}
 
@@ -34,5 +36,8 @@ class BackgroundRenderer {
   }
 }
 
-/** Shared stateless background renderer. */
+/**
+ * Shared stateless background renderer.
+ * @type {BackgroundRenderer}
+ */
 export const GameBackground = BackgroundRenderer.instance;

@@ -1,22 +1,11 @@
 import { signalValue, type SignalValue } from 'reactive-values';
 import { Dimensions, GameContext } from '../core';
+import type { TilemapOptions } from '../interfaces/tilemap-options';
 
-export interface TilemapOptions {
-  image: CanvasImageSource;
-  columns: number;
-  tileWidth: number;
-  tileHeight: number;
-  mapWidth: number;
-  mapHeight: number;
-  x?: number;
-  y?: number;
-  spacing?: number;
-  margin?: number;
-  drawTileWidth?: number;
-  drawTileHeight?: number;
-}
-
-/** Grid-based tilemap using zero for empty cells and one-based tileset indices. */
+/**
+ * Grid-based tilemap using zero for empty cells and one-based tileset indices.
+ * @class Tilemap
+ */
 export class Tilemap {
   public readonly dimensions: Dimensions;
   public readonly mapWidth: number;
@@ -118,32 +107,55 @@ export class Tilemap {
     context.translate(originX, originY);
     context.scale(scaleX, scaleY);
     try {
-      for (let y = 0; y < this.mapHeight; y++) {
-        for (let x = 0; x < this.mapWidth; x++) {
-          const tile = cells[y * this.mapWidth + x];
-          if (tile === 0) continue;
-          const index = tile - 1;
-          const sourceX = this.margin + (index % this.columns) * (this.tileWidth + this.spacing);
-          const sourceY = this.margin + Math.floor(index / this.columns) * (this.tileHeight + this.spacing);
-          if (sourceX + this.tileWidth > this.tilesetWidth || sourceY + this.tileHeight > this.tilesetHeight) {
-            throw new RangeError(`Tile index ${tile} exceeds the tileset image bounds.`);
-          }
-          context.drawImage(
-            this.image,
-            sourceX,
-            sourceY,
-            this.tileWidth,
-            this.tileHeight,
-            x * this.drawTileWidth,
-            y * this.drawTileHeight,
-            this.drawTileWidth,
-            this.drawTileHeight
-          );
-        }
-      }
+      this.drawTiles(context, cells);
     } finally {
       context.restore();
     }
+  }
+
+  /**
+   * Draws each non-empty map cell using its one-based tileset index.
+   * @private
+   * @param {CanvasRenderingContext2D} context Canvas used for rendering.
+   * @param {readonly number[]} cells Tile indices for the complete map.
+   * @return {void}
+   */
+  private drawTiles(context: CanvasRenderingContext2D, cells: readonly number[]): void {
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        const tile = cells[y * this.mapWidth + x];
+        if (tile > 0) this.drawTile(context, tile, x, y);
+      }
+    }
+  }
+
+  /**
+   * Draws a map cell after validating its source rectangle against the tileset.
+   * @private
+   * @param {CanvasRenderingContext2D} context Canvas used for rendering.
+   * @param {number} tile One-based tileset index.
+   * @param {number} x Horizontal map cell coordinate.
+   * @param {number} y Vertical map cell coordinate.
+   * @return {void}
+   */
+  private drawTile(context: CanvasRenderingContext2D, tile: number, x: number, y: number): void {
+    const index = tile - 1;
+    const sourceX = this.margin + (index % this.columns) * (this.tileWidth + this.spacing);
+    const sourceY = this.margin + Math.floor(index / this.columns) * (this.tileHeight + this.spacing);
+    if (sourceX + this.tileWidth > this.tilesetWidth || sourceY + this.tileHeight > this.tilesetHeight) {
+      throw new RangeError(`Tile index ${tile} exceeds the tileset image bounds.`);
+    }
+    context.drawImage(
+      this.image,
+      sourceX,
+      sourceY,
+      this.tileWidth,
+      this.tileHeight,
+      x * this.drawTileWidth,
+      y * this.drawTileHeight,
+      this.drawTileWidth,
+      this.drawTileHeight
+    );
   }
 
   private assertCell(x: number, y: number): void {

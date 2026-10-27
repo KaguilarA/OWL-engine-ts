@@ -57,17 +57,19 @@ export class Camera2D {
 
   /**
    * Target dimensions model to follow.
-   * @property {Dimensions | undefined} target
+   * @property {SignalValue<Dimensions | undefined>} target
    * @private
+   * @readonly
    */
-  private target: Dimensions | undefined;
+  private readonly target: SignalValue<Dimensions | undefined> = signalValue<Dimensions | undefined>(undefined);
 
   /**
    * Follow smoothing interpolation factor.
-   * @property {number} smoothing
+   * @property {SignalValue<number>} smoothing
    * @private
+   * @readonly
    */
-  private smoothing: number;
+  private readonly smoothing: SignalValue<number> = signalValue(1);
 
   /**
    * Whether to auto-center horizontally when viewport resizes.
@@ -98,7 +100,7 @@ export class Camera2D {
     this.zoom.set(options.zoom ?? 1);
     this.viewportWidth.set(options.viewportWidth ?? GameContext.gameDimensionsModel.getWidth());
     this.viewportHeight.set(options.viewportHeight ?? GameContext.gameDimensionsModel.getHeight());
-    this.smoothing = options.smoothing ?? 1;
+    this.smoothing.set(options.smoothing ?? 1);
     this.validate();
   }
 
@@ -107,8 +109,8 @@ export class Camera2D {
    * @public
    * @return {void}
    */
-  public follow(target: Dimensions, smoothing = this.smoothing): void {
-    this.target = target;
+  public follow(target: Dimensions, smoothing = this.smoothing()): void {
+    this.target.set(target);
     this.setSmoothing(smoothing);
   }
 
@@ -118,7 +120,7 @@ export class Camera2D {
    * @return {void}
    */
   public stopFollowing(): void {
-    this.target = undefined;
+    this.target.set(undefined);
   }
 
   /**
@@ -130,7 +132,7 @@ export class Camera2D {
     if (!Number.isFinite(value) || value <= 0 || value > 1) {
       throw new RangeError('Camera smoothing must be greater than 0 and at most 1.');
     }
-    this.smoothing = value;
+    this.smoothing.set(value);
   }
 
   /**
@@ -143,18 +145,20 @@ export class Camera2D {
     const height = GameContext.gameDimensionsModel.getHeight();
     if (this.viewportWidth() !== width) {
       this.viewportWidth.set(width);
-      if (this.autoCenterX && !this.target) this.x.set(width / 2);
+      if (this.autoCenterX && !this.target()) this.x.set(width / 2);
     }
     if (this.viewportHeight() !== height) {
       this.viewportHeight.set(height);
-      if (this.autoCenterY && !this.target) this.y.set(height / 2);
+      if (this.autoCenterY && !this.target()) this.y.set(height / 2);
     }
-    if (!this.target) return;
-    const targetX = this.target.getX();
-    const targetY = this.target.getY();
-    const alpha = this.smoothing >= 1
+    const target = this.target();
+    if (!target) return;
+    const targetX = target.getX();
+    const targetY = target.getY();
+    const smoothing = this.smoothing();
+    const alpha = smoothing >= 1
       ? 1
-      : 1 - Math.pow(1 - this.smoothing, Math.max(0, deltaSeconds) * 60);
+      : 1 - Math.pow(1 - smoothing, Math.max(0, deltaSeconds) * 60);
     this.x.set(this.x() + (targetX - this.x()) * alpha);
     this.y.set(this.y() + (targetY - this.y()) * alpha);
   }

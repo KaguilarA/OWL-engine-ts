@@ -1,4 +1,5 @@
 import { signalValue, type SignalValue } from 'reactive-values';
+import PhysicsWorld from '../core/physics-world';
 import { Camera2D } from './camera2d';
 import { SceneLayer } from './scene-layer';
 
@@ -7,6 +8,14 @@ import { SceneLayer } from './scene-layer';
  * @class WorldScene
  */
 export class WorldScene {
+  /**
+   * Scene-scoped fixed-step simulation for circular physics bodies.
+   * @property {PhysicsWorld} physics
+   * @public
+   * @readonly
+   */
+  public readonly physics: PhysicsWorld;
+
   /**
    * The 2D camera viewport controller.
    * @property {Camera2D} camera
@@ -43,8 +52,9 @@ export class WorldScene {
    * @public
    * @return {void}
    */
-  public constructor(camera = new Camera2D()) {
+  public constructor(camera = new Camera2D(), physics = new PhysicsWorld()) {
     this.camera = camera;
+    this.physics = physics;
   }
 
   /**
@@ -87,6 +97,7 @@ export class WorldScene {
    * @return {void}
    */
   public update(deltaSeconds: number): void {
+    this.physics.update(deltaSeconds);
     this.camera.update(deltaSeconds);
     const layers = this.getOrderedLayers();
     for (const layer of layers) layer.update(deltaSeconds);
