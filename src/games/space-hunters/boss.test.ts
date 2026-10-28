@@ -37,9 +37,22 @@ vi.mock('../../engine/assets/loader', () => ({
 
 vi.mock('../../engine/core/context', () => ({
   default: {
+    canvas: { parentElement: null, addEventListener: vi.fn(), removeEventListener: vi.fn() },
     context: {
       drawImage,
       restore: vi.fn(),
+      rotate: vi.fn(),
+      save: vi.fn(),
+      scale: vi.fn(),
+      translate: vi.fn()
+    }
+  },
+  GameContext: {
+    canvas: { parentElement: null, addEventListener: vi.fn(), removeEventListener: vi.fn() },
+    context: {
+      drawImage,
+      restore: vi.fn(),
+      rotate: vi.fn(),
       save: vi.fn(),
       scale: vi.fn(),
       translate: vi.fn()

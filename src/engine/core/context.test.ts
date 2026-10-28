@@ -36,6 +36,7 @@ describe('GameContext', () => {
       width: viewportWidth
     })),
     height: 0,
+    parentElement: null,
     removeEventListener: vi.fn(),
     requestFullscreen: vi.fn(() => Promise.resolve()),
     style: {},
@@ -71,7 +72,9 @@ describe('GameContext', () => {
         }
       ),
       devicePixelRatio: 1,
-      removeEventListener: vi.fn()
+      removeEventListener: vi.fn(),
+      clearTimeout: vi.fn(),
+      setTimeout: vi.fn(() => 1)
     });
   });
 
@@ -118,10 +121,10 @@ describe('GameContext', () => {
     expect(gameContext.viewportHeight()).toBe(844);
     expect(gameContext.viewportUnit()).toBe(390);
     expect(drawingContext.setTransform).toHaveBeenLastCalledWith(
-      1,
+      1920 / 390,
       0,
       0,
-      1,
+      1080 / 844,
       0,
       0
     );

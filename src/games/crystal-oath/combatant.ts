@@ -1,4 +1,4 @@
-import { StatBlock } from '../../engine';
+import StatBlock from '../../engine/gameplay/rpg/stat-block';
 
 /**
  * A battle participant whose combat attributes are stored in a reactive stat block.

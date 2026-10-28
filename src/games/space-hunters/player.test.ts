@@ -4,6 +4,15 @@ import { Player } from './player';
 
 vi.mock('../../engine/core/context', () => ({
   default: {
+    canvas: { parentElement: null, addEventListener: vi.fn(), removeEventListener: vi.fn() },
+    context: {},
+    gameDimensionsModel: {
+      getHeight: () => 1080,
+      getWidth: () => 1920
+    }
+  },
+  GameContext: {
+    canvas: { parentElement: null, addEventListener: vi.fn(), removeEventListener: vi.fn() },
     context: {},
     gameDimensionsModel: {
       getHeight: () => 1080,
@@ -20,7 +29,15 @@ vi.mock('../../engine/input/events', () => ({
 
 vi.mock('../../engine/assets/loader', () => ({
   default: {
-    getImage: vi.fn(() => ({}))
+    getImage: vi.fn(() => ({})),
+    getAtlas: vi.fn(() => ({
+      getAnimation: vi.fn((name: string) => ({
+        name,
+        frameRate: 1,
+        loop: true,
+        frames: [{ name, x: 0, y: 0, width: 1, height: 1 }]
+      }))
+    }))
   }
 }));
 

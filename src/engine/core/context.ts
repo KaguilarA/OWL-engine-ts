@@ -1,5 +1,6 @@
 import { computedValue, signalValue } from 'reactive-values';
 import Dimensions from './dimensions';
+import type { SafeAreaInsets } from '../interfaces/safe-area-insets';
 
 /**
  * Owns canvas sizing, responsive dimensions, and drawing helpers.
@@ -136,6 +137,13 @@ class Context {
     );
 
     return isMobileUserAgent || isIPadOS || isPhoneOrTabletTouchScreen;
+  }
+
+  /** Browser safe areas keep controls clear of cutouts and gesture indicators. */
+  public get safeAreaInsets(): SafeAreaInsets {
+    const style = getComputedStyle(document.documentElement);
+    const read = (side: string): number => Math.max(0, parseFloat(style.getPropertyValue(`--safe-area-${side}`)) || 0);
+    return { top: read('top'), right: read('right'), bottom: read('bottom'), left: read('left') };
   }
 
   /**

@@ -1,5 +1,6 @@
 import { signalValue, type SignalValue } from 'reactive-values';
-import { Dimensions, GameContext } from '../../core';
+import Dimensions from '../../core/dimensions';
+import GameContext from '../../core/context';
 import type { AtlasAnimation, AtlasRegion } from '../../interfaces';
 
 /**
