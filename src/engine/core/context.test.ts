@@ -83,7 +83,7 @@ describe('GameContext', () => {
   });
 
   it('uses the viewport as the reactive game area by default', async () => {
-    const { default: gameContext } = await import('./context');
+    const { GameContext: gameContext } = await import('./');
 
     expect(gameContext.isPortrait).toBe(false);
     expect(gameContext.gameDimensionsModel.size()).toEqual({
@@ -104,8 +104,8 @@ describe('GameContext', () => {
   });
 
   it('updates the game area to match the viewport on resize', async () => {
-    const { default: gameContext } = await import('./context');
-    const { default: gameEvents } = await import('../input/events');
+    const { GameContext: gameContext } = await import('./');
+    const { GameEvents: gameEvents } = await import('../input');
     gameEvents.initEvents();
     viewportWidth = 390;
     viewportHeight = 844;
@@ -131,7 +131,7 @@ describe('GameContext', () => {
   });
 
   it('maps canvas pointer input to logical game coordinates', async () => {
-    const { default: gameEvents } = await import('../input/events');
+    const { GameEvents: gameEvents } = await import('../input');
     const listener = vi.fn();
     gameEvents.initEvents();
     gameEvents.addPointerDownListener(listener);
@@ -146,7 +146,7 @@ describe('GameContext', () => {
   });
 
   it('draws circles in logical game coordinates', async () => {
-    const { default: gameContext } = await import('./context');
+    const { GameContext: gameContext } = await import('./');
 
     gameContext.drawCircle(100, 200, 30, '#ffffff');
 
@@ -162,7 +162,7 @@ describe('GameContext', () => {
   });
 
   it('requests fullscreen mode for the canvas', async () => {
-    const { default: gameContext } = await import('./context');
+    const { GameContext: gameContext } = await import('./');
 
     await gameContext.toggleFullscreen();
 
@@ -170,7 +170,7 @@ describe('GameContext', () => {
   });
 
   it('draws text respecting maxWidth and scales font down if needed', async () => {
-    const { default: gameContext } = await import('./context');
+    const { GameContext: gameContext } = await import('./');
 
     // "VERY LONG TEXT STRING" is 21 characters -> measureText mock returns 210 width
     // with maxWidth = 100, scale = 100 / 210 ~= 0.476 -> font size 24 scaled down to 11

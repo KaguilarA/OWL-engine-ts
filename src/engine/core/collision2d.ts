@@ -1,5 +1,5 @@
 import type { CollisionRect } from '../interfaces';
-import type { CircleBody } from '../entities/circle-body';
+import type { CircleBody } from '../entities';
 
 /**
  * Allocation-free collision and bounce helpers for common 2D shapes.

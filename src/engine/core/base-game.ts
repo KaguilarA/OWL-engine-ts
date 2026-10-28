@@ -1,7 +1,6 @@
 import { signalValue } from 'reactive-values';
-import MathUtils from './math-utils';
-import GameContext from './context';
-import { GameControls } from '../input';
+import { MathUtils, GameContext } from './';
+import { GameControls, GameInput } from '../input';
 import { Label } from '../ui';
 import { SceneLayer, WorldScene } from '../scene';
 import type { GameControlsOptions } from '../interfaces';
@@ -137,7 +136,8 @@ export default abstract class BaseGame {
    * @protected
    * @return {void}
    */
-  protected start(): void {
+  protected start(inputContext = 'gameplay'): void {
+    GameInput.activateContext(inputContext);
     this.gameLoop();
   }
 
@@ -232,6 +232,7 @@ export default abstract class BaseGame {
     this.lastFrameTime.set(time);
     this.syncViewport();
     this.updateFrame(deltaSeconds);
+    if (!this.running()) return;
     this.drawFrame();
     requestAnimationFrame(this.gameLoop);
   };
@@ -257,6 +258,13 @@ export default abstract class BaseGame {
    * @return {void}
    */
   private updateFrame(deltaSeconds: number): void {
+    GameInput.update();
+    if (GameInput.wasPressed('back')) {
+      this.returnToMenu();
+      return;
+    }
+    if (GameInput.wasPressed('pause') && !this.isGameOver) this.controls.togglePause();
+    if (this.isGameOver && GameInput.wasPressed('confirm')) this.restart();
     if (this.controls.isPaused || this.isGameOver) return;
     this.updateGame(deltaSeconds);
     this.worldScene.update(deltaSeconds);
@@ -449,6 +457,7 @@ export default abstract class BaseGame {
    * @return {void}
    */
   private restart(): void {
+    GameInput.activateContext(GameInput.context());
     this.controls.hideEndActions();
     this.restartGame();
   }
@@ -467,6 +476,7 @@ export default abstract class BaseGame {
     this.controls.dispose();
     this.cleanups.splice(0).forEach((cleanup) => cleanup());
     this.disposeGame();
+    GameInput.clear();
     this.onReturnToMenu?.();
   }
 }

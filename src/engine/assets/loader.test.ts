@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TestAudio } from './test-support/test-audio';
-import { TestImage } from './test-support/test-image';
+import { TestAudio, TestImage } from './test-support';
 
 describe('GameLoader', () => {
   beforeEach(() => {
@@ -14,7 +13,7 @@ describe('GameLoader', () => {
   });
 
   it('loads every image asset and exposes each one by filename', async () => {
-    const { default: gameLoader } = await import('./loader');
+    const { GameLoader: gameLoader } = await import('./');
 
     await gameLoader.loadAll();
 
@@ -39,7 +38,7 @@ describe('GameLoader', () => {
   });
 
   it('loads every MP3 asset and exposes each one by filename', async () => {
-    const { default: gameLoader } = await import('./loader');
+    const { GameLoader: gameLoader } = await import('./');
 
     await gameLoader.loadAll();
 
@@ -60,7 +59,7 @@ describe('GameLoader', () => {
   });
 
   it('throws when an image has not been loaded', async () => {
-    const { default: gameLoader } = await import('./loader');
+    const { GameLoader: gameLoader } = await import('./');
 
     expect(() => gameLoader.getImage('missing')).toThrow(
       'Image asset "missing" has not been loaded.'
@@ -68,7 +67,7 @@ describe('GameLoader', () => {
   });
 
   it('throws when an audio has not been loaded', async () => {
-    const { default: gameLoader } = await import('./loader');
+    const { GameLoader: gameLoader } = await import('./');
 
     expect(() => gameLoader.getAudio('missing')).toThrow(
       'Audio asset "missing" has not been loaded.'

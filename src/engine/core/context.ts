@@ -1,6 +1,6 @@
 import { computedValue, signalValue } from 'reactive-values';
-import Dimensions from './dimensions';
-import type { SafeAreaInsets } from '../interfaces/safe-area-insets';
+import { Dimensions } from './';
+import type { SafeAreaInsets } from '../interfaces';
 
 /**
  * Owns canvas sizing, responsive dimensions, and drawing helpers.

@@ -4,8 +4,8 @@ import {
   type SignalValue,
   type ComputedValue,
 } from 'reactive-values';
-import MathUtils from './math-utils';
-import type { DamageResult } from '../interfaces/damage-result';
+import { MathUtils } from './';
+import type { DamageResult } from '../interfaces';
 
 /**
  * Stores shared entity hit points and applies finite, positive damage values.
