@@ -139,7 +139,11 @@ class Context {
     return isMobileUserAgent || isIPadOS || isPhoneOrTabletTouchScreen;
   }
 
-  /** Browser safe areas keep controls clear of cutouts and gesture indicators. */
+  /**
+   * Browser safe areas keep controls clear of cutouts and gesture indicators.
+   * @returns {SafeAreaInsets}
+   * @public
+   */
   public get safeAreaInsets(): SafeAreaInsets {
     const style = getComputedStyle(document.documentElement);
     const read = (side: string): number => Math.max(0, parseFloat(style.getPropertyValue(`--safe-area-${side}`)) || 0);

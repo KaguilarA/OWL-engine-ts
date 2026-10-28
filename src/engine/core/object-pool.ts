@@ -4,7 +4,7 @@ import {
   type ComputedValue,
   type SignalValue
 } from 'reactive-values';
-import type { Poolable } from '../interfaces/poolable';
+import type { Poolable } from '../interfaces';
 
 /**
  * High-performance object pool with zero runtime allocations and reactive tracking.

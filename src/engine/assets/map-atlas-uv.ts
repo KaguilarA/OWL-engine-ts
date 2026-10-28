@@ -1,6 +1,14 @@
 import type { AtlasRegion } from '../interfaces';
 
-/** Converts normalized attachment UVs into normalized page-image UVs. */
+/**
+ * Converts normalized attachment UVs into normalized page-image UVs.
+ * @param {AtlasRegion} region
+ * @param {number} pageWidth
+ * @param {number} pageHeight
+ * @param {number} u
+ * @param {number} v
+ * @returns {[number, number]}
+ */
 export default function (
   region: AtlasRegion,
   pageWidth: number,

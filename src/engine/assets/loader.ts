@@ -144,7 +144,12 @@ class Loader {
     return this.images.has(this.resolveAssetKey(name, this.images, this.imageAliases));
   }
 
-  /** Loads and caches an image from any URL, sharing concurrent requests. */
+  /**
+   * Loads and caches an image from any URL, sharing concurrent requests.
+   * @param {string} url
+   * @returns {Promise<HTMLImageElement>}
+   * @public
+   */
   public loadImageUrl(url: string): Promise<HTMLImageElement> {
     const cached = this.imageRequests.get(url);
     if (cached) return cached;
@@ -161,7 +166,12 @@ class Loader {
     return request;
   }
 
-  /** Loads and caches JSON from any URL, sharing concurrent requests. */
+  /**
+   * Loads and caches JSON from any URL, sharing concurrent requests.
+   * @param {string} url
+   * @returns {Promise<T>}
+   * @public
+   */
   public loadJson<T>(url: string): Promise<T> {
     const cached = this.jsonRequests.get(url) as Promise<T> | undefined;
     if (cached) return cached;
@@ -176,7 +186,12 @@ class Loader {
     return request;
   }
 
-  /** Loads a Spine atlas and its page image from paths relative to the atlas. */
+  /**
+   * Loads a Spine atlas and its page image from paths relative to the atlas.
+   * @param {string} url
+   * @returns {Promise<Atlas>}
+   * @public
+   */
   public loadAtlasUrl(url: string): Promise<Atlas> {
     const cached = this.atlasRequests.get(url);
     if (cached) return cached;
@@ -194,7 +209,13 @@ class Loader {
     return request;
   }
 
-  /** Loads a Spine JSON and atlas together using the shared asset cache. */
+  /**
+   * Loads a Spine JSON and atlas together using the shared asset cache.
+   * @param {string} jsonUrl
+   * @param {string} atlasUrl
+   * @returns {Promise<LoadedSpineAsset>}
+   * @public
+   */
   public async loadSpine(jsonUrl: string, atlasUrl: string): Promise<LoadedSpineAsset> {
     const [data, atlas] = await Promise.all([
       this.loadJson<SpineRecord>(jsonUrl),
