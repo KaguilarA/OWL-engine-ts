@@ -88,6 +88,7 @@ export class AudioManager {
    * Creates the shared audio service.
    * @private
    * @return {void}
+   * @constructor
    */
   private constructor() {
     this.installVisibilityListener();
@@ -97,6 +98,8 @@ export class AudioManager {
    * Plays a preloaded sound effect.
    * @public
    * @return {HTMLAudioElement | undefined}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {number} [volumeScale] The volume scale supplied to this operation.
    */
   public playSfx(name: string, volumeScale = 1.0): HTMLAudioElement | undefined {
     if (this.muted()) return undefined;
@@ -130,6 +133,9 @@ export class AudioManager {
    * Starts playing a background music track.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {boolean} [loop] Whether playback repeats after reaching the final frame.
+   * @param {number} [volumeScale] The volume scale supplied to this operation.
    */
   public playBgm(name: string, loop = true, volumeScale = 1.0): void {
     const currentBgm = this.currentBgm();
@@ -209,6 +215,7 @@ export class AudioManager {
    * Sets the master volume multiplier.
    * @public
    * @return {void}
+   * @param {number} volume The volume supplied to this operation.
    */
   public setMasterVolume(volume: number): void {
     this.masterVolume.set(MathUtils.clamp(volume, 0, 1));
@@ -219,6 +226,7 @@ export class AudioManager {
    * Sets the SFX volume multiplier.
    * @public
    * @return {void}
+   * @param {number} volume The volume supplied to this operation.
    */
   public setSfxVolume(volume: number): void {
     this.sfxVolume.set(MathUtils.clamp(volume, 0, 1));
@@ -228,6 +236,7 @@ export class AudioManager {
    * Sets the BGM volume multiplier.
    * @public
    * @return {void}
+   * @param {number} volume The volume supplied to this operation.
    */
   public setBgmVolume(volume: number): void {
     this.bgmVolume.set(MathUtils.clamp(volume, 0, 1));
@@ -238,6 +247,7 @@ export class AudioManager {
    * Sets whether all audio is muted.
    * @public
    * @return {void}
+   * @param {boolean} muted The muted supplied to this operation.
    */
   public setMuted(muted: boolean): void {
     this.muted.set(muted);

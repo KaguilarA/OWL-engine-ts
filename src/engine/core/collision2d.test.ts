@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import Collision2D from './collision2d';
-import { CircleBody } from '../entities/circle-body';
+import { Collision2D } from './';
+import { CircleBody } from '../entities';
 
 describe('Collision2D', () => {
   it('detects circle-circle overlaps', () => {

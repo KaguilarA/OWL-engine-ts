@@ -11,6 +11,10 @@ export default class {
    * Keeps a circular body inside horizontal world limits and reflects outward motion.
    * @public
    * @return {boolean}
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {number} left The left supplied to this operation.
+   * @param {number} right The right supplied to this operation.
+   * @param {number} [restitution] The restitution supplied to this operation.
    */
   public static resolveCircleAgainstHorizontalBounds(
     body: CircleBody,
@@ -35,6 +39,10 @@ export default class {
    * Keeps a circular body inside vertical world limits and reflects outward motion.
    * @public
    * @return {boolean}
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {number} top The top supplied to this operation.
+   * @param {number} bottom The bottom supplied to this operation.
+   * @param {number} [restitution] The restitution supplied to this operation.
    */
   public static resolveCircleAgainstVerticalBounds(
     body: CircleBody,
@@ -59,6 +67,12 @@ export default class {
    * Tests whether two circles overlap.
    * @public
    * @return {boolean}
+   * @param {number} x1 The x1 supplied to this operation.
+   * @param {number} y1 The y1 supplied to this operation.
+   * @param {number} radius1 The radius1 supplied to this operation.
+   * @param {number} x2 The x2 supplied to this operation.
+   * @param {number} y2 The y2 supplied to this operation.
+   * @param {number} radius2 The radius2 supplied to this operation.
    */
   public static overlapsCircles(
     x1: number,
@@ -78,6 +92,12 @@ export default class {
    * Tests whether a point lies within an axis-aligned rectangle.
    * @public
    * @return {boolean}
+   * @param {number} pointX The point x supplied to this operation.
+   * @param {number} pointY The point y supplied to this operation.
+   * @param {number} rectangleX The rectangle x supplied to this operation.
+   * @param {number} rectangleY The rectangle y supplied to this operation.
+   * @param {number} rectangleWidth The rectangle width supplied to this operation.
+   * @param {number} rectangleHeight The rectangle height supplied to this operation.
    */
   public static containsPoint(
     pointX: number,
@@ -97,6 +117,14 @@ export default class {
    * Tests two axis-aligned rectangles without allocating collision objects.
    * @public
    * @return {boolean}
+   * @param {number} firstX The first x supplied to this operation.
+   * @param {number} firstY The first y supplied to this operation.
+   * @param {number} firstWidth The first width supplied to this operation.
+   * @param {number} firstHeight The first height supplied to this operation.
+   * @param {number} secondX The second x supplied to this operation.
+   * @param {number} secondY The second y supplied to this operation.
+   * @param {number} secondWidth The second width supplied to this operation.
+   * @param {number} secondHeight The second height supplied to this operation.
    */
   public static overlapsRectangles(
     firstX: number,
@@ -118,11 +146,28 @@ export default class {
    * Calculates the minimum translation vector to separate a moving rectangle from target.
    * @public
    * @return {{ normalX: number; normalY: number; penetration: number } | null}
+   * @param {CollisionRect} moving The moving supplied to this operation.
+   * @param {CollisionRect} target The target supplied to this operation.
    */
   public static getAABBOverlap(
     moving: CollisionRect,
     target: CollisionRect
-  ): { normalX: number; normalY: number; penetration: number } | null {
+  ): {
+  /**
+   * Normal x configuration or state owned by collision2d.
+   * @property {number} normalX
+   */
+  normalX: number;
+  /**
+   * Normal y configuration or state owned by collision2d.
+   * @property {number} normalY
+   */
+  normalY: number;
+  /**
+   * Penetration configuration or state owned by collision2d.
+   * @property {number} penetration
+   */
+  penetration: number } | null {
     const dx = (moving.x + moving.width * 0.5) - (target.x + target.width * 0.5);
     const halfWidths = (moving.width + target.width) * 0.5;
     const overlapX = halfWidths - Math.abs(dx);
@@ -152,6 +197,13 @@ export default class {
    * Resolves one-way platform landing for platformer games.
    * @public
    * @return {{ landed: boolean; resolvedY: number }}
+   * @param {number} actorX The actor x supplied to this operation.
+   * @param {number} actorY The actor y supplied to this operation.
+   * @param {number} actorWidth The actor width supplied to this operation.
+   * @param {number} actorHeight The actor height supplied to this operation.
+   * @param {number} previousY The previous y supplied to this operation.
+   * @param {number} velocityY Vertical velocity of the moving object.
+   * @param {CollisionRect} platform The platform supplied to this operation.
    */
   public static resolveOneWayPlatform(
     actorX: number,
@@ -161,7 +213,17 @@ export default class {
     previousY: number,
     velocityY: number,
     platform: CollisionRect
-  ): { landed: boolean; resolvedY: number } {
+  ): {
+  /**
+   * Landed configuration or state owned by collision2d.
+   * @property {boolean} landed
+   */
+  landed: boolean;
+  /**
+   * Resolved y configuration or state owned by collision2d.
+   * @property {number} resolvedY
+   */
+  resolvedY: number } {
     const wasAbove = previousY + actorHeight <= platform.y;
     const isNowAtOrBelow = actorY + actorHeight >= platform.y;
     const horizontalOverlap = actorX + actorWidth > platform.x && actorX < platform.x + platform.width;
@@ -172,7 +234,18 @@ export default class {
     return { landed: false, resolvedY: actorY };
   }
 
-  /** Tests a circle against an axis-aligned rectangle without resolving motion. */
+  /**
+   * Tests a circle against an axis-aligned rectangle without resolving motion.
+   * @param {number} circleX
+   * @param {number} circleY
+   * @param {number} radius
+   * @param {number} rectangleX
+   * @param {number} rectangleY
+   * @param {number} rectangleWidth
+   * @param {number} rectangleHeight
+   * @returns {boolean}
+   * @public
+   */
   public static overlapsCircleAndRectangle(
     circleX: number,
     circleY: number,
@@ -189,6 +262,16 @@ export default class {
     return distanceX * distanceX + distanceY * distanceY <= radius * radius;
   }
 
+  /**
+   * Resolves circle against circle for collision2d.
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} radius Radius of the circular shape.
+   * @param {number} [restitution] The restitution supplied to this operation.
+   * @returns {boolean} Resolves circle against circle for collision2d.
+   * @public
+   */
   public static resolveCircleAgainstCircle(
     body: CircleBody,
     x: number,
@@ -208,6 +291,14 @@ export default class {
     return true;
   }
 
+  /**
+   * Resolves circle against rect for collision2d.
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {CollisionRect} rect The rect supplied to this operation.
+   * @param {number} [restitution] The restitution supplied to this operation.
+   * @returns {boolean} Resolves circle against rect for collision2d.
+   * @public
+   */
   public static resolveCircleAgainstRect(
     body: CircleBody,
     rect: CollisionRect,
@@ -254,6 +345,18 @@ export default class {
     return true;
   }
 
+  /**
+   * Resolves circle against segment for collision2d.
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {number} startX The start x supplied to this operation.
+   * @param {number} startY The start y supplied to this operation.
+   * @param {number} endX The end x supplied to this operation.
+   * @param {number} endY The end y supplied to this operation.
+   * @param {number} thickness The thickness supplied to this operation.
+   * @param {number} [restitution] The restitution supplied to this operation.
+   * @returns {boolean} Resolves circle against segment for collision2d.
+   * @public
+   */
   public static resolveCircleAgainstSegment(
     body: CircleBody,
     startX: number,
@@ -282,6 +385,16 @@ export default class {
     return true;
   }
 
+  /**
+   * Applies the separate and bounce operation to collision2d.
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {number} normalX The normal x supplied to this operation.
+   * @param {number} normalY The normal y supplied to this operation.
+   * @param {number} penetration The penetration supplied to this operation.
+   * @param {number} restitution The restitution supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private static separateAndBounce(
     body: CircleBody,
     normalX: number,

@@ -3,18 +3,9 @@ import { MathUtils, GameContext } from './';
 import { GameControls, GameInput } from '../input';
 import { Label } from '../ui';
 import { SceneLayer, WorldScene } from '../scene';
-import type { GameControlsOptions } from '../interfaces';
+import type { GameControlsOptions, LabelRenderState } from '../interfaces';
 
-type LabelRenderState = {
-  text: string;
-  fontSize: number;
-  fittedFontSize: number;
-  width: number;
-  color: string;
-  align: CanvasTextAlign;
-  x: number;
-  y: number;
-};
+
 
 /**
  * Shared lifecycle for every playable game.
@@ -135,6 +126,7 @@ export default abstract class BaseGame {
    * Starts the shared game loop after subclass initialization is complete.
    * @protected
    * @return {void}
+   * @param {string} [inputContext] The input context supplied to this operation.
    */
   protected start(inputContext = 'gameplay'): void {
     GameInput.activateContext(inputContext);
@@ -291,6 +283,13 @@ export default abstract class BaseGame {
    * game's former canvas text helper.
    * @protected
    * @return {void}
+   * @param {string} text Text to parse, display, or assign.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} fontSize Font size used to render the label.
+   * @param {string} color Color applied when rendering this content.
+   * @param {CanvasTextAlign} [align] The align supplied to this operation.
+   * @param {number | undefined} [maxWidth] The max width supplied to this operation.
    */
   protected drawLabel(
     text: string,

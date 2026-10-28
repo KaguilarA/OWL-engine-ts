@@ -1,5 +1,5 @@
-import type ObjectPool from './object-pool';
-import type { Poolable } from '../interfaces/poolable';
+import type { ObjectPool } from './';
+import type { Poolable } from '../interfaces';
 
 /**
  * Global registry for game-wide pools following SOLID singleton design.
@@ -26,6 +26,7 @@ class PoolRegistry {
    * Creates the shared object pool registry.
    * @private
    * @return {void}
+   * @constructor
    */
   private constructor() {}
 
@@ -33,6 +34,8 @@ class PoolRegistry {
    * Registers a named object pool.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {ObjectPool<T>} pool The pool supplied to this operation.
    */
   public register<T extends Poolable>(name: string, pool: ObjectPool<T>): void {
     this.pools.set(name, pool);
@@ -42,6 +45,7 @@ class PoolRegistry {
    * Retrieves a named object pool.
    * @public
    * @return {ObjectPool<T> | undefined}
+   * @param {string} name Name used to identify or look up this resource.
    */
   public get<T extends Poolable>(name: string): ObjectPool<T> | undefined {
     return this.pools.get(name) as ObjectPool<T> | undefined;
@@ -51,6 +55,7 @@ class PoolRegistry {
    * Checks if a pool exists.
    * @public
    * @return {boolean}
+   * @param {string} name Name used to identify or look up this resource.
    */
   public has(name: string): boolean {
     return this.pools.has(name);

@@ -90,6 +90,10 @@ export default class ObjectPool<T extends Poolable> {
    * Creates an object pool with pre-allocated instances.
    * @public
    * @return {void}
+   * @constructor
+   * @param {() => T} factory The factory supplied to this operation.
+   * @param {number} [initialSize] The initial size supplied to this operation.
+   * @param {number} [maxSize] The max size supplied to this operation.
    */
   constructor(factory: () => T, initialSize = 0, maxSize = Infinity) {
     this.factory = factory;
@@ -126,6 +130,7 @@ export default class ObjectPool<T extends Poolable> {
    * Returns an instance back to the pool, invoking its reset routine.
    * @public
    * @return {void}
+   * @param {T} item The item supplied to this operation.
    */
   public release(item: T): void {
     item.reset();
@@ -142,6 +147,7 @@ export default class ObjectPool<T extends Poolable> {
    * Releases an entire collection of items back into the pool and clears the array.
    * @public
    * @return {void}
+   * @param {T[]} activeItems The active items supplied to this operation.
    */
   public releaseAll(activeItems: T[]): void {
     for (let index = 0; index < activeItems.length; index++) {

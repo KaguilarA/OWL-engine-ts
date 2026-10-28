@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AudioManager } from './audio-manager';
+import { AudioManager } from './';
 
 describe('AudioManager', () => {
   it('manages volumes and clamps values within [0, 1]', () => {

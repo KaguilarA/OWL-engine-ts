@@ -57,6 +57,9 @@ export default class {
    * Creates a body at the supplied position with no initial motion.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} [x] Horizontal coordinate in the owning coordinate space.
+   * @param {number} [y] Vertical coordinate in the owning coordinate space.
    */
   constructor(x = 0, y = 0) {
     this.setPosition(x, y);
@@ -66,6 +69,8 @@ export default class {
    * Rejects invalid coordinates, timing, and motion values.
    * @private
    * @return {void}
+   * @param {number} value Value to read, validate, format, or assign.
+   * @param {string} label The label supplied to this operation.
    */
   private assertFinite(value: number, label: string): void {
     if (!Number.isFinite(value)) {
@@ -77,6 +82,8 @@ export default class {
    * Integrates velocity and acceleration for one frame.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @param {number | undefined} [verticalAcceleration] The vertical acceleration supplied to this operation.
    */
   public update(deltaSeconds: number, verticalAcceleration?: number): void {
     this.assertFinite(deltaSeconds, 'Delta seconds');
@@ -107,6 +114,8 @@ export default class {
    * Sets the body position without changing its motion.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   public setPosition(x: number, y: number): void {
     this.assertFinite(x, 'x');
@@ -119,6 +128,8 @@ export default class {
    * Sets both velocity components in world units per second.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   public setVelocity(x: number, y: number): void {
     this.assertFinite(x, 'velocityX');
@@ -131,6 +142,8 @@ export default class {
    * Applies an immediate positional displacement.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   public translate(x: number, y: number): void {
     this.setPosition(this.x() + x, this.y() + y);
