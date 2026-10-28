@@ -1,5 +1,4 @@
-import { computedValue, signalValue } from 'reactive-values';
-import type { ComputedValue, SignalValue } from 'reactive-values';
+import { computedValue, signalValue, type ComputedValue, type SignalValue } from 'reactive-values';
 import { MathUtils } from '../../core';
 import type { Atlas } from '../../assets';
 import type {
@@ -10,7 +9,7 @@ import type {
   SpineRecord
 } from '../../interfaces';
 
-import { SpineBinaryParser } from './spine-binary-parser';
+import { SpineBinaryParser } from './';
 
 type BoneState = {
   data: SpineRecord;

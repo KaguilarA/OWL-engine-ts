@@ -10,7 +10,7 @@ import type {
   SpineSlotPose
 } from '../../interfaces';
 
-import { SpineRuntime } from './spine-runtime';
+import { SpineRuntime } from './';
 
 const REGION_TRIANGLES = [0, 1, 2, 2, 3, 0];
 

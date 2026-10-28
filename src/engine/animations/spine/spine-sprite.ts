@@ -2,8 +2,7 @@ import { Dimensions } from '../../core';
 import type { Atlas } from '../../assets';
 import type { SpineEventHandler, SpineRecord } from '../../interfaces';
 
-import { SpineRenderer } from './spine-renderer';
-import { SpineRuntime } from './spine-runtime';
+import { SpineRenderer, SpineRuntime } from './';
 
 /**
  * High-level drawable wrapping a Spine skeleton and its runtime lifecycle.

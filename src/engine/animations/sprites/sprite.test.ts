@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import Sprite from './sprite';
+import { Sprite } from './';
 
 const { drawingContext } = vi.hoisted(() => ({
   drawingContext: {
