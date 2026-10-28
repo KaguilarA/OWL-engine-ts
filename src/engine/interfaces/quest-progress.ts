@@ -1,4 +1,4 @@
-import type { QuestObjectiveProgress } from './quest-objective-progress';
+import type { QuestObjectiveProgress } from './';
 
 /**
  * Runtime progress for a quest tracked by a quest log.
