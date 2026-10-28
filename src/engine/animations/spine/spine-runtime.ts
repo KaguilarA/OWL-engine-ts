@@ -11,24 +11,102 @@ import type {
 
 import { SpineBinaryParser } from './';
 
+/**
+ * Defines the bone state contract shared by its consumers.
+ * @typedef {BoneState} BoneState
+ */
 type BoneState = {
+  /**
+   * Snapshot payload persisted by the save service.
+   * @property {SpineRecord} data
+   */
   data: SpineRecord;
+  /**
+   * Parent index configuration or state owned by BoneState.
+   * @property {number} parentIndex
+   */
   parentIndex: number;
+  /**
+   * Local pose configuration or state owned by BoneState.
+   * @property {SignalValue<SpineBoneTransform>} localPose
+   */
   localPose: SignalValue<SpineBoneTransform>;
+  /**
+   * Pose configuration or state owned by BoneState.
+   * @property {SignalValue<SpineBoneTransform>} pose
+   */
   pose: SignalValue<SpineBoneTransform>;
 };
 
+/**
+ * Defines the ik constraint state contract shared by its consumers.
+ * @typedef {IkConstraintState} IkConstraintState
+ */
 type IkConstraintState = {
+  /**
+   * Name used to identify or look up this resource.
+   * @property {string} name
+   */
   name: string;
+  /**
+   * Order configuration or state owned by IkConstraintState.
+   * @property {number} order
+   */
   order: number;
+  /**
+   * Bone indices configuration or state owned by IkConstraintState.
+   * @property {number[]} boneIndices
+   */
   boneIndices: number[];
+  /**
+   * Target index configuration or state owned by IkConstraintState.
+   * @property {number} targetIndex
+   */
   targetIndex: number;
+  /**
+   * Mix configuration or state owned by IkConstraintState.
+   * @property {number} mix
+   */
   mix: number;
+  /**
+   * Softness configuration or state owned by IkConstraintState.
+   * @property {number} softness
+   */
   softness: number;
+  /**
+   * Bend positive configuration or state owned by IkConstraintState.
+   * @property {boolean} bendPositive
+   */
   bendPositive: boolean;
+  /**
+   * Compress configuration or state owned by IkConstraintState.
+   * @property {boolean} compress
+   */
   compress: boolean;
+  /**
+   * Stretch configuration or state owned by IkConstraintState.
+   * @property {boolean} stretch
+   */
   stretch: boolean;
-  overrideTarget: SignalValue<{ x: number; y: number } | undefined>;
+  /**
+   * Override target configuration or state owned by IkConstraintState.
+   * @property {SignalValue<{ x: number; y: number; } | undefined>} overrideTarget
+   */
+  overrideTarget: SignalValue<{
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number } | undefined>;
+  /**
+   * Override mix configuration or state owned by IkConstraintState.
+   * @property {SignalValue<number | undefined>} overrideMix
+   */
   overrideMix: SignalValue<number | undefined>;
 };
 
@@ -296,6 +374,9 @@ export class SpineRuntime {
    * Creates a Spine runtime instance from JSON or binary skeleton buffer.
    * @public
    * @return {void}
+   * @constructor
+   * @param {SpineRecord | ArrayBuffer | Uint8Array<ArrayBufferLike>} dataOrBuffer The data or buffer supplied to this operation.
+   * @param {Atlas} atlas The atlas supplied to this operation.
    */
   public constructor(dataOrBuffer: SpineRecord | ArrayBuffer | Uint8Array, atlas: Atlas) {
     const data: SpineRecord = (dataOrBuffer instanceof ArrayBuffer || dataOrBuffer instanceof Uint8Array)
@@ -348,7 +429,17 @@ export class SpineRuntime {
         bendPositive: ik.bendPositive !== false,
         compress: Boolean(ik.compress),
         stretch: Boolean(ik.stretch),
-        overrideTarget: signalValue<{ x: number; y: number } | undefined>(undefined),
+        overrideTarget: signalValue<{
+        /**
+         * Horizontal coordinate in the owning coordinate space.
+         * @property {number} x
+         */
+        x: number;
+        /**
+         * Vertical coordinate in the owning coordinate space.
+         * @property {number} y
+         */
+        y: number } | undefined>(undefined),
         overrideMix: signalValue<number | undefined>(undefined)
       };
     });
@@ -361,6 +452,8 @@ export class SpineRuntime {
    * Evaluates Bézier curve interpolation progress.
    * @private
    * @return {number}
+   * @param {unknown} curve The curve supplied to this operation.
+   * @param {number} amount The amount supplied to this operation.
    */
   private applyCurve(curve: unknown, amount: number): number {
     if (curve === 'stepped') return 0;
@@ -391,6 +484,9 @@ export class SpineRuntime {
    * Dispatches user animation timeline events triggered between frame timestamps.
    * @private
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {number} from The from supplied to this operation.
+   * @param {number} to The to supplied to this operation.
    */
   private emitEventsBetween(name: string, from: number, to: number): void {
     const timeline: SpineRecord[] = this.data.animations?.[name]?.events ?? [];
@@ -417,6 +513,9 @@ export class SpineRuntime {
    * Computes local transform for a single bone at an animation timestamp.
    * @private
    * @return {SpineBoneTransform}
+   * @param {SpineRecord} data Snapshot payload persisted by the save service.
+   * @param {string | undefined} animName The anim name supplied to this operation.
+   * @param {number} time The time supplied to this operation.
    */
   private evaluateLocalBonePose(data: SpineRecord, animName: string | undefined, time: number): SpineBoneTransform {
     const animation = animName ? this.data.animations?.[animName]?.bones?.[data.name] : undefined;
@@ -533,6 +632,10 @@ export class SpineRuntime {
    * Solves 1-bone IK rotation toward target.
    * @private
    * @return {void}
+   * @param {BoneState} bone The bone supplied to this operation.
+   * @param {number} targetX The target x supplied to this operation.
+   * @param {number} targetY The target y supplied to this operation.
+   * @param {number} mix The mix supplied to this operation.
    */
   private applyIk1(bone: BoneState, targetX: number, targetY: number, mix: number): void {
     const pose = bone.pose();
@@ -551,6 +654,12 @@ export class SpineRuntime {
    * Solves 2-bone IK using the Law of Cosines.
    * @private
    * @return {void}
+   * @param {BoneState} parent Parent object used to derive the owning hierarchy or transform.
+   * @param {BoneState} child The child supplied to this operation.
+   * @param {number} targetX The target x supplied to this operation.
+   * @param {number} targetY The target y supplied to this operation.
+   * @param {boolean} bendPositive The bend positive supplied to this operation.
+   * @param {number} mix The mix supplied to this operation.
    */
   private applyIk2(
     parent: BoneState,
@@ -610,6 +719,7 @@ export class SpineRuntime {
    * Retrieves duration of a registered animation.
    * @private
    * @return {number}
+   * @param {string | undefined} name Name used to identify or look up this resource.
    */
   private getAnimationDuration(name: string | undefined): number {
     return name ? this.animationDurations.get(name) ?? 0 : 0;
@@ -619,6 +729,8 @@ export class SpineRuntime {
    * Resolves skin attachment by slot and attachment name.
    * @private
    * @return {SpineRecord | undefined}
+   * @param {string} slotName The slot name supplied to this operation.
+   * @param {string} attachmentName The attachment name supplied to this operation.
    */
   private getAttachment(slotName: string, attachmentName: string): SpineRecord | undefined {
     const skinName = this.activeSkin();
@@ -652,6 +764,8 @@ export class SpineRuntime {
    * Retrieves timeline keyframe active at given time.
    * @private
    * @return {SpineRecord | undefined}
+   * @param {SpineRecord[] | undefined} frames Ordered frame regions used by the animation.
+   * @param {number} time The time supplied to this operation.
    */
   private getFrame(
     frames: SpineRecord[] | undefined,
@@ -689,6 +803,8 @@ export class SpineRuntime {
    * Interpolates timeline values between consecutive keyframes.
    * @private
    * @return {SpineRecord | undefined}
+   * @param {SpineRecord[] | undefined} frames Ordered frame regions used by the animation.
+   * @param {number} time The time supplied to this operation.
    */
   private interpolateFrame(
     frames: SpineRecord[] | undefined,
@@ -720,6 +836,7 @@ export class SpineRuntime {
    * Calculates maximum duration across animation timelines.
    * @private
    * @return {number}
+   * @param {unknown} animation The animation supplied to this operation.
    */
   private measureDuration(animation: unknown): number {
     let duration = 0;
@@ -739,6 +856,9 @@ export class SpineRuntime {
    * Blends two hex color strings.
    * @private
    * @return {string}
+   * @param {string} from The from supplied to this operation.
+   * @param {string} to The to supplied to this operation.
+   * @param {number} amount The amount supplied to this operation.
    */
   private mixHex(from: string, to: string, amount: number): string {
     const normalizedFrom = from.length === 6 ? `${from}FF` : from;
@@ -761,6 +881,7 @@ export class SpineRuntime {
    * Normalizes skins structure.
    * @private
    * @return {Record<string, Record<string, Record<string, SpineRecord>>>}
+   * @param {SpineRecord} source The source supplied to this operation.
    */
   private normalizeSkins(source: SpineRecord): Record<string, Record<string, Record<string, SpineRecord>>> {
     if (Array.isArray(source)) {
@@ -776,6 +897,9 @@ export class SpineRuntime {
    * Reads interpolated color timeline value.
    * @private
    * @return {string | undefined}
+   * @param {SpineRecord[] | undefined} timeline The timeline supplied to this operation.
+   * @param {number} time The time supplied to this operation.
+   * @param {string | undefined} fallback The fallback supplied to this operation.
    */
   private readColor(
     timeline: SpineRecord[] | undefined,
@@ -790,6 +914,10 @@ export class SpineRuntime {
    * Reads interpolated numeric timeline property value.
    * @private
    * @return {number}
+   * @param {SpineRecord[] | undefined} timeline The timeline supplied to this operation.
+   * @param {number} time The time supplied to this operation.
+   * @param {string} field The field supplied to this operation.
+   * @param {number} fallback The fallback supplied to this operation.
    */
   private readTimeline(
     timeline: SpineRecord[] | undefined,
@@ -809,11 +937,28 @@ export class SpineRuntime {
    * Locates bounding frames and interpolation ratio.
    * @private
    * @return {{ from: SpineRecord; to: SpineRecord; amount: number }}
+   * @param {SpineRecord[]} frames Ordered frame regions used by the animation.
+   * @param {number} time The time supplied to this operation.
    */
   private getTimelineSegment(
     frames: SpineRecord[],
     time: number
-  ): { from: SpineRecord; to: SpineRecord; amount: number } {
+  ): {
+  /**
+   * From configuration or state owned by SpineRuntime.
+   * @property {SpineRecord} from
+   */
+  from: SpineRecord;
+  /**
+   * To configuration or state owned by SpineRuntime.
+   * @property {SpineRecord} to
+   */
+  to: SpineRecord;
+  /**
+   * Amount configuration or state owned by SpineRuntime.
+   * @property {number} amount
+   */
+  amount: number } {
     if (time <= Number(frames[0].time ?? 0)) return {
       from: frames[0],
       to: frames[0],
@@ -837,6 +982,7 @@ export class SpineRuntime {
    * Updates world matrix transform for a bone.
    * @private
    * @return {void}
+   * @param {number} index Index identifying the item within its collection.
    */
   private updateBoneWorld(index: number): void {
     const bone = this.bones[index];
@@ -874,6 +1020,7 @@ export class SpineRuntime {
    * Sets the active skin.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
    */
   public setSkin(name: string): void {
     if (!this.skins[name]) throw new Error(`Spine skin "${name}" does not exist.`);
@@ -885,6 +1032,9 @@ export class SpineRuntime {
    * Plays an animation with optional loop and cross-fade blending duration.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {boolean} [loop] Whether playback repeats after reaching the final frame.
+   * @param {number} [blendDuration] The blend duration supplied to this operation.
    */
   public play(name: string, loop = false, blendDuration = 0): void {
     if (!this.data.animations?.[name]) throw new Error(`Spine animation "${name}" does not exist.`);
@@ -914,6 +1064,9 @@ export class SpineRuntime {
    * Cross-fades to a new animation over the specified duration.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {number} duration The duration supplied to this operation.
+   * @param {boolean} [loop] Whether playback repeats after reaching the final frame.
    */
   public crossFade(name: string, duration: number, loop = false): void {
     this.play(name, loop, duration);
@@ -923,6 +1076,10 @@ export class SpineRuntime {
    * Sets an interactive world-space IK target.
    * @public
    * @return {void}
+   * @param {string} constraintName The constraint name supplied to this operation.
+   * @param {number} worldX The world x supplied to this operation.
+   * @param {number} worldY The world y supplied to this operation.
+   * @param {number} [mix] The mix supplied to this operation.
    */
   public setIkTarget(constraintName: string, worldX: number, worldY: number, mix = 1.0): void {
     const ik = this.ikConstraints.find((c) => c.name === constraintName);
@@ -937,6 +1094,7 @@ export class SpineRuntime {
    * Clears an interactive IK target override.
    * @public
    * @return {void}
+   * @param {string} constraintName The constraint name supplied to this operation.
    */
   public clearIkTarget(constraintName: string): void {
     const ik = this.ikConstraints.find((c) => c.name === constraintName);
@@ -951,6 +1109,8 @@ export class SpineRuntime {
    * Queues an animation to play following current animation completion.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {boolean} [loop] Whether playback repeats after reaching the final frame.
    */
   public queue(name: string, loop = true): void {
     if (!this.data.animations?.[name]) throw new Error(`Spine animation "${name}" does not exist.`);
@@ -962,6 +1122,7 @@ export class SpineRuntime {
    * Advances simulation frame.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     if (!this.animationPlaying() || deltaSeconds <= 0) return;
@@ -1092,6 +1253,8 @@ export class SpineRuntime {
    * Subscribes a listener to custom animation timeline events.
    * @public
    * @return {() => void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {SpineEventHandler} handler The handler supplied to this operation.
    */
   public onEvent(name: string, handler: SpineEventHandler): () => void {
     const handlers = this.handlers.get(name) ?? new Set<SpineEventHandler>();
@@ -1108,7 +1271,22 @@ export class SpineRuntime {
    * @public
    * @return {Array<{ slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord }>}
    */
-  public getDrawables(): Array<{ slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord }> {
+  public getDrawables(): Array<{
+  /**
+   * Save slot identifying the snapshot within a game.
+   * @property {SpineSlotPose} slot
+   */
+  slot: SpineSlotPose;
+  /**
+   * Bone configuration or state owned by SpineRuntime.
+   * @property {SpineBoneTransform} bone
+   */
+  bone: SpineBoneTransform;
+  /**
+   * Attachment configuration or state owned by SpineRuntime.
+   * @property {SpineRecord} attachment
+   */
+  attachment: SpineRecord }> {
     const animation = this.data.animations?.[this.currentAnimation() ?? ''];
     const drawOrder = animation?.draworder ?? animation?.drawOrder;
     let orderedSlots = this.slots.map((slot) => slot());
@@ -1148,6 +1326,9 @@ export class SpineRuntime {
    * Calculates animated mesh deformations.
    * @public
    * @return {number[]}
+   * @param {string} slotName The slot name supplied to this operation.
+   * @param {string} attachmentName The attachment name supplied to this operation.
+   * @param {number[]} source The source supplied to this operation.
    */
   public getAttachmentVertices(slotName: string, attachmentName: string, source: number[]): number[] {
     const name = this.currentAnimation();
@@ -1179,6 +1360,7 @@ export class SpineRuntime {
    * Retrieves world transform matrix for a bone index.
    * @public
    * @return {SpineBoneTransform}
+   * @param {number} index Index identifying the item within its collection.
    */
   public getBonePose(index: number): SpineBoneTransform {
     return this.bones[index]?.pose() ?? this.identityPose();
@@ -1188,6 +1370,7 @@ export class SpineRuntime {
    * Retrieves world transform matrix for a bone name.
    * @public
    * @return {SpineBoneTransform | undefined}
+   * @param {string} name Name used to identify or look up this resource.
    */
   public getBoneByName(name: string): SpineBoneTransform | undefined {
     const bone = this.bones.find((b) => b.data.name === name);

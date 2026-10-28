@@ -4,11 +4,40 @@ import type { SpineRecord } from '../../interfaces';
  * Low-level binary stream reader for Spine .skel data.
  */
 class BinaryReader {
+  /**
+   * Snapshot payload persisted by the save service.
+   * @property {Uint8Array<ArrayBufferLike>} data
+   * @readonly
+   * @private
+   */
   private readonly data: Uint8Array;
+  /**
+   * View configuration or state owned by BinaryReader.
+   * @property {DataView<ArrayBufferLike>} view
+   * @readonly
+   * @private
+   */
   private readonly view: DataView;
+  /**
+   * Offset configuration or state owned by BinaryReader.
+   * @property {number} offset
+   * @private
+   */
   private offset = 0;
+  /**
+   * Strings configuration or state owned by BinaryReader.
+   * @property {string[]} strings
+   * @private
+   */
   private strings: string[] = [];
 
+  /**
+   * Initializes BinaryReader and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {ArrayBuffer | Uint8Array<ArrayBufferLike>} buffer The buffer supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public constructor(buffer: ArrayBuffer | Uint8Array) {
     if (buffer instanceof Uint8Array) {
       this.data = buffer;
@@ -19,35 +48,71 @@ class BinaryReader {
     }
   }
 
+  /**
+   * Returns remaining from the current BinaryReader state.
+   * @returns {number} remaining from the current BinaryReader state.
+   * @public
+   */
   public get remaining(): number {
     return this.data.length - this.offset;
   }
 
+  /**
+   * Decodes byte for BinaryReader.
+   * @returns {number} Decodes byte for BinaryReader.
+   * @public
+   */
   public readByte(): number {
     return this.data[this.offset++];
   }
 
+  /**
+   * Decodes sbyte for BinaryReader.
+   * @returns {number} Decodes sbyte for BinaryReader.
+   * @public
+   */
   public readSByte(): number {
     const val = this.data[this.offset++];
     return val > 127 ? val - 256 : val;
   }
 
+  /**
+   * Decodes boolean for BinaryReader.
+   * @returns {boolean} Decodes boolean for BinaryReader.
+   * @public
+   */
   public readBoolean(): boolean {
     return this.readByte() !== 0;
   }
 
+  /**
+   * Decodes float for BinaryReader.
+   * @returns {number} Decodes float for BinaryReader.
+   * @public
+   */
   public readFloat(): number {
     const val = this.view.getFloat32(this.offset, false);
     this.offset += 4;
     return val;
   }
 
+  /**
+   * Decodes int for BinaryReader.
+   * @returns {number} Decodes int for BinaryReader.
+   * @public
+   */
   public readInt(): number {
     const val = this.view.getInt32(this.offset, false);
     this.offset += 4;
     return val;
   }
 
+  /**
+   * Decodes var int for BinaryReader.
+   * @param {boolean} [optimizePositive] The optimize positive supplied to this operation.
+   * @returns {number} Decodes var int for BinaryReader.
+   * @public
+   */
   public readVarInt(optimizePositive = true): number {
     let b = this.readByte();
     let result = b & 0x7f;
@@ -70,6 +135,11 @@ class BinaryReader {
     return optimizePositive ? result : (result >>> 1) ^ -(result & 1);
   }
 
+  /**
+   * Decodes string for BinaryReader.
+   * @returns {string | undefined} Decodes string for BinaryReader.
+   * @public
+   */
   public readString(): string | undefined {
     let length = this.readVarInt(true);
     if (length === 0) return undefined;
@@ -81,6 +151,11 @@ class BinaryReader {
     return new TextDecoder('utf-8').decode(bytes);
   }
 
+  /**
+   * Decodes string ref for BinaryReader.
+   * @returns {string | undefined} Decodes string ref for BinaryReader.
+   * @public
+   */
   public readStringRef(): string | undefined {
     if (this.strings.length === 0) {
       return this.readString();
@@ -89,10 +164,21 @@ class BinaryReader {
     return index === 0 ? undefined : this.strings[index - 1];
   }
 
+  /**
+   * Updates strings for BinaryReader.
+   * @param {string[]} strings The strings supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public setStrings(strings: string[]): void {
     this.strings = strings;
   }
 
+  /**
+   * Decodes color hex for BinaryReader.
+   * @returns {string} Decodes color hex for BinaryReader.
+   * @public
+   */
   public readColorHex(): string {
     const r = this.readByte().toString(16).padStart(2, '0');
     const g = this.readByte().toString(16).padStart(2, '0');
@@ -111,6 +197,7 @@ export class SpineBinaryParser {
    * Determines whether the provided buffer contains Spine binary skeleton data.
    * @public
    * @return {boolean}
+   * @param {ArrayBuffer | Uint8Array<ArrayBufferLike>} buffer The buffer supplied to this operation.
    */
   public static isBinary(buffer: ArrayBuffer | Uint8Array): boolean {
     const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
@@ -122,6 +209,7 @@ export class SpineBinaryParser {
    * Parses a Spine binary buffer into normalized skeleton data.
    * @public
    * @return {SpineRecord}
+   * @param {ArrayBuffer | Uint8Array<ArrayBufferLike>} buffer The buffer supplied to this operation.
    */
   public static parse(buffer: ArrayBuffer | Uint8Array): SpineRecord {
     const reader = new BinaryReader(buffer);
@@ -350,6 +438,14 @@ export class SpineBinaryParser {
     };
   }
 
+  /**
+   * Decodes skin for SpineBinaryParser.
+   * @param {BinaryReader} reader The reader supplied to this operation.
+   * @param {boolean} _isSpine4 The is spine4 supplied to this operation.
+   * @param {string[]} slotNames The slot names supplied to this operation.
+   * @returns {Record<string, Record<string, SpineRecord>> | undefined} Decodes skin for SpineBinaryParser.
+   * @private
+   */
   private static readSkin(
     reader: BinaryReader,
     _isSpine4: boolean,
@@ -434,6 +530,15 @@ export class SpineBinaryParser {
     return skinData;
   }
 
+  /**
+   * Decodes animation for SpineBinaryParser.
+   * @param {BinaryReader} reader The reader supplied to this operation.
+   * @param {boolean} _isSpine4 The is spine4 supplied to this operation.
+   * @param {string[]} boneNames The bone names supplied to this operation.
+   * @param {string[]} slotNames The slot names supplied to this operation.
+   * @returns {SpineRecord} Decodes animation for SpineBinaryParser.
+   * @private
+   */
   private static readAnimation(
     reader: BinaryReader,
     _isSpine4: boolean,

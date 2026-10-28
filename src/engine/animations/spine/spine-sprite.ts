@@ -54,6 +54,13 @@ export class SpineSprite {
    * Creates a Spine sprite instance.
    * @public
    * @return {void}
+   * @constructor
+   * @param {SpineRecord | ArrayBuffer | Uint8Array<ArrayBufferLike>} data Snapshot payload persisted by the save service.
+   * @param {Atlas} atlas The atlas supplied to this operation.
+   * @param {number} [x] Horizontal coordinate in the owning coordinate space.
+   * @param {number} [y] Vertical coordinate in the owning coordinate space.
+   * @param {number} [pivotX] The pivot x supplied to this operation.
+   * @param {number} [pivotY] The pivot y supplied to this operation.
    */
   public constructor(
     data: SpineRecord | ArrayBuffer | Uint8Array,
@@ -102,6 +109,8 @@ export class SpineSprite {
    * Subscribes a listener to custom animation timeline events.
    * @public
    * @return {() => void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {SpineEventHandler} handler The handler supplied to this operation.
    */
   public onEvent(name: string, handler: SpineEventHandler): () => void {
     return this.runtime.onEvent(name, handler);
@@ -111,6 +120,9 @@ export class SpineSprite {
    * Plays an animation with optional loop and cross-fading.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {boolean} [loop] Whether playback repeats after reaching the final frame.
+   * @param {number} [blendDuration] The blend duration supplied to this operation.
    */
   public play(name: string, loop = false, blendDuration = 0): void {
     this.runtime.play(name, loop, blendDuration);
@@ -120,6 +132,9 @@ export class SpineSprite {
    * Smoothly cross-fades between animations over duration.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {number} duration The duration supplied to this operation.
+   * @param {boolean} [loop] Whether playback repeats after reaching the final frame.
    */
   public crossFade(name: string, duration: number, loop = false): void {
     this.runtime.crossFade(name, duration, loop);
@@ -129,6 +144,10 @@ export class SpineSprite {
    * Sets interactive IK target position in world space.
    * @public
    * @return {void}
+   * @param {string} constraintName The constraint name supplied to this operation.
+   * @param {number} worldX The world x supplied to this operation.
+   * @param {number} worldY The world y supplied to this operation.
+   * @param {number} [mix] The mix supplied to this operation.
    */
   public setIkTarget(constraintName: string, worldX: number, worldY: number, mix = 1.0): void {
     this.runtime.setIkTarget(constraintName, worldX, worldY, mix);
@@ -138,15 +157,18 @@ export class SpineSprite {
    * Clears interactive IK target override.
    * @public
    * @return {void}
+   * @param {string} constraintName The constraint name supplied to this operation.
    */
   public clearIkTarget(constraintName: string): void {
     this.runtime.clearIkTarget(constraintName);
   }
-  
+
   /**
    * Queues an animation to follow current playback.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {boolean} [loop] Whether playback repeats after reaching the final frame.
    */
   public queue(name: string, loop = true): void {
     this.runtime.queue(name, loop);
@@ -156,6 +178,7 @@ export class SpineSprite {
    * Sets active skin by name.
    * @public
    * @return {void}
+   * @param {string} name Name used to identify or look up this resource.
    */
   public setSkin(name: string): void {
     this.runtime.setSkin(name);
@@ -165,6 +188,7 @@ export class SpineSprite {
    * Advances skeleton simulation frame.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     this.runtime.update(deltaSeconds);

@@ -138,6 +138,7 @@ export default class Sprite {
    * @param frameRate - The animation speed in frames per second. Defaults to `0`.
    * @public
    * @return {void}
+   * @constructor
    */
   constructor(
     image: CanvasImageSource,

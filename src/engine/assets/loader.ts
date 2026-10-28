@@ -1,11 +1,13 @@
+import type { LoadedSpineAsset, SpineRecord } from '../interfaces';
+
 import { Atlas, AtlasParser } from './';
-import type { SpineRecord } from '../interfaces';
 
-export interface LoadedSpineAsset {
-  readonly atlas: Atlas;
-  readonly data: SpineRecord;
-}
 
+
+/**
+ * Shared values used to configure loader.
+ * @constant
+ */
 const imageModules = import.meta.glob<string>(
   '../../assets/images/**/*.{png,jpg,jpeg,webp,gif,svg}',
   {
@@ -15,6 +17,10 @@ const imageModules = import.meta.glob<string>(
   }
 );
 
+/**
+ * Shared values used to configure loader.
+ * @constant
+ */
 const animationImageModules = import.meta.glob<string>(
   '../../assets/animations/**/*.{png,jpg,jpeg,webp,gif,svg}',
   {
@@ -24,12 +30,20 @@ const animationImageModules = import.meta.glob<string>(
   }
 );
 
+/**
+ * Shared values used to configure loader.
+ * @constant
+ */
 const audioModules = import.meta.glob<string>('../../assets/sounds/**/*.{mp3,wav,ogg}', {
   eager: false,
   import: 'default',
   query: '?url'
 });
 
+/**
+ * Shared values used to configure loader.
+ * @constant
+ */
 const atlasModules = import.meta.glob<string>('../../assets/animations/**/*.atlas', {
   eager: true,
   import: 'default',
@@ -62,6 +76,12 @@ class Loader {
    * @readonly
    */
   private readonly images = new Map<string, HTMLImageElement>();
+  /**
+   * Image aliases configuration or state owned by Loader.
+   * @property {Map<string, string | undefined>} imageAliases
+   * @readonly
+   * @private
+   */
   private readonly imageAliases = new Map<string, string | undefined>();
   /**
    * Parsed Spine-format atlases keyed by their PNG asset name.
@@ -70,6 +90,12 @@ class Loader {
    * @readonly
    */
   private readonly atlases = new Map<string, Atlas>();
+  /**
+   * Atlas aliases configuration or state owned by Loader.
+   * @property {Map<string, string | undefined>} atlasAliases
+   * @readonly
+   * @private
+   */
   private readonly atlasAliases = new Map<string, string | undefined>();
   /**
    * Stores the audios state.
@@ -78,9 +104,33 @@ class Loader {
    * @readonly
    */
   private readonly audios = new Map<string, HTMLAudioElement>();
+  /**
+   * Audio aliases configuration or state owned by Loader.
+   * @property {Map<string, string | undefined>} audioAliases
+   * @readonly
+   * @private
+   */
   private readonly audioAliases = new Map<string, string | undefined>();
+  /**
+   * Image requests configuration or state owned by Loader.
+   * @property {Map<string, Promise<HTMLImageElement>>} imageRequests
+   * @readonly
+   * @private
+   */
   private readonly imageRequests = new Map<string, Promise<HTMLImageElement>>();
+  /**
+   * Json requests configuration or state owned by Loader.
+   * @property {Map<string, Promise<unknown>>} jsonRequests
+   * @readonly
+   * @private
+   */
   private readonly jsonRequests = new Map<string, Promise<unknown>>();
+  /**
+   * Atlas requests configuration or state owned by Loader.
+   * @property {Map<string, Promise<Atlas>>} atlasRequests
+   * @readonly
+   * @private
+   */
   private readonly atlasRequests = new Map<string, Promise<Atlas>>();
   /**
    * Stores the loading state.
@@ -93,6 +143,7 @@ class Loader {
    * Creates the shared asset loader.
    * @private
    * @return {void}
+   * @constructor
    */
   private constructor() {}
 
@@ -101,6 +152,7 @@ class Loader {
    *
    * Concurrent calls share the same pending operation. A failed image rejects
    * the returned promise with its asset name and URL.
+   * @returns {Promise<void>} Loads all for Loader.
    */
   public loadAll(): Promise<void> {
     if (!this.loading) {
@@ -273,6 +325,7 @@ class Loader {
    * to play independently.
    *
    * @param name - The asset name without the `.mp3` extension.
+   * @returns {void}
    */
   public playAudio(name: string): void {
     const audio = this.getAudio(name).cloneNode(true) as HTMLAudioElement;
@@ -287,6 +340,11 @@ class Loader {
     }
   }
 
+  /**
+   * Loads discovered image modules into the shared image catalog.
+   * @returns {Promise<void>} Loads discovered image modules into the shared image catalog.
+   * @private
+   */
   private async loadImages(): Promise<void> {
     await Promise.all(
       Object.entries({ ...imageModules, ...animationImageModules }).map(async ([path, loadUrl]) => {
@@ -299,6 +357,11 @@ class Loader {
     );
   }
 
+  /**
+   * Loads discovered sound modules into the shared audio catalog.
+   * @returns {Promise<void>} Loads discovered sound modules into the shared audio catalog.
+   * @private
+   */
   private async loadAudios(): Promise<void> {
     await Promise.all(
       Object.entries(audioModules).map(async ([path, loadUrl]) => {
@@ -333,6 +396,12 @@ class Loader {
     });
   }
 
+  /**
+   * Builds the canonical lookup key used by the asset catalog.
+   * @param {string} path The path supplied to this operation.
+   * @returns {string} Builds the canonical lookup key used by the asset catalog.
+   * @private
+   */
   private getAssetKey(path: string): string {
     const normalizedPath = path.replaceAll('\\', '/');
     const assetsIndex = normalizedPath.lastIndexOf('/assets/');
@@ -346,6 +415,12 @@ class Loader {
     return relativePath.slice(0, extensionIndex);
   }
 
+  /**
+   * Derives the filename alias used for compatibility asset lookups.
+   * @param {string} key Key identifying the associated input or resource.
+   * @returns {string} Derives the filename alias used for compatibility asset lookups.
+   * @private
+   */
   private getAssetAlias(key: string): string {
     const filename = key.split('/').at(-1);
 
@@ -355,6 +430,14 @@ class Loader {
     return filename;
   }
 
+  /**
+   * Records an alias for an asset key while tracking ambiguous names.
+   * @param {string} key Key identifying the associated input or resource.
+   * @param {string} alias The alias supplied to this operation.
+   * @param {Map<string, string | undefined>} aliases The aliases supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private registerAlias(key: string, alias: string, aliases: Map<string, string | undefined>): void {
     if (key === alias) return;
     if (!aliases.has(alias)) {
@@ -364,6 +447,14 @@ class Loader {
     if (aliases.get(alias) !== key) aliases.set(alias, undefined);
   }
 
+  /**
+   * Resolves a requested asset name to its registered catalog key.
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {Map<string, T>} assets The assets supplied to this operation.
+   * @param {Map<string, string | undefined>} aliases The aliases supplied to this operation.
+   * @returns {string} Resolves a requested asset name to its registered catalog key.
+   * @private
+   */
   private resolveAssetKey<T>(
     name: string,
     assets: Map<string, T>,
@@ -373,6 +464,13 @@ class Loader {
     return aliases.get(name) ?? name;
   }
 
+  /**
+   * Loads an image source and resolves when it is ready for use.
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {string} url The url supplied to this operation.
+   * @returns {Promise<void>} Loads an image source and resolves when it is ready for use.
+   * @private
+   */
   private preloadImage(name: string, url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const image = new Image();
@@ -398,6 +496,13 @@ class Loader {
     });
   }
 
+  /**
+   * Loads an audio source and resolves when its loading contract completes.
+   * @param {string} name Name used to identify or look up this resource.
+   * @param {string} url The url supplied to this operation.
+   * @returns {Promise<void>} Loads an audio source and resolves when its loading contract completes.
+   * @private
+   */
   private loadAudio(name: string, url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const audio = new Audio(url);

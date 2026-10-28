@@ -12,6 +12,10 @@ import type {
 
 import { SpineRuntime } from './';
 
+/**
+ * Shared values used to configure spine-renderer.
+ * @constant
+ */
 const REGION_TRIANGLES = [0, 1, 2, 2, 3, 0];
 
 /**
@@ -19,9 +23,32 @@ const REGION_TRIANGLES = [0, 1, 2, 2, 3, 0];
  * @class SpineRenderer
  */
 export class SpineRenderer {
+  /**
+   * Context configuration or state owned by SpineRenderer.
+   * @property {CanvasRenderingContext2D} context
+   * @readonly
+   * @private
+   */
   private readonly context = GameContext.context;
+  /**
+   * Tinted atlases configuration or state owned by SpineRenderer.
+   * @property {WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>} tintedAtlases
+   * @readonly
+   * @private
+   */
   private readonly tintedAtlases = new WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>();
 
+  /**
+   * Renders SpineRenderer using its current geometry and presentation state.
+   * @param {SpineRuntime} runtime The runtime supplied to this operation.
+   * @param {Atlas} atlas The atlas supplied to this operation.
+   * @param {number} centerX The center x supplied to this operation.
+   * @param {number} centerY The center y supplied to this operation.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @returns {void}
+   * @public
+   */
   public draw(runtime: SpineRuntime, atlas: Atlas, centerX: number, centerY: number, width: number, height: number): void {
     const image = atlas.image;
     if (!image?.complete || image.naturalWidth === 0) return;
@@ -56,7 +83,22 @@ export class SpineRenderer {
     runtime: SpineRuntime,
     atlas: Atlas,
     image: HTMLImageElement,
-    drawable: { slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord },
+    drawable: {
+    /**
+     * Save slot identifying the snapshot within a game.
+     * @property {SpineSlotPose} slot
+     */
+    slot: SpineSlotPose;
+    /**
+     * Bone configuration or state owned by SpineRenderer.
+     * @property {SpineBoneTransform} bone
+     */
+    bone: SpineBoneTransform;
+    /**
+     * Attachment configuration or state owned by SpineRenderer.
+     * @property {SpineRecord} attachment
+     */
+    attachment: SpineRecord },
     centerX: number,
     centerY: number,
     scaleX: number,
@@ -88,7 +130,22 @@ export class SpineRenderer {
    */
   private beginClip(
     runtime: SpineRuntime,
-    drawable: { slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord },
+    drawable: {
+    /**
+     * Save slot identifying the snapshot within a game.
+     * @property {SpineSlotPose} slot
+     */
+    slot: SpineSlotPose;
+    /**
+     * Bone configuration or state owned by SpineRenderer.
+     * @property {SpineBoneTransform} bone
+     */
+    bone: SpineBoneTransform;
+    /**
+     * Attachment configuration or state owned by SpineRenderer.
+     * @property {SpineRecord} attachment
+     */
+    attachment: SpineRecord },
     path: string,
     centerX: number,
     centerY: number,
@@ -128,7 +185,22 @@ export class SpineRenderer {
     runtime: SpineRuntime,
     atlas: Atlas,
     image: HTMLImageElement,
-    drawable: { slot: SpineSlotPose; bone: SpineBoneTransform; attachment: SpineRecord },
+    drawable: {
+    /**
+     * Save slot identifying the snapshot within a game.
+     * @property {SpineSlotPose} slot
+     */
+    slot: SpineSlotPose;
+    /**
+     * Bone configuration or state owned by SpineRenderer.
+     * @property {SpineBoneTransform} bone
+     */
+    bone: SpineBoneTransform;
+    /**
+     * Attachment configuration or state owned by SpineRenderer.
+     * @property {SpineRecord} attachment
+     */
+    attachment: SpineRecord },
     path: string,
     centerX: number,
     centerY: number,
@@ -178,13 +250,38 @@ export class SpineRenderer {
     }
   }
 
+  /**
+   * Constructs mesh for SpineRenderer.
+   * @param {SpineRuntime} runtime The runtime supplied to this operation.
+   * @param {SpineBoneTransform} bone The bone supplied to this operation.
+   * @param {string} slotName The slot name supplied to this operation.
+   * @param {string} attachmentName The attachment name supplied to this operation.
+   * @param {SpineRecord} attachment The attachment supplied to this operation.
+   * @returns {{ vertices: number[]; uvs: number[]; triangles: number[] } | undefined} Constructs mesh for SpineRenderer.
+   * @private
+   */
   private createMesh(
     runtime: SpineRuntime,
     bone: SpineBoneTransform,
     slotName: string,
     attachmentName: string,
     attachment: SpineRecord
-  ): { vertices: number[]; uvs: number[]; triangles: number[] } | undefined {
+  ): {
+  /**
+   * Vertex coordinates used to construct or render the mesh.
+   * @property {number[]} vertices
+   */
+  vertices: number[];
+  /**
+   * Texture coordinates corresponding to the mesh vertices.
+   * @property {number[]} uvs
+   */
+  uvs: number[];
+  /**
+   * Indices grouping mesh vertices into triangles.
+   * @property {number[]} triangles
+   */
+  triangles: number[] } | undefined {
     // Spine JSON omits `type` for ordinary region attachments; `mesh` is the
     // only attachment kind that consistently declares it in the slot data.
     if (attachment.type === 'region' || (!attachment.type && attachment.width && attachment.height)) {
@@ -204,6 +301,16 @@ export class SpineRenderer {
     return { vertices, uvs: attachment.uvs ?? [], triangles: attachment.triangles ?? [] };
   }
 
+  /**
+   * Constructs world vertices for SpineRenderer.
+   * @param {SpineRuntime} runtime The runtime supplied to this operation.
+   * @param {SpineBoneTransform} bone The bone supplied to this operation.
+   * @param {string} slotName The slot name supplied to this operation.
+   * @param {string} attachmentName The attachment name supplied to this operation.
+   * @param {SpineRecord} attachment The attachment supplied to this operation.
+   * @returns {number[]} Constructs world vertices for SpineRenderer.
+   * @private
+   */
   private createWorldVertices(
     runtime: SpineRuntime,
     bone: SpineBoneTransform,
@@ -217,6 +324,13 @@ export class SpineRenderer {
       : this.computeUnweightedVertices(bone, sourceVertices);
   }
 
+  /**
+   * Calculates unweighted vertices for SpineRenderer.
+   * @param {SpineBoneTransform} bone The bone supplied to this operation.
+   * @param {number[]} source The source supplied to this operation.
+   * @returns {number[]} Calculates unweighted vertices for SpineRenderer.
+   * @private
+   */
   private computeUnweightedVertices(bone: SpineBoneTransform, source: number[]): number[] {
     const vertices: number[] = [];
     for (let i = 0; i + 1 < source.length; i += 2) {
@@ -225,6 +339,14 @@ export class SpineRenderer {
     return vertices;
   }
 
+  /**
+   * Calculates weighted vertices for SpineRenderer.
+   * @param {SpineRuntime} runtime The runtime supplied to this operation.
+   * @param {SpineRecord} attachment The attachment supplied to this operation.
+   * @param {number[]} source The source supplied to this operation.
+   * @returns {number[]} Calculates weighted vertices for SpineRenderer.
+   * @private
+   */
   private computeWeightedVertices(runtime: SpineRuntime, attachment: SpineRecord, source: number[]): number[] {
     const vertices: number[] = [];
     const bones: number[] = attachment.bones;
@@ -247,10 +369,35 @@ export class SpineRenderer {
     return vertices;
   }
 
+  /**
+   * Transforms spine renderer for SpineRenderer.
+   * @param {SpineBoneTransform} bone The bone supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @returns {[number, number]} Transforms spine renderer for SpineRenderer.
+   * @private
+   */
   private transform(bone: SpineBoneTransform, x: number, y: number): [number, number] {
     return [bone.a * x + bone.b * y + bone.x, bone.c * x + bone.d * y + bone.y];
   }
 
+  /**
+   * Renders mesh for SpineRenderer.
+   * @param {HTMLImageElement | HTMLCanvasElement} image Image source used to render the associated content.
+   * @param {Atlas} atlas The atlas supplied to this operation.
+   * @param {AtlasRegion} region The region supplied to this operation.
+   * @param {number[]} worldVertices The world vertices supplied to this operation.
+   * @param {number[]} localUvs The local uvs supplied to this operation.
+   * @param {number[]} triangles Indices grouping mesh vertices into triangles.
+   * @param {number} centerX The center x supplied to this operation.
+   * @param {number} centerY The center y supplied to this operation.
+   * @param {number} scaleX The scale x supplied to this operation.
+   * @param {number} scaleY The scale y supplied to this operation.
+   * @param {number} alpha The alpha supplied to this operation.
+   * @param {"normal" | "additive" | "multiply" | "screen"} blendMode The blend mode supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private drawMesh(
     image: HTMLImageElement | HTMLCanvasElement,
     atlas: Atlas,
@@ -302,6 +449,20 @@ export class SpineRenderer {
     }
   }
 
+  /**
+   * Renders triangle for SpineRenderer.
+   * @param {HTMLImageElement | HTMLCanvasElement} image Image source used to render the associated content.
+   * @param {number[]} positions The positions supplied to this operation.
+   * @param {number[]} uvs Texture coordinates corresponding to the mesh vertices.
+   * @param {number} ai The ai supplied to this operation.
+   * @param {number} bi The bi supplied to this operation.
+   * @param {number} ci The ci supplied to this operation.
+   * @param {number} alpha The alpha supplied to this operation.
+   * @param {"normal" | "additive" | "multiply" | "screen"} blendMode The blend mode supplied to this operation.
+   * @param {readonly [boolean, boolean, boolean]} expandEdges The expand edges supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private drawTriangle(
     image: HTMLImageElement | HTMLCanvasElement,
     positions: number[],
@@ -350,15 +511,38 @@ export class SpineRenderer {
     this.context.restore();
   }
 
+  /**
+   * Adds edge count for SpineRenderer.
+   * @param {Map<string, number>} edgeCounts The edge counts supplied to this operation.
+   * @param {number} first The first supplied to this operation.
+   * @param {number} second The second supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private addEdgeCount(edgeCounts: Map<string, number>, first: number, second: number): void {
     const key = this.edgeKey(first, second);
     edgeCounts.set(key, (edgeCounts.get(key) ?? 0) + 1);
   }
 
+  /**
+   * Applies the edge key operation to SpineRenderer.
+   * @param {number} first The first supplied to this operation.
+   * @param {number} second The second supplied to this operation.
+   * @returns {string} Applies the edge key operation to SpineRenderer.
+   * @private
+   */
   private edgeKey(first: number, second: number): string {
     return first < second ? `${first}:${second}` : `${second}:${first}`;
   }
 
+  /**
+   * Expands shared edges for SpineRenderer.
+   * @param {readonly [number, number][]} vertices Vertex coordinates used to construct or render the mesh.
+   * @param {readonly [boolean, boolean, boolean]} expandEdges The expand edges supplied to this operation.
+   * @param {number} amount The amount supplied to this operation.
+   * @returns {[[number, number], [number, number], [number, number]]} Expands shared edges for SpineRenderer.
+   * @private
+   */
   private expandSharedEdges(
     vertices: readonly [number, number][],
     expandEdges: readonly [boolean, boolean, boolean],
@@ -398,12 +582,25 @@ export class SpineRenderer {
     ];
   }
 
+  /**
+   * Applies the alpha operation to SpineRenderer.
+   * @param {string} color Color applied when rendering this content.
+   * @returns {number} Applies the alpha operation to SpineRenderer.
+   * @private
+   */
   private alpha(color: string): number {
     if (color.length === 6) return 1;
     if (color.length !== 8 || !/^[\da-f]{8}$/i.test(color)) return 1;
     return Number.parseInt(color.slice(6, 8), 16) / 255;
   }
 
+  /**
+   * Multiplies color for SpineRenderer.
+   * @param {string} first The first supplied to this operation.
+   * @param {string} second The second supplied to this operation.
+   * @returns {string} Multiplies color for SpineRenderer.
+   * @private
+   */
   private multiplyColor(first: string, second: string): string {
     const normalize = (color: string): string => color.length === 6 ? `${color}FF` : color;
     const a = normalize(first);
@@ -416,6 +613,14 @@ export class SpineRenderer {
     }).join('').toUpperCase();
   }
 
+  /**
+   * Returns tinted atlas for SpineRenderer.
+   * @param {HTMLImageElement} image Image source used to render the associated content.
+   * @param {string} light The light supplied to this operation.
+   * @param {string | undefined} [dark] The dark supplied to this operation.
+   * @returns {HTMLImageElement | HTMLCanvasElement} tinted atlas for SpineRenderer.
+   * @private
+   */
   private getTintedAtlas(image: HTMLImageElement, light: string, dark?: string): HTMLImageElement | HTMLCanvasElement {
     const normalizedLight = light.length === 6 ? `${light}FF` : light;
     const normalizedDark = dark?.length === 6 ? dark : undefined;
