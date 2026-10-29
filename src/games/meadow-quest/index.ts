@@ -1,5 +1,10 @@
 export { default as MeadowQuestGame } from './game';
 export { default as createLevel } from './level';
-export type { Coin } from './level';
-export type { Platform } from './level';
+export type { default as Coin } from './coin';
+export type { default as Platform } from './platform';
 export { default as PlatformerRenderer } from './renderer';
+export type { default as DrawLabel } from './draw-label';
+export type { PlatformerRenderState } from './platformer-render-state';
+export { default as MeadowTerrain } from './terrain';
+export { default as MeadowPlayer } from './player';
+export type { MeadowLevel } from './meadow-level';

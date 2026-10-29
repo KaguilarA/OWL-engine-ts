@@ -1,128 +1,62 @@
-import {
-  Collision2D,
-  GameContext,
-  type CollisionRect
-} from '../../engine';
-import { PachinkoBall } from './';
+import { computedValue, signalValue } from 'reactive-values';
+import { GameContext, type CollisionRect } from '../../engine';
+import type { PachinkoPeg } from './';
 
 /**
- * Defines the pachinko peg contract shared by its consumers.
- * @interface PachinkoPeg
- */
-export interface PachinkoPeg {
-  /**
-   * Horizontal coordinate in the owning coordinate space.
-   * @property {number} x
-   */
-  x: number;
-  /**
-   * Vertical coordinate in the owning coordinate space.
-   * @property {number} y
-   */
-  y: number;
-  /**
-   * Radius of the circular shape.
-   * @property {number} radius
-   */
-  radius: number;
-}
-
-/**
- * Defines the pachinko bounds contract shared by its consumers.
- * @interface PachinkoBounds
- */
-export interface PachinkoBounds {
-  /**
-   * Horizontal coordinate in the owning coordinate space.
-   * @property {number} x
-   */
-  x: number;
-  /**
-   * Vertical coordinate in the owning coordinate space.
-   * @property {number} y
-   */
-  y: number;
-  /**
-   * Width of the represented area.
-   * @property {number} width
-   */
-  width: number;
-  /**
-   * Height of the represented area.
-   * @property {number} height
-   */
-  height: number;
-}
-
-/**
- * Shared values used to configure board.
- * @constant
- */
-const LANE_COUNT = 9;
-/**
- * Shared values used to configure board.
- * @constant
- */
-const ROW_COUNT = 8;
-
-/**
- * Owns responsive peg geometry, board collisions, and payout-lane layout.
+ * Owns responsive geometry shared by board rendering and scene physics.
  * @class PachinkoBoard
  */
 export default class {
   /**
-   * Bounds cache configuration or state owned by PachinkoBoard.
-   * @property {PachinkoBounds | undefined} boundsCache
+   * Viewport configuration scoped to this board, avoiding global subscriptions.
+   * @property {SignalValue<object>} viewport
    * @private
    */
-  private boundsCache: PachinkoBounds | undefined;
+  private readonly viewport = signalValue({ width: GameContext.gameDimensionsModel.getWidth(), height: GameContext.gameDimensionsModel.getHeight() });
   /**
-   * Pegs cache configuration or state owned by PachinkoBoard.
-   * @property {readonly PachinkoPeg[]} pegsCache
-   * @private
+   * Responsive board bounds derived from viewport size without a manual cache.
+   * @property {ComputedValue<CollisionRect>} layout
    */
-  private pegsCache: readonly PachinkoPeg[] = [];
+  public readonly layout = computedValue<CollisionRect>(() => {
+    const viewport = this.viewport();
+    const width = Math.min(viewport.width * 0.78, 540);
+    const height = Math.min(viewport.height * 0.64, 570);
+    return { x: (viewport.width - width) * 0.5,
+      y: Math.max(92, (viewport.height - height) * 0.5), width, height };
+  }, [this.viewport]);
   /**
-   * Rail cache configuration or state owned by PachinkoBoard.
-   * @property {readonly CollisionRect[]} railCache
-   * @private
+   * Peg centers and radii shared by rendering and collision construction.
+   * @property {ComputedValue<readonly PachinkoPeg[]>} pegs
    */
-  private railCache: readonly CollisionRect[] = [];
+  public readonly pegs = computedValue(() => this.createPegs(this.bounds), [this.viewport]);
   /**
-   * Lane wall cache configuration or state owned by PachinkoBoard.
-   * @property {readonly CollisionRect[]} laneWallCache
-   * @private
+   * Full-height outer barriers shared by rendering and physics.
+   * @property {ComputedValue<readonly CollisionRect[]>} rails
    */
-  private laneWallCache: readonly CollisionRect[] = [];
+  public readonly rails = computedValue(() => this.createRails(this.bounds), [this.viewport]);
+  /**
+   * Lane divider rectangles used to construct matching convex polygons.
+   * @property {ComputedValue<readonly CollisionRect[]>} laneWalls
+   */
+  public readonly laneWalls = computedValue(() => this.createLaneWalls(this.bounds), [this.viewport]);
 
   /**
-   * Returns bounds from the current PachinkoBoard state.
-   * @returns {PachinkoBounds} bounds from the current PachinkoBoard state.
-   * @public
+   * Exposes the current responsive board rectangle.
+   * @returns {CollisionRect} Current board bounds.
    */
-  public get bounds(): PachinkoBounds {
-    const viewport = GameContext.gameDimensionsModel;
-    const width = Math.min(viewport.getWidth() * 0.78, 540);
-    const height = Math.min(viewport.getHeight() * 0.64, 570);
-    const next = {
-      x: (viewport.getWidth() - width) * 0.5,
-      y: Math.max(92, (viewport.getHeight() - height) * 0.5),
-      width,
-      height
-    };
-    if (
-      this.boundsCache === undefined
-      || this.boundsCache.x !== next.x
-      || this.boundsCache.y !== next.y
-      || this.boundsCache.width !== next.width
-      || this.boundsCache.height !== next.height
-    ) {
-      this.boundsCache = next;
-      this.pegsCache = this.createPegs(next);
-      this.railCache = this.createRails(next);
-      this.laneWallCache = this.createLaneWalls(next);
+  public get bounds(): CollisionRect { return this.layout(); }
+
+  /**
+   * Updates this board's reactive viewport configuration.
+   * @param {number} width Available logical canvas width.
+   * @param {number} height Available logical canvas height.
+   * @returns {void}
+   */
+  public resize(width: number, height: number): void {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      throw new RangeError('Pachinko viewport dimensions must be positive and finite.');
     }
-    return this.boundsCache;
+    this.viewport.set({ width, height });
   }
 
   /**
@@ -130,7 +64,7 @@ export default class {
    * @returns {number} lane count from the current PachinkoBoard state.
    * @public
    */
-  public get laneCount(): number { return LANE_COUNT; }
+  public get laneCount(): number { return 9; }
   /**
    * Returns lane top from the current PachinkoBoard state.
    * @returns {number} lane top from the current PachinkoBoard state.
@@ -152,7 +86,7 @@ export default class {
    */
   public laneAt(x: number): number {
     const bounds = this.bounds;
-    return Math.max(0, Math.min(LANE_COUNT - 1, Math.floor((x - bounds.x) / (bounds.width / LANE_COUNT))));
+    return Math.max(0, Math.min(9 - 1, Math.floor((x - bounds.x) / (bounds.width / 9))));
   }
 
   /**
@@ -163,7 +97,7 @@ export default class {
    */
   public laneCenter(index: number): number {
     const bounds = this.bounds;
-    return bounds.x + bounds.width * (index + 0.5) / LANE_COUNT;
+    return bounds.x + bounds.width * (index + 0.5) / 9;
   }
 
   /**
@@ -174,28 +108,6 @@ export default class {
    */
   public launchY(radius: number): number {
     return this.bounds.y + 14 + radius;
-  }
-
-  /**
-   * Resolves pachinko board for PachinkoBoard.
-   * @param {PachinkoBall} ball The ball supplied to this operation.
-   * @returns {void}
-   * @public
-   */
-  public resolve(ball: PachinkoBall): void {
-    const body = ball.body;
-    const bounds = this.bounds;
-    let touchingPeg = false;
-    for (let index = 0; index < this.pegsCache.length; index++) {
-      const peg = this.pegsCache[index];
-      if (!Collision2D.resolveCircleAgainstCircle(body, peg.x, peg.y, peg.radius, 0.68)) continue;
-      touchingPeg = true;
-      ball.deflectFromPeg(peg.x, index);
-    }
-    if (!touchingPeg) ball.clearPegContact();
-    for (const rail of this.railCache) Collision2D.resolveCircleAgainstRect(body, rail, 0.68);
-    for (const wall of this.laneWallCache) Collision2D.resolveCircleAgainstRect(body, wall, 0.35);
-    Collision2D.resolveCircleAgainstHorizontalBounds(body, bounds.x, bounds.x + bounds.width, 0.55);
   }
 
   /**
@@ -213,17 +125,27 @@ export default class {
     GameContext.drawRect(x, y, width, height, 'rgba(12, 19, 44, 0.92)');
     GameContext.drawRect(x, slotTop, width, y + height - slotTop, '#11172e');
 
-    this.pegsCache.forEach((peg) => {
+    this.pegs().forEach((peg) => {
       GameContext.drawCircle(peg.x + 1, peg.y + 2, peg.radius + 1, 'rgba(0, 0, 0, 0.45)');
       GameContext.drawCircle(peg.x, peg.y, peg.radius, '#f0d88a');
       GameContext.drawCircle(peg.x - peg.radius * 0.25, peg.y - peg.radius * 0.3, peg.radius * 0.3, '#ffffff');
     });
 
-    const laneWidth = width / LANE_COUNT;
-    for (let index = 0; index <= LANE_COUNT; index++) {
-      const dividerX = x + laneWidth * index;
-      GameContext.drawRect(dividerX - 1.5, slotTop, 3, y + height - slotTop, '#7588aa');
-    }
+    const laneWidth = width / 9;
+    const context = GameContext.context;
+    context.save();
+    try {
+      context.fillStyle = '#7588aa';
+      for (const wall of this.laneWalls()) {
+        context.beginPath();
+        context.moveTo(wall.x + wall.width / 2, wall.y);
+        context.lineTo(wall.x + wall.width, wall.y + 4);
+        context.lineTo(wall.x + wall.width, wall.y + wall.height);
+        context.lineTo(wall.x, wall.y + wall.height);
+        context.lineTo(wall.x, wall.y + 4);
+        context.closePath(); context.fill();
+      }
+    } finally { context.restore(); }
     payouts.forEach((multiplier, index) => {
       const laneX = x + laneWidth * index;
       if (index === selectedLane) {
@@ -243,17 +165,17 @@ export default class {
 
   /**
    * Constructs pegs for PachinkoBoard.
-   * @param {PachinkoBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {PachinkoPeg[]} Constructs pegs for PachinkoBoard.
    * @private
    */
-  private createPegs(bounds: PachinkoBounds): PachinkoPeg[] {
+  private createPegs(bounds: CollisionRect): PachinkoPeg[] {
     const spacingX = bounds.width / 10;
-    const spacingY = (bounds.height - 142) / ROW_COUNT;
+    const spacingY = (bounds.height - 142) / 8;
     const radius = Math.max(3, Math.min(6, spacingX * 0.12));
     const pegs: PachinkoPeg[] = [];
-    for (let row = 0; row < ROW_COUNT; row++) {
-      for (let column = 0; column < LANE_COUNT; column++) {
+    for (let row = 0; row < 8; row++) {
+      for (let column = 0; column < 9; column++) {
         pegs.push({
           x: bounds.x + spacingX * (column + 0.5 + (row % 2) * 0.5),
           y: bounds.y + 38 + row * spacingY,
@@ -266,13 +188,13 @@ export default class {
 
   /**
    * Constructs rails for PachinkoBoard.
-   * @param {PachinkoBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {CollisionRect[]} Constructs rails for PachinkoBoard.
    * @private
    */
-  private createRails(bounds: PachinkoBounds): CollisionRect[] {
+  private createRails(bounds: CollisionRect): CollisionRect[] {
     const sideRailWidth = Math.max(6, bounds.width * 0.018);
-    const railHeight = this.laneTop - bounds.y;
+    const railHeight = bounds.height + 40;
     return [
       { x: bounds.x - sideRailWidth, y: bounds.y, width: sideRailWidth, height: railHeight },
       { x: bounds.x + bounds.width, y: bounds.y, width: sideRailWidth, height: railHeight }
@@ -281,16 +203,16 @@ export default class {
 
   /**
    * Constructs lane walls for PachinkoBoard.
-   * @param {PachinkoBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {CollisionRect[]} Constructs lane walls for PachinkoBoard.
    * @private
    */
-  private createLaneWalls(bounds: PachinkoBounds): CollisionRect[] {
+  private createLaneWalls(bounds: CollisionRect): CollisionRect[] {
     const slotTop = bounds.y + bounds.height - 54;
-    const laneWidth = bounds.width / LANE_COUNT;
+    const laneWidth = bounds.width / 9;
     const wallWidth = Math.max(2, bounds.width * 0.004);
     const walls: CollisionRect[] = [];
-    for (let index = 1; index < LANE_COUNT; index++) {
+    for (let index = 1; index < 9; index++) {
       walls.push({
         x: bounds.x + laneWidth * index - wallWidth * 0.5,
         y: slotTop,

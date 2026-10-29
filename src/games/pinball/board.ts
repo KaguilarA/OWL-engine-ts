@@ -1,61 +1,14 @@
-import { signalValue } from 'reactive-values';
+import { computedValue, signalValue } from 'reactive-values';
 import {
-  CircleBody,
-  Collision2D,
   GameContext,
   GameLoader,
   Sprite,
   type AtlasAnimation,
+  type PhysicsPoint,
   type CollisionRect
 } from '../../engine';
 
-import { PinballBall } from './';
-
-/**
- * Defines the pinball bounds contract shared by its consumers.
- * @interface PinballBounds
- */
-export interface PinballBounds {
-/**
- * Horizontal coordinate in the owning coordinate space.
- * @property {number} x
- */
-x: number;
-/**
- * Vertical coordinate in the owning coordinate space.
- * @property {number} y
- */
-y: number;
-/**
- * Width of the represented area.
- * @property {number} width
- */
-width: number;
-/**
- * Height of the represented area.
- * @property {number} height
- */
-height: number; }
-/**
- * Defines the pinball bumper contract shared by its consumers.
- * @interface PinballBumper
- */
-export interface PinballBumper {
-/**
- * Horizontal coordinate in the owning coordinate space.
- * @property {number} x
- */
-x: number;
-/**
- * Vertical coordinate in the owning coordinate space.
- * @property {number} y
- */
-y: number;
-/**
- * Radius of the circular shape.
- * @property {number} radius
- */
-radius: number; }
+import type { PinballBumper } from './';
 
 /**
  * Space-Cadet-inspired table layout, launcher lane, scoring targets, and rails.
@@ -63,47 +16,48 @@ radius: number; }
  */
 export default class {
   /**
-   * Bounds cache configuration or state owned by PinballBoard.
-   * @property {PinballBounds | undefined} boundsCache
+   * Viewport input scoped to this board without retaining global subscriptions.
+   * @property {SignalValue<object>} viewport
    * @private
    */
-  private boundsCache: PinballBounds | undefined;
+  private readonly viewport = signalValue({ width: GameContext.gameDimensionsModel.getWidth(), height: GameContext.gameDimensionsModel.getHeight() });
   /**
-   * Cached viewport width configuration or state owned by PinballBoard.
-   * @property {number} cachedViewportWidth
-   * @private
+   * Table bounds derived from the current viewport configuration.
+   * @property {ComputedValue<CollisionRect>} layout
    */
-  private cachedViewportWidth = -1;
+  public readonly layout = computedValue<CollisionRect>(() => {
+    const viewport = this.viewport();
+    const width = Math.min(viewport.width * 0.62, 440);
+    const top = Math.max(56, viewport.height * 0.14);
+    const y = Math.min(top, Math.max(40, viewport.height - 140));
+    const height = Math.max(24, Math.min(viewport.height * 0.72, 620, viewport.height - y - 34));
+    return { x: (viewport.width - width) / 2, y, width, height };
+  }, [this.viewport]);
   /**
-   * Cached viewport height configuration or state owned by PinballBoard.
-   * @property {number} cachedViewportHeight
-   * @private
+   * Bumper circles shared by rendering and physics.
+   * @property {ComputedValue<readonly PinballBumper[]>} bumpers
    */
-  private cachedViewportHeight = -1;
+  public readonly bumpers = computedValue(() => this.createBumpers(this.bounds), [this.viewport]);
   /**
-   * Bumpers cache configuration or state owned by PinballBoard.
-   * @property {readonly PinballBumper[]} bumpersCache
-   * @private
+   * Scoring target rectangles shared by rendering and physics.
+   * @property {ComputedValue<readonly CollisionRect[]>} targets
    */
-  private bumpersCache: readonly PinballBumper[] = [];
+  public readonly targets = computedValue(() => this.createTargets(this.bounds), [this.viewport]);
   /**
-   * Targets cache configuration or state owned by PinballBoard.
-   * @property {readonly CollisionRect[]} targetsCache
-   * @private
+   * Table walls and shooter divider shared with the physics adapter.
+   * @property {ComputedValue<readonly CollisionRect[]>} walls
    */
-  private targetsCache: readonly CollisionRect[] = [];
+  public readonly walls = computedValue(() => this.createWalls(this.bounds), [this.viewport]);
   /**
-   * Wall cache configuration or state owned by PinballBoard.
-   * @property {readonly CollisionRect[]} wallCache
-   * @private
+   * Sampled orbit segments shared with the static collision capsules.
+   * @property {ComputedValue<readonly number[][]>} rails
    */
-  private wallCache: readonly CollisionRect[] = [];
+  public readonly rails = computedValue(() => this.createRails(this.bounds), [this.viewport]);
   /**
-   * Rail cache configuration or state owned by PinballBoard.
-   * @property {readonly (readonly [number, number, number, number])[]} railCache
-   * @private
+   * Convex slingshot outlines shared by their rendering and colliders.
+   * @property {ComputedValue<readonly PhysicsPoint[][]>} slingshots
    */
-  private railCache: readonly (readonly [number, number, number, number])[] = [];
+  public readonly slingshots = computedValue(() => this.createSlingshots(this.bounds), [this.viewport]);
   /**
    * Bumper visuals configuration or state owned by PinballBoard.
    * @property {readonly Sprite[]} bumperVisuals
@@ -140,21 +94,6 @@ export default class {
    */
   private readonly bumperAnimating = [signalValue(false), signalValue(false), signalValue(false)];
   /**
-   * Bumper cooldowns configuration or state owned by PinballBoard.
-   * @property {(SignalValue<number> & (() => number))[]} bumperCooldowns
-   * @readonly
-   * @private
-   */
-  private readonly bumperCooldowns = [signalValue(0), signalValue(0), signalValue(0)];
-  /**
-   * Slingshot cooldowns configuration or state owned by PinballBoard.
-   * @property {(SignalValue<number> & (() => number))[]} slingshotCooldowns
-   * @readonly
-   * @private
-   */
-  private readonly slingshotCooldowns = [signalValue(0), signalValue(0)];
-
-  /**
    * Initializes PinballBoard and its owned resources from the supplied arguments.
    * @constructor
    * @returns {void}
@@ -178,37 +117,22 @@ export default class {
   }
 
   /**
-   * Returns bounds from the current PinballBoard state.
-   * @returns {PinballBounds} bounds from the current PinballBoard state.
-   * @public
+   * Reads the responsive table bounds.
+   * @returns {CollisionRect} Current table rectangle.
    */
-  public get bounds(): PinballBounds {
-    const viewport = GameContext.gameDimensionsModel;
-    const viewportWidth = viewport.getWidth();
-    const viewportHeight = viewport.getHeight();
-    if (
-      this.boundsCache === undefined
-      || this.cachedViewportWidth !== viewportWidth
-      || this.cachedViewportHeight !== viewportHeight
-    ) {
-      const width = Math.min(viewportWidth * 0.62, 440);
-      const top = Math.max(56, viewportHeight * 0.14);
-      const y = Math.min(top, Math.max(40, viewportHeight - 140));
-      const height = Math.max(24, Math.min(viewportHeight * 0.72, 620, viewportHeight - y - 34));
-      this.boundsCache = {
-        x: (viewportWidth - width) * 0.5,
-        y,
-        width,
-        height
-      };
-      this.cachedViewportWidth = viewportWidth;
-      this.cachedViewportHeight = viewportHeight;
-      this.bumpersCache = this.createBumpers(this.boundsCache);
-      this.targetsCache = this.createTargets(this.boundsCache);
-      this.wallCache = this.createWalls(this.boundsCache);
-      this.railCache = this.createRails(this.boundsCache);
+  public get bounds(): CollisionRect { return this.layout(); }
+
+  /**
+   * Updates the reactive viewport configuration for this board.
+   * @param {number} width Available logical canvas width.
+   * @param {number} height Available logical canvas height.
+   * @returns {void}
+   */
+  public resize(width: number, height: number): void {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      throw new RangeError('Pinball viewport dimensions must be positive and finite.');
     }
-    return this.boundsCache;
+    this.viewport.set({ width, height });
   }
 
   /**
@@ -232,25 +156,13 @@ export default class {
   }
 
   /**
-   * Returns bumpers from the current PinballBoard state.
-   * @returns {readonly PinballBumper[]} bumpers from the current PinballBoard state.
-   * @public
-   */
-  public get bumpers(): readonly PinballBumper[] {
-    this.bounds;
-    return this.bumpersCache;
-  }
-
-  /**
    * Advances PinballBoard simulation and dependent presentation state for one frame.
    * @param {number} deltaSeconds Elapsed simulation time in seconds.
    * @returns {void}
    * @public
    */
   public update(deltaSeconds: number): void {
-    for (const cooldown of this.slingshotCooldowns) cooldown.set(Math.max(0, cooldown() - deltaSeconds));
     for (let index = 0; index < this.bumperVisuals.length; index++) {
-      this.bumperCooldowns[index].set(Math.max(0, this.bumperCooldowns[index]() - deltaSeconds));
       if (!this.bumperAnimating[index]()) continue;
       const visual = this.bumperVisuals[index];
       visual.update(deltaSeconds);
@@ -260,11 +172,11 @@ export default class {
 
   /**
    * Constructs bumpers for PinballBoard.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {readonly PinballBumper[]} Constructs bumpers for PinballBoard.
    * @private
    */
-  private createBumpers(bounds: PinballBounds): readonly PinballBumper[] {
+  private createBumpers(bounds: CollisionRect): readonly PinballBumper[] {
     const radius = Math.max(18, Math.min(31, bounds.width * 0.06));
     return [
       { x: bounds.x + bounds.width * 0.36, y: bounds.y + bounds.height * 0.25, radius },
@@ -281,83 +193,23 @@ export default class {
   public ballRadius(): number { return Math.max(8, Math.min(12, this.bounds.width * 0.024)); }
 
   /**
-   * Launches position for PinballBoard.
-   * @returns {{ x: number; y: number }} Launches position for PinballBoard.
+   * Returns the resting ball center in the shooter lane.
+   * @returns {PhysicsPoint} World-space launch position.
    * @public
    */
-  public launchPosition(): {
-  /**
-   * Horizontal coordinate in the owning coordinate space.
-   * @property {number} x
-   */
-  x: number;
-  /**
-   * Vertical coordinate in the owning coordinate space.
-   * @property {number} y
-   */
-  y: number } {
+  public launchPosition(): PhysicsPoint {
     const bounds = this.bounds;
     return { x: bounds.x + bounds.width * 0.91, y: bounds.y + bounds.height * 0.86 };
   }
 
   /**
-   * Returns bumper and target hits as a bitmask.
-   * @param {CircleBody} body
-   * @returns {number}
-   * @public
+   * Starts the impact animation selected by a gameplay contact event.
+   * @param {number} index Bumper index matching the geometry array.
+   * @returns {void}
    */
-  public resolve(body: CircleBody): number {
-    const bounds = this.bounds;
-    for (let index = 0; index < this.wallCache.length; index++) {
-      Collision2D.resolveCircleAgainstRect(body, this.wallCache[index], index === 2 ? 0.72 : 0.76);
-    }
-    Collision2D.resolveCircleAgainstHorizontalBounds(body, bounds.x, bounds.x + bounds.width, 0.76);
-    const railThickness = Math.max(3, bounds.width * 0.012);
-    for (const [startX, startY, endX, endY] of this.railCache) {
-      Collision2D.resolveCircleAgainstSegment(body, startX, startY, endX, endY, railThickness, 0.78);
-    }
-
-    let hitMask = 0;
-    const bumpers = this.bumpers;
-    for (let index = 0; index < bumpers.length; index++) {
-      const bumper = bumpers[index];
-      if (Collision2D.resolveCircleAgainstCircle(body, bumper.x, bumper.y, bumper.radius, 1)) {
-        hitMask |= 1 << index;
-        if (this.bumperCooldowns[index]() <= 0) {
-          const dx = body.x - bumper.x;
-          const dy = body.y - bumper.y;
-          const distance = Math.hypot(dx, dy) || 1;
-          body.addVelocity(dx / distance * 420, dy / distance * 420);
-          const speed = Math.hypot(body.velocityX, body.velocityY);
-          if (speed > 980) body.setVelocity(body.velocityX / speed * 980, body.velocityY / speed * 980);
-          this.bumperCooldowns[index].set(0.24);
-          this.bumperAnimating[index].set(true);
-          this.bumperVisuals[index].playAtlasClip(this.bumperAnimations[index]);
-        }
-      }
-    }
-
-    const targets = this.targetsCache;
-    for (let index = 0; index < targets.length; index++) {
-      if (Collision2D.resolveCircleAgainstRect(body, targets[index], 0.86)) hitMask |= 1 << (index + 3);
-    }
-    this.resolveSlingshots(body, bounds);
-    return hitMask;
-  }
-
-  /**
-   * Curves the ball into the playfield at the open end of the shooter lane.
-   * @param {PinballBall} ball
-   * @returns {boolean}
-   * @public
-   */
-  public releaseFromShooter(ball: PinballBall): boolean {
-    const body = ball.body;
-    if (body.x <= this.shooterDividerX || body.y > this.shooterExitY + body.radius || body.velocityY >= 0) {
-      return false;
-    }
-    const horizontalSpeed = Math.max(360, Math.min(520, Math.abs(body.velocityY) * 0.42));
-    return ball.leaveShooter(-horizontalSpeed, 0);
+  public playBumper(index: number): void {
+    this.bumperAnimating[index].set(true);
+    this.bumperVisuals[index].playAtlasClip(this.bumperAnimations[index]);
   }
 
   /**
@@ -429,7 +281,7 @@ export default class {
     GameContext.drawRect(x + width - 4, y, 4, height, '#50d5e8');
     GameContext.drawRect(x, y, 4, height, '#50d5e8');
 
-    const bumpers = this.bumpers;
+    const bumpers = this.bumpers();
     for (let index = 0; index < bumpers.length; index++) {
       const bumper = bumpers[index];
       const color = index === 1 ? '#51ddff' : index === 2 ? '#ffe36f' : '#ff748e';
@@ -448,7 +300,7 @@ export default class {
       visual.draw();
     }
 
-    const targets = this.targetsCache;
+    const targets = this.targets();
     for (let index = 0; index < targets.length; index++) {
       const target = targets[index];
       GameContext.drawRect(target.x - 3, target.y - 3, target.width + 6, target.height + 6, '#07142e');
@@ -463,11 +315,11 @@ export default class {
 
   /**
    * Constructs targets for PinballBoard.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {readonly CollisionRect[]} Constructs targets for PinballBoard.
    * @private
    */
-  private createTargets(bounds: PinballBounds): readonly CollisionRect[] {
+  private createTargets(bounds: CollisionRect): readonly CollisionRect[] {
     const targets: CollisionRect[] = [];
     const targetWidth = Math.max(11, bounds.width * 0.035);
     const targetHeight = Math.max(20, bounds.height * 0.052);
@@ -485,11 +337,11 @@ export default class {
 
   /**
    * Constructs walls for PinballBoard.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {readonly CollisionRect[]} Constructs walls for PinballBoard.
    * @private
    */
-  private createWalls(bounds: PinballBounds): readonly CollisionRect[] {
+  private createWalls(bounds: CollisionRect): readonly CollisionRect[] {
     const wall = Math.max(8, bounds.width * 0.025);
     const dividerX = bounds.x + bounds.width * 0.82;
     const exitY = bounds.y + bounds.height * 0.2;
@@ -504,11 +356,11 @@ export default class {
 
   /**
    * Constructs rails for PinballBoard.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {readonly (readonly [number, number, number, number])[]} Constructs rails for PinballBoard.
    * @private
    */
-  private createRails(bounds: PinballBounds): readonly (readonly [number, number, number, number])[] {
+  private createRails(bounds: CollisionRect): readonly (readonly [number, number, number, number])[] {
     const { x, y, width, height } = bounds;
     const paths = [
       // Left orbit: runs down the outer lane then bends into the lower playfield.
@@ -535,11 +387,11 @@ export default class {
 
   /**
    * Renders orbit rails for PinballBoard.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {void}
    * @private
    */
-  private drawOrbitRails(bounds: PinballBounds): void {
+  private drawOrbitRails(bounds: CollisionRect): void {
     const { x, y, width, height } = bounds;
     const context = GameContext.context;
     context.save(); context.lineCap = 'round'; context.lineJoin = 'round';
@@ -569,78 +421,41 @@ export default class {
   }
 
   /**
-   * Resolves slingshots for PinballBoard.
-   * @param {CircleBody} body The body supplied to this operation.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
-   * @returns {void}
+   * Constructs convex outlines matching both visible slingshots.
+   * @param {CollisionRect} bounds Responsive table geometry.
+   * @returns {readonly PhysicsPoint[][]} World-space convex polygon vertices.
    * @private
    */
-  private resolveSlingshots(body: CircleBody, bounds: PinballBounds): void {
+  private createSlingshots(bounds: CollisionRect): readonly PhysicsPoint[][] {
     const { x, y, width, height } = bounds;
-    const top = y + height * 0.68;
-    const end = top + height * 0.06;
-    const thickness = Math.max(3, width * 0.012);
-    const wasDescending = body.velocityY > 0;
-    // Collide against the actual four edges of each drawn sling polygon. The old
-    // diagonal crossed through the filled shape, so the ball hit an invisible face
-    // and could settle in the gap between that face and the flipper.
-    const leftA = [x + width * 0.1, top - height * 0.025] as const;
-    const leftB = [x + width * 0.25, top] as const;
-    const leftC = [x + width * 0.24, end] as const;
-    const leftD = [x + width * 0.12, end - height * 0.01] as const;
-    const rightA = [x + width * 0.72, top] as const;
-    const rightB = [x + width * 0.87, top - height * 0.025] as const;
-    const rightC = [x + width * 0.87, end - height * 0.01] as const;
-    const rightD = [x + width * 0.73, end] as const;
-    let leftHit = Collision2D.resolveCircleAgainstSegment(body, ...leftA, ...leftB, thickness, 0.9);
-    leftHit = Collision2D.resolveCircleAgainstSegment(body, ...leftB, ...leftC, thickness, 0.9) || leftHit;
-    leftHit = Collision2D.resolveCircleAgainstSegment(body, ...leftC, ...leftD, thickness, 0.9) || leftHit;
-    leftHit = Collision2D.resolveCircleAgainstSegment(body, ...leftD, ...leftA, thickness, 0.9) || leftHit;
-    let rightHit = Collision2D.resolveCircleAgainstSegment(body, ...rightA, ...rightB, thickness, 0.9);
-    rightHit = Collision2D.resolveCircleAgainstSegment(body, ...rightB, ...rightC, thickness, 0.9) || rightHit;
-    rightHit = Collision2D.resolveCircleAgainstSegment(body, ...rightC, ...rightD, thickness, 0.9) || rightHit;
-    rightHit = Collision2D.resolveCircleAgainstSegment(body, ...rightD, ...rightA, thickness, 0.9) || rightHit;
-    if (leftHit && this.slingshotCooldowns[0]() <= 0 && wasDescending) {
-      // Kick toward the center lane, away from the left orbit's dead end.
-      body.addVelocity(220, -360);
-      this.slingshotCooldowns[0].set(0.12);
-    }
-    if (rightHit && this.slingshotCooldowns[1]() <= 0 && wasDescending) {
-      body.addVelocity(-220, -360);
-      this.slingshotCooldowns[1].set(0.12);
-    }
+    const top = y + height * 0.68, end = top + height * 0.06;
+    return [
+      [{ x: x + width * 0.1, y: top - height * 0.025 }, { x: x + width * 0.25, y: top },
+        { x: x + width * 0.24, y: end }, { x: x + width * 0.12, y: end - height * 0.01 }],
+      [{ x: x + width * 0.72, y: top }, { x: x + width * 0.87, y: top - height * 0.025 },
+        { x: x + width * 0.87, y: end - height * 0.01 }, { x: x + width * 0.73, y: end }]
+    ];
   }
 
   /**
    * Renders slingshots for PinballBoard.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {CollisionRect} bounds Bounds used to position, constrain, or query the object.
    * @returns {void}
    * @private
    */
-  private drawSlingshots(bounds: PinballBounds): void {
-    const y = bounds.y + bounds.height * 0.68;
-    const leftX = bounds.x + bounds.width * 0.1;
-    const rightX = bounds.x + bounds.width * 0.72;
-    const endY = y + bounds.height * 0.06;
+  private drawSlingshots(bounds: CollisionRect): void {
     const context = GameContext.context;
     context.save();
-    context.lineJoin = 'round';
-    context.fillStyle = '#183b63';
-    context.strokeStyle = '#e3b456';
-    context.lineWidth = Math.max(3, bounds.width * 0.01);
-    context.beginPath();
-    context.moveTo(leftX, y - bounds.height * 0.025);
-    context.lineTo(leftX + bounds.width * 0.15, y);
-    context.lineTo(leftX + bounds.width * 0.14, endY);
-    context.lineTo(leftX + bounds.width * 0.02, endY - bounds.height * 0.01);
-    context.closePath();
-    context.moveTo(rightX, y);
-    context.lineTo(rightX + bounds.width * 0.15, y - bounds.height * 0.025);
-    context.lineTo(rightX + bounds.width * 0.15, endY - bounds.height * 0.01);
-    context.lineTo(rightX + bounds.width * 0.01, endY);
-    context.closePath();
-    context.fill();
-    context.stroke();
-    context.restore();
+    try {
+      context.lineJoin = 'round'; context.fillStyle = '#183b63'; context.strokeStyle = '#e3b456';
+      context.lineWidth = Math.max(3, bounds.width * 0.01);
+      context.beginPath();
+      for (const points of this.slingshots()) {
+        context.moveTo(points[0].x, points[0].y);
+        for (const point of points.slice(1)) context.lineTo(point.x, point.y);
+        context.closePath();
+      }
+      context.fill(); context.stroke();
+    } finally { context.restore(); }
   }
 }

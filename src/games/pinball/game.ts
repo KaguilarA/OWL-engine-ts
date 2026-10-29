@@ -6,11 +6,13 @@ import {
   GameContext,
   GameInput,
   GameLoader,
-  TouchControls
+  TouchControls,
+  type CollisionRect,
+  type PhysicsContactEvent
 } from '../../engine';
 import heartSvg from 'lucide-static/icons/heart.svg?raw';
 
-import { PinballBall, PinballBoard, PinballFlipper } from './';
+import { PinballBall, PinballBoard, PinballFlipper, PinballPhysics } from './';
 
 /**
  * Pinball gameplay exercising reusable engine physics and collision entities.
@@ -95,12 +97,23 @@ export default class extends BaseGame {
    */
   private readonly plungerCharge = signalValue(0);
   /**
-   * Reactive bumper cooldown state owned by PinballGame.
-   * @property {SignalValue<number> & (() => number)} bumperCooldown
-   * @readonly
+   * Adapter owning all table, sensor, and flipper collider registrations.
+   * @property {PinballPhysics} physics
    * @private
    */
-  private readonly bumperCooldown = signalValue(0);
+  private readonly physics: PinballPhysics;
+  /**
+   * Independent bumper cooldowns prevent repeated impulses from retained contacts.
+   * @property {readonly SignalValue<number>[]} bumperCooldowns
+   * @private
+   */
+  private readonly bumperCooldowns = [signalValue(0), signalValue(0), signalValue(0)];
+  /**
+   * Independent cooldowns for the two powered slingshots.
+   * @property {readonly SignalValue<number>[]} slingCooldowns
+   * @private
+   */
+  private readonly slingCooldowns = [signalValue(0), signalValue(0)];
 
   /**
    * Initializes PinballGame and its owned resources from the supplied arguments.
@@ -110,10 +123,13 @@ export default class extends BaseGame {
    * @public
    */
   public constructor(onReturnToMenu?: () => void) {
-    super(onReturnToMenu, { showResetButton: false });
+    super(onReturnToMenu, { showResetButton: false }, { gravityY: 680, fixedTimeStep: 1 / 120, maxSubSteps: 6 });
+    this.physics = new PinballPhysics(this.worldScene.physics, this.board, [this.leftFlipper, this.rightFlipper]);
+    this.registerCleanup(() => this.physics.dispose());
+    this.registerCleanup(this.worldScene.physics.onBeforeStep(seconds => this.preparePhysicsStep(seconds)));
+    this.registerCleanup(this.worldScene.physics.onContact(event => this.handleContact(event)));
     this.registerCleanup(() => this.touchControls.dispose());
-    const position = this.board.launchPosition();
-    this.ball.set(new PinballBall(position.x, position.y, this.board.ballRadius()));
+    this.restartGame();
     this.start();
   }
 
@@ -131,62 +147,112 @@ export default class extends BaseGame {
    * @protected
    */
   protected updateGame(deltaSeconds: number): void {
+    this.board.resize(GameContext.gameDimensionsModel.getWidth(), GameContext.gameDimensionsModel.getHeight());
+    const previous = this.physics.syncLayout();
+    if (previous) this.resizeBall(previous);
     this.board.update(deltaSeconds);
-    const leftPressed = GameInput.isDown('moveLeft');
-    const rightPressed = GameInput.isDown('moveRight');
     const spaceHeld = GameInput.isDown('launch');
     if (GameInput.wasPressed('launch') && !this.launched()) this.plungerCharge.set(0);
     if (spaceHeld && !this.launched()) {
       this.plungerCharge.set(Math.min(1, this.plungerCharge() + deltaSeconds * 0.75));
     }
     if (GameInput.wasReleased('launch')) this.launch();
-    const bounds = this.board.bounds;
-    this.leftFlipper.update(bounds, leftPressed, deltaSeconds);
-    this.rightFlipper.update(bounds, rightPressed, deltaSeconds);
-    if (!this.launched()) return;
+  }
 
+  /**
+   * Prepares powered elements at physics frequency without integrating the ball.
+   * @param {number} seconds Fixed simulation interval in seconds.
+   * @returns {void}
+   * @private
+   */
+  private preparePhysicsStep(seconds: number): void {
+    for (const cooldown of [...this.bumperCooldowns, ...this.slingCooldowns]) cooldown.set(Math.max(0, cooldown() - seconds));
+    this.leftFlipper.update(GameInput.isDown('moveLeft'), seconds);
+    this.rightFlipper.update(GameInput.isDown('moveRight'), seconds);
+    if (this.launched()) this.ball()?.applyDamping(seconds);
+  }
+
+  /**
+   * Applies gameplay effects to world-confirmed contacts with the active ball.
+   * @param {PhysicsContactEvent} event Committed fixed-step contact transition.
+   * @returns {void}
+   * @private
+   */
+  private handleContact(event: PhysicsContactEvent): void {
     const ball = this.ball();
-    if (ball === undefined) return;
-    const stepCount = Math.max(1, Math.ceil(deltaSeconds / (1 / 120)));
-    const stepSeconds = deltaSeconds / stepCount;
-    let hitMask = 0;
-    let flipperScore = 0;
-    let flipperHit = false;
-    let ballLost = false;
-    for (let step = 0; step < stepCount; step++) {
-      ball.update(stepSeconds);
-      this.board.releaseFromShooter(ball);
-      hitMask |= this.board.resolve(ball.body);
-      const descending = ball.body.velocityY > 0;
-      const leftHit = this.leftFlipper.collide(ball.body, leftPressed);
-      const rightHit = this.rightFlipper.collide(ball.body, rightPressed);
-      if (descending && ((leftHit && leftPressed) || (rightHit && rightPressed))) {
-        flipperHit = true;
-      }
-      if (ball.body.y - ball.body.radius > bounds.y + bounds.height) {
-        ballLost = true;
-        break;
+    if (!ball || !this.launched() || event.phase === 'end') return;
+    const other = event.first === ball.body ? event.second : event.second === ball.body ? event.first : undefined;
+    if (!other) return;
+    if (other === this.physics.drain()) { this.loseBall(); return; }
+    if (other === this.physics.shooterExit() && ball.isInShooterLane && ball.body.velocityY < 0) {
+      const speed = Math.max(360, Math.min(520, Math.abs(ball.body.velocityY) * 0.42));
+      ball.leaveShooter(-speed, 0);
+      ball.body.setPosition(ball.body.x, this.board.shooterExitY - ball.body.radius - 1);
+      return;
+    }
+    const bumper = this.physics.bumpers().indexOf(other);
+    if (bumper >= 0 && this.bumperCooldowns[bumper]() <= 0) {
+      const dx = ball.body.x - other.x, dy = ball.body.y - other.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      ball.body.addVelocity(dx / distance * 420, dy / distance * 420);
+      this.score.set(this.score() + 100);
+      this.bumperCooldowns[bumper].set(0.24);
+      this.board.playBumper(bumper);
+    }
+    if (event.phase === 'begin' && this.physics.targets().includes(other)) this.score.set(this.score() + 500);
+    const sling = this.physics.slingshots().indexOf(other);
+    if (sling >= 0 && this.slingCooldowns[sling]() <= 0) {
+      ball.body.addVelocity(sling === 0 ? 210 : -210, -300);
+      this.slingCooldowns[sling].set(0.22);
+    }
+    const normalY = event.first === other ? event.normalY : -event.normalY;
+    for (const flipper of [this.leftFlipper, this.rightFlipper]) {
+      if (normalY < -0.1 && flipper.bodies().includes(other) && flipper.strike(ball.body)) {
+        this.score.set(this.score() + 25);
       }
     }
-    if (flipperHit) flipperScore = 25;
-    if (hitMask > 0 && this.bumperCooldown() <= 0) {
-      this.score.set(this.score() + flipperScore + 100 * this.countBits(hitMask & 0b111)
-        + 500 * this.countBits(hitMask >> 3));
-      this.bumperCooldown.set(0.12);
-    } else if (flipperScore > 0) {
-      this.score.set(this.score() + flipperScore);
-    }
-    this.bumperCooldown.set(Math.max(0, this.bumperCooldown() - deltaSeconds));
+  }
 
-    if (ballLost) {
-      const remainingLives = this.lives() - 1;
-      this.lives.set(remainingLives);
-      this.launched.set(false);
-      if (remainingLives > 0) {
-        const start = this.board.launchPosition();
-        this.ball.set(new PinballBall(start.x, start.y, this.board.ballRadius()));
-      }
+  /**
+   * Removes a drained ball once and prepares an unregistered ball for the next launch.
+   * @returns {void}
+   * @private
+   */
+  private loseBall(): void {
+    const ball = this.ball();
+    if (!ball || !this.launched()) return;
+    this.launched.set(false);
+    this.ball.set(undefined);
+    this.worldScene.physics.removeBody(ball.body);
+    this.lives.set(this.lives() - 1);
+    this.plungerCharge.set(0);
+    if (this.lives() > 0) {
+      const start = this.board.launchPosition();
+      this.ball.set(new PinballBall(start.x, start.y, this.board.ballRadius()));
     }
+  }
+
+  /**
+   * Preserves normalized position, shooter state, and velocity across layout changes.
+   * @param {CollisionRect} previous Table bounds before the resize.
+   * @returns {void}
+   * @private
+   */
+  private resizeBall(previous: CollisionRect): void {
+    const ball = this.ball();
+    if (!ball) return;
+    const bounds = this.board.bounds, radius = this.board.ballRadius();
+    const start = this.board.launchPosition();
+    const x = this.launched() ? bounds.x + (ball.body.x - previous.x) / previous.width * bounds.width : start.x;
+    const y = this.launched() ? bounds.y + (ball.body.y - previous.y) / previous.height * bounds.height : start.y;
+    const next = new PinballBall(Math.max(bounds.x + radius, Math.min(bounds.x + bounds.width - radius, x)), y, radius);
+    const vx = ball.body.velocityX * bounds.width / previous.width;
+    const vy = ball.body.velocityY * bounds.height / previous.height;
+    if (!ball.isInShooterLane) next.leaveShooter(vx, vy);
+    else next.body.setVelocity(vx, vy);
+    this.ball.set(next);
+    this.worldScene.physics.removeBody(ball.body);
+    if (this.launched()) this.worldScene.physics.addBody(next.body);
   }
 
   /**
@@ -236,18 +302,12 @@ export default class extends BaseGame {
     this.score.set(0);
     this.launched.set(false);
     this.plungerCharge.set(0);
-    this.bumperCooldown.set(0);
-    const start = this.board.launchPosition();
-    this.ball.set(new PinballBall(start.x, start.y, this.board.ballRadius()));
-  }
-
-  /**
-   * Recalculates game-specific layout after the viewport dimensions change.
-   * @returns {void}
-   * @protected
-   */
-  protected onViewportChanged(): void {
-    if (this.launched()) return;
+    for (const cooldown of [...this.bumperCooldowns, ...this.slingCooldowns]) cooldown.set(0);
+    const ball = this.ball();
+    this.ball.set(undefined);
+    if (ball) this.worldScene.physics.removeBody(ball.body);
+    this.leftFlipper.reset(); this.rightFlipper.reset();
+    this.physics.syncLayout(true);
     const start = this.board.launchPosition();
     this.ball.set(new PinballBall(start.x, start.y, this.board.ballRadius()));
   }
@@ -265,6 +325,7 @@ export default class extends BaseGame {
     ball.body.setVelocity(0, -launchSpeed);
     this.plungerCharge.set(0);
     this.launched.set(true);
+    this.worldScene.physics.addBody(ball.body);
   }
 
   /**
@@ -285,15 +346,4 @@ export default class extends BaseGame {
     }
   }
 
-  /**
-   * Counts set bits in a numeric hit mask.
-   * @param {number} mask The mask supplied to this operation.
-   * @returns {number} Counts set bits in a numeric hit mask.
-   * @private
-   */
-  private countBits(mask: number): number {
-    let count = 0;
-    for (let value = mask; value !== 0; value &= value - 1) count++;
-    return count;
-  }
 }

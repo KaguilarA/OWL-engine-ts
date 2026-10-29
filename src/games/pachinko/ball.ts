@@ -38,25 +38,15 @@ export default class {
    * @public
    */
   public constructor(x: number, y: number, radius: number) {
-    this.body = new CircleBody(x, y, radius);
+    this.body = new CircleBody(x, y, radius, { layer: 1, mask: 6, restitution: 1 });
     this.body.setVelocity(0, 35);
     this.deflectionState.set((Math.floor(x * 17 + y * 31) | 0) || 0x6d2b79f5);
   }
 
   /**
-   * Advances PachinkoBall simulation and dependent presentation state for one frame.
-   * @param {number} deltaSeconds Elapsed simulation time in seconds.
-   * @returns {void}
-   * @public
-   */
-  public update(deltaSeconds: number): void {
-    this.body.update(deltaSeconds, 720);
-  }
-
-  /**
    * Adds deterministic lateral motion to perfectly centered peg impacts.
-   * @param {number} pegX
-   * @param {number} pegIndex
+   * @param {number} pegX Horizontal center of the contacted peg.
+   * @param {number} pegIndex Stable peg index for suppressing repeated deflections.
    * @returns {void}
    * @public
    */

@@ -31,17 +31,16 @@ export default class {
    * @public
    */
   public constructor(x: number, y: number, radius: number) {
-    this.body = new CircleBody(x, y, radius);
+    this.body = new CircleBody(x, y, radius, { layer: 1, mask: 14, restitution: 1 });
   }
 
   /**
-   * Advances PinballBall simulation and dependent presentation state for one frame.
+   * Applies table drag and a speed limit without integrating motion or gravity.
    * @param {number} deltaSeconds Elapsed simulation time in seconds.
    * @returns {void}
    * @public
    */
-  public update(deltaSeconds: number): void {
-    this.body.update(deltaSeconds, 680);
+  public applyDamping(deltaSeconds: number): void {
     const horizontalDrag = Math.pow(0.995, deltaSeconds * 60);
     this.body.setVelocity(this.body.velocityX * horizontalDrag, this.body.velocityY);
     const speed = Math.hypot(this.body.velocityX, this.body.velocityY);
@@ -51,10 +50,16 @@ export default class {
   }
 
   /**
+   * Reports whether this ball still belongs to the shooter lane.
+   * @returns {boolean} Whether the exit sensor has not redirected the ball yet.
+   */
+  public get isInShooterLane(): boolean { return this.inShooterLane(); }
+
+  /**
    * Turns the ball into the playfield once, without changing its position.
-   * @param {number} vx
-   * @param {number} vy
-   * @returns {boolean}
+   * @param {number} vx Horizontal exit velocity into the playfield.
+   * @param {number} vy Vertical exit velocity into the playfield.
+   * @returns {boolean} Whether this call performed the first shooter exit.
    * @public
    */
   public leaveShooter(vx: number, vy: number): boolean {

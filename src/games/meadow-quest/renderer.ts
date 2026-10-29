@@ -3,75 +3,7 @@ import {
   GameLoader,
   Sprite
 } from '../../engine';
-import type { Coin, Platform } from './';
-
-/**
- * Defines the platformer render state contract shared by its consumers.
- * @interface PlatformerRenderState
- */
-export interface PlatformerRenderState {
-  /**
-   * Camera x configuration or state owned by PlatformerRenderState.
-   * @property {number} cameraX
-   */
-  cameraX: number;
-  /**
-   * Player x configuration or state owned by PlatformerRenderState.
-   * @property {number} playerX
-   */
-  playerX: number;
-  /**
-   * Player y configuration or state owned by PlatformerRenderState.
-   * @property {number} playerY
-   */
-  playerY: number;
-  /**
-   * Facing configuration or state owned by PlatformerRenderState.
-   * @property {number} facing
-   */
-  facing: number;
-  /**
-   * Score configuration or state owned by PlatformerRenderState.
-   * @property {number} score
-   */
-  score: number;
-  /**
-   * Lives configuration or state owned by PlatformerRenderState.
-   * @property {number} lives
-   */
-  lives: number;
-  /**
-   * Won configuration or state owned by PlatformerRenderState.
-   * @property {boolean} won
-   */
-  won: boolean;
-  /**
-   * Enemy x configuration or state owned by PlatformerRenderState.
-   * @property {number} enemyX
-   */
-  enemyX: number;
-  /**
-   * Moving configuration or state owned by PlatformerRenderState.
-   * @property {boolean} moving
-   */
-  moving: boolean;
-  /**
-   * Platforms configuration or state owned by PlatformerRenderState.
-   * @property {Platform[]} platforms
-   */
-  platforms: Platform[];
-  /**
-   * Coins configuration or state owned by PlatformerRenderState.
-   * @property {Coin[]} coins
-   */
-  coins: Coin[];
-}
-
-/**
- * Defines the draw label contract shared by its consumers.
- * @typedef {DrawLabel} DrawLabel
- */
-type DrawLabel = (text: string, x: number, y: number, size: number, color: string, align: CanvasTextAlign) => void;
+import type { DrawLabel, PlatformerRenderState } from './';
 
 /**
  * Draws the platformer scene without owning its gameplay state.
@@ -131,12 +63,10 @@ export default class {
     GameContext.clear();
     GameContext.drawRect(0, 0, width, height, '#73c9ff');
     this.drawClouds(width, height, state.cameraX);
-    GameContext.drawRect(0, floor, width, height - floor, '#56b844');
-    GameContext.drawRect(0, floor + 15, width, height - floor, '#9b592d');
-    for (let x = -(state.cameraX % 42); x < width; x += 42) {
-      GameContext.drawRect(x, floor + 15, 40, 3, '#c87c3a');
-      GameContext.drawRect(x + 18, floor + 18, 3, 22, '#704122');
-    }
+    const context = GameContext.context;
+    context.save();
+    context.translate(-state.cameraX, 0);
+    try { state.terrain.draw(); } finally { context.restore(); }
 
     for (const platform of state.platforms) {
       const x = platform.x - state.cameraX;
@@ -148,7 +78,7 @@ export default class {
     }
 
     for (const coin of state.coins) {
-      if (coin.collected) continue;
+      if (coin.collected()) continue;
       const x = coin.x - state.cameraX;
       if (x > -20 && x < width + 20) {
         GameContext.drawCircle(x, coin.y, scale * 0.22, '#ffd843');

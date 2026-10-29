@@ -1,13 +1,7 @@
 import { signalValue } from 'reactive-values';
-import { CircleBody, Collision2D, GameContext } from '../../engine';
+import { CircleBody, RigidBody2D, GameContext, type CollisionRect } from '../../engine';
 
-import type { PinballBounds } from './';
-
-/**
- * Defines the flipper side contract shared by its consumers.
- * @typedef {FlipperSide} FlipperSide
- */
-export type FlipperSide = 'left' | 'right';
+import type { FlipperSide } from './';
 
 /**
  * Rotating bat controlled by keyboard or a held touch button.
@@ -64,12 +58,16 @@ export default class {
    */
   private readonly active = signalValue(false);
   /**
-   * Reactive previous angle state owned by PinballFlipper.
-   * @property {SignalValue<number> & (() => number)} previousAngle
-   * @readonly
+   * Swept circle samples forming a rounded, prescribed kinematic bat.
+   * @property {SignalValue<readonly RigidBody2D[]>} bodies
+   */
+  public readonly bodies = signalValue<readonly RigidBody2D[]>([]);
+  /**
+   * Angular input speed used only to tune the gameplay strike impulse.
+   * @property {SignalValue<number>} swingSpeed
    * @private
    */
-  private readonly previousAngle = signalValue(0);
+  private readonly swingSpeed = signalValue(0);
   /**
    * Reactive impact cooldown state owned by PinballFlipper.
    * @property {SignalValue<number> & (() => number)} impactCooldown
@@ -87,59 +85,75 @@ export default class {
    */
   public constructor(side: FlipperSide) {
     this.side = side;
+    this.angle.set(side === 'left' ? 0.5 : Math.PI - 0.5);
   }
 
   /**
-   * Advances PinballFlipper simulation and dependent presentation state for one frame.
-   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
-   * @param {boolean} pressed The pressed supplied to this operation.
-   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * Rebuilds responsive bat samples at their current prescribed angle.
+   * @param {CollisionRect} bounds Responsive table rectangle.
    * @returns {void}
-   * @public
    */
-  public update(bounds: PinballBounds, pressed: boolean, deltaSeconds: number): void {
-    this.impactCooldown.set(Math.max(0, this.impactCooldown() - deltaSeconds));
+  public configure(bounds: CollisionRect): void {
     const isLeft = this.side === 'left';
-    const center = bounds.x + bounds.width * 0.5;
-    this.pivotX.set(center + (isLeft ? -1 : 1) * bounds.width * 0.26);
+    this.pivotX.set(bounds.x + bounds.width * (isLeft ? 0.24 : 0.76));
     this.pivotY.set(bounds.y + bounds.height * 0.8);
     this.length.set(bounds.width * 0.25);
     this.thickness.set(Math.max(10, bounds.width * 0.027));
-    this.active.set(pressed);
-    const restAngle = isLeft ? 0.5 : Math.PI - 0.5;
-    const activeAngle = isLeft ? -0.05 : Math.PI + 0.05;
-    const destination = pressed ? activeAngle : restAngle;
-    this.previousAngle.set(this.angle());
-    const blend = Math.min(1, deltaSeconds * 18);
-    this.angle.set(this.angle() + (destination - this.angle()) * blend);
+    const count = Math.ceil(this.length() / (this.thickness() * 0.4)) + 1;
+    this.bodies.set(Array.from({ length: count }, (_, index) => {
+      const distance = this.length() * index / (count - 1);
+      return new RigidBody2D({ type: 'kinematic', layer: 8, mask: 1, restitution: 0.78,
+        x: this.pivotX() + Math.cos(this.angle()) * distance,
+        y: this.pivotY() + Math.sin(this.angle()) * distance,
+        shape: { kind: 'circle', radius: this.thickness() / 2 } });
+    }));
   }
 
   /**
-   * Applies the collide operation to PinballFlipper.
-   * @param {CircleBody} body The body supplied to this operation.
-   * @param {boolean} pressed The pressed supplied to this operation.
-   * @returns {boolean} Applies the collide operation to PinballFlipper.
-   * @public
+   * Prescribes each sample's velocity for the next world step, including bat sweeps.
+   * @param {boolean} pressed Whether keyboard or touch input holds this flipper.
+   * @param {number} deltaSeconds Fixed physics interval in seconds.
+   * @returns {void}
    */
-  public collide(body: CircleBody, pressed: boolean): boolean {
-    const endX = this.pivotX() + Math.cos(this.angle()) * this.length();
-    const endY = this.pivotY() + Math.sin(this.angle()) * this.length();
-    const collided = Collision2D.resolveCircleAgainstSegment(
-      body,
-      this.pivotX(),
-      this.pivotY(),
-      endX,
-      endY,
-      this.thickness(),
-      pressed ? 0.92 : 0.78
-    );
-    if (!collided || !pressed || this.impactCooldown() > 0) return collided;
+  public update(pressed: boolean, deltaSeconds: number): void {
+    this.impactCooldown.set(Math.max(0, this.impactCooldown() - deltaSeconds));
+    this.active.set(pressed);
+    const rest = this.side === 'left' ? 0.5 : Math.PI - 0.5;
+    const raised = this.side === 'left' ? -0.05 : Math.PI + 0.05;
+    const previous = this.angle();
+    this.angle.set(previous + ((pressed ? raised : rest) - previous) * Math.min(1, deltaSeconds * 18));
+    this.swingSpeed.set(deltaSeconds > 0 ? Math.abs(this.angle() - previous) / deltaSeconds : 0);
+    this.bodies().forEach((body, index, samples) => {
+      const distance = this.length() * index / (samples.length - 1);
+      const x = this.pivotX() + Math.cos(this.angle()) * distance;
+      const y = this.pivotY() + Math.sin(this.angle()) * distance;
+      body.setVelocity(deltaSeconds > 0 ? (x - body.x) / deltaSeconds : 0,
+        deltaSeconds > 0 ? (y - body.y) / deltaSeconds : 0);
+    });
+  }
 
-    const direction = this.side === 'left' ? 1 : -1;
-    const swingSpeed = Math.abs(this.angle() - this.previousAngle()) * 900;
-    body.addVelocity(direction * Math.min(180, swingSpeed * 0.08), -Math.max(460, Math.min(760, swingSpeed)));
+  /**
+   * Adds the powered-flipper gameplay impulse after a world-confirmed upper contact.
+   * This method does not detect or resolve collisions.
+   * @param {CircleBody} body Ball involved in the committed physics contact.
+   * @returns {boolean} Whether a new powered strike was applied.
+   */
+  public strike(body: CircleBody): boolean {
+    if (!this.active() || this.impactCooldown() > 0) return false;
+    const speed = this.swingSpeed() * 50;
+    body.addVelocity((this.side === 'left' ? 1 : -1) * Math.min(180, speed * 0.08),
+      -Math.max(460, Math.min(760, speed)));
     this.impactCooldown.set(0.14);
     return true;
+  }
+
+  /**
+   * Returns the bat to rest before a new ball or run without retaining input.
+   * @returns {void}
+   */
+  public reset(): void {
+    this.active.set(false); this.impactCooldown.set(0); this.swingSpeed.set(0);
+    this.angle.set(this.side === 'left' ? 0.5 : Math.PI - 0.5);
   }
 
   /**
