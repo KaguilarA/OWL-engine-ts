@@ -4,7 +4,7 @@ import { computedValue, signalValue, type ComputedValue, type SignalValue } from
  * Reactive round-robin turn order for tactical, board, and role-playing games.
  * @class TurnQueue
  */
-export default class TurnQueue<T> {
+export default class<T> {
   /**
    * Ordered actors participating in turns.
    * @property {SignalValue<readonly T[]>} actors

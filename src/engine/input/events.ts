@@ -2,21 +2,29 @@ import { signalValue } from 'reactive-values';
 import { GameContext } from '../core';
 import type { GamePointer } from '../interfaces';
 
+/**
+ * Defines the pointer listener contract shared by its consumers.
+ * @typedef {PointerListener} PointerListener
+ */
 type PointerListener = (pointer: GamePointer) => void;
+/**
+ * Defines the wheel listener contract shared by its consumers.
+ * @typedef {WheelListener} WheelListener
+ */
 type WheelListener = (pointer: GamePointer, deltaY: number) => boolean;
 
 /**
  * Tracks keyboard and touch-pointer input as normalized key states.
  * @class Events
  */
-class Events {
+export default (class {
   /**
    * The single input event service shared by engine clients.
    * @property {Events} instance
    * @public
    * @readonly
    */
-  public static readonly instance = new Events();
+  public static readonly instance = new this();
 
   /**
    * Stores the keys state.
@@ -25,6 +33,13 @@ class Events {
    * @readonly
    */
   private readonly keys = new Set<string>();
+  /**
+   * Reactive pending keys state owned by Events.
+   * @property {SignalValue<ReadonlySet<string>> & (() => ReadonlySet<string>)} pendingKeys
+   * @readonly
+   * @private
+   */
+  private readonly pendingKeys = signalValue<ReadonlySet<string>>(new Set());
   /**
    * Stores the pointer keys state.
    * @property {Map<number, string>} pointerKeys
@@ -54,7 +69,19 @@ class Events {
    * @readonly
    */
   private readonly pointerEndListeners = new Set<PointerListener>();
+  /**
+   * Wheel listeners configuration or state owned by Events.
+   * @property {Set<WheelListener>} wheelListeners
+   * @readonly
+   * @private
+   */
   private readonly wheelListeners = new Set<WheelListener>();
+  /**
+   * Pointer targets configuration or state owned by Events.
+   * @property {Set<(pointer: GamePointer) => boolean>} pointerTargets
+   * @readonly
+   * @private
+   */
   private readonly pointerTargets = new Set<(pointer: GamePointer) => boolean>();
   /**
    * Canvas currently used for pointer input.
@@ -81,6 +108,8 @@ class Events {
    * @return {void}
    */
   private readonly onPointerDown = (event: PointerEvent): void => {
+    try { this.pointerCanvas?.setPointerCapture?.(event.pointerId); }
+    catch { /* Synthetic events and already released pointers cannot be captured. */ }
     const pointer = this.getGamePointer(event);
     this.pointerDownListeners.forEach((listener) => listener(pointer));
   };
@@ -107,11 +136,24 @@ class Events {
    */
   private readonly onPointerEnd = (event: PointerEvent): void => {
     const pointer = this.getGamePointer(event);
+    if (event.type === 'pointercancel' || event.type === 'lostpointercapture') pointer.cancelled = true;
     this.pointerEndListeners.forEach((listener) => listener(pointer));
   };
+  /**
+   * Callback handling pointer leave for Events.
+   * @property {() => void} onPointerLeave
+   * @readonly
+   * @private
+   */
   private readonly onPointerLeave = (): void => {
     if (this.pointerCanvas !== undefined) this.pointerCanvas.style.cursor = '';
   };
+  /**
+   * Callback handling wheel for Events.
+   * @property {(event: WheelEvent) => void} onWheel
+   * @readonly
+   * @private
+   */
   private readonly onWheel = (event: WheelEvent): void => {
     const pointer = this.getGamePointer(event);
     const multiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE
@@ -147,7 +189,9 @@ class Events {
    * @readonly
    */
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    this.keys.add(event.key);
+    const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+    if (!this.keys.has(key)) this.pendingKeys.set(new Set([...this.pendingKeys(), key]));
+    this.keys.add(key);
   };
 
   /**
@@ -157,22 +201,17 @@ class Events {
    * @readonly
    */
   private readonly onKeyUp = (event: KeyboardEvent): void => {
-    this.keys.delete(event.key);
+    this.keys.delete(event.key.length === 1 ? event.key.toLowerCase() : event.key);
   };
 
   /**
-   * Starts listening for keyboard input when the singleton is created.
-   * @public
-   * @return {void}
-   */
-  /**
-   * Creates the shared input event service.
+   * Creates the service without browser side effects during barrel evaluation.
+   * GameInput initializes listeners when an input context is activated.
    * @private
    * @return {void}
+   * @constructor
    */
-  private constructor() {
-    this.initEvents();
-  }
+  private constructor() {}
 
   /**
    * Installs keyboard listeners once.
@@ -205,6 +244,7 @@ class Events {
     canvas.addEventListener('pointermove', this.onPointerMove);
     canvas.addEventListener('pointerup', this.onPointerEnd);
     canvas.addEventListener('pointercancel', this.onPointerEnd);
+    canvas.addEventListener('lostpointercapture', this.onPointerEnd);
     canvas.addEventListener('pointerleave', this.onPointerLeave);
     canvas.addEventListener('wheel', this.onWheel, { passive: false });
   }
@@ -251,8 +291,7 @@ class Events {
     this.removePointerEvents();
     this.removeViewportEvents();
 
-    this.keys.clear();
-    this.pointerKeys.clear();
+    this.clearInput();
     this.initialized.set(false);
   }
 
@@ -289,13 +328,23 @@ class Events {
     return () => this.pointerEndListeners.delete(listener);
   }
 
-  /** Subscribes to wheel input normalized to game-canvas coordinates. */
+  /**
+   * Subscribes to wheel input normalized to game-canvas coordinates.
+   * @param {WheelListener} listener
+   * @returns {() => void}
+   * @public
+   */
   public addWheelListener(listener: WheelListener): () => void {
     this.wheelListeners.add(listener);
     return () => this.wheelListeners.delete(listener);
   }
 
-  /** Registers a live hit test used to show a pointer cursor over game buttons. */
+  /**
+   * Registers a live hit test used to show a pointer cursor over game buttons.
+   * @param {(pointer: GamePointer) => boolean} contains
+   * @returns {() => void}
+   * @public
+   */
   public addPointerTarget(contains: (pointer: GamePointer) => boolean): () => void {
     this.pointerTargets.add(contains);
     return () => this.pointerTargets.delete(contains);
@@ -305,8 +354,14 @@ class Events {
    * Maps one browser event to the current logical canvas coordinate space.
    * @private
    * @return {GamePointer} The pointer in logical game coordinates.
+   * @param {Pick<MouseEvent, "clientX" | "clientY"> & { pointerId?: number | undefined; }} event The event supplied to this operation.
    */
-  private getGamePointer(event: Pick<MouseEvent, 'clientX' | 'clientY'> & { pointerId?: number }): GamePointer {
+  private getGamePointer(event: Pick<MouseEvent, 'clientX' | 'clientY'> & {
+  /**
+   * Identifier of the pointer owning the interaction.
+   * @property {number | undefined} pointerId
+   */
+  pointerId?: number }): GamePointer {
     const canvas = this.pointerCanvas;
     if (canvas === undefined) {
       throw new Error('Pointer input has not been initialized.');
@@ -334,6 +389,7 @@ class Events {
     this.pointerCanvas.removeEventListener('pointermove', this.onPointerMove);
     this.pointerCanvas.removeEventListener('pointerup', this.onPointerEnd);
     this.pointerCanvas.removeEventListener('pointercancel', this.onPointerEnd);
+    this.pointerCanvas.removeEventListener('lostpointercapture', this.onPointerEnd);
     this.pointerCanvas.removeEventListener('pointerleave', this.onPointerLeave);
     this.pointerCanvas.removeEventListener('wheel', this.onWheel);
     this.pointerCanvas = undefined;
@@ -343,8 +399,10 @@ class Events {
    * Reports whether a keyboard or touch pointer currently holds a key.
    * @public
    * @return {boolean}
+   * @param {string} key Key identifying the associated input or resource.
    */
   public isKeyPressed(key: string): boolean {
+    key = key.length === 1 ? key.toLowerCase() : key;
     return (
       this.keys.has(key)
       || [...this.pointerKeys.values()].includes(key)
@@ -352,7 +410,32 @@ class Events {
   }
 
   /**
+   * Clears hardware and compatibility virtual keys at lifecycle boundaries.
+   * @returns {void}
+   * @public
+   */
+  public clearInput(): void {
+    this.keys.clear();
+    this.pointerKeys.clear();
+    this.pendingKeys.set(new Set());
+  }
+
+  /**
+   * Consume presses once per frame so a quick tap between frames is retained.
+   * @returns {ReadonlySet<string>}
+   * @public
+   */
+  public consumeKeyPresses(): ReadonlySet<string> {
+    const keys = this.pendingKeys();
+    this.pendingKeys.set(new Set());
+    return keys;
+  }
+
+  /**
    * Associates a touch pointer with a virtual keyboard key.
+   * @param {number} pointerId Identifier of the pointer owning the interaction.
+   * @param {string | undefined} key Key identifying the associated input or resource.
+   * @returns {void}
    */
   public setPointerKey(pointerId: number, key: string | undefined): void {
     if (key === undefined) {
@@ -362,6 +445,4 @@ class Events {
 
     this.pointerKeys.set(pointerId, key);
   }
-}
-
-export default Events.instance;
+}).instance;

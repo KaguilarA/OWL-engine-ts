@@ -1,11 +1,11 @@
 import { signalValue, type SignalValue } from 'reactive-values';
-import type { QuestProgress } from '../../interfaces/quest-progress';
+import type { QuestProgress } from '../../interfaces';
 
 /**
  * Tracks objective progress for RPG, adventure, and mission-based games.
  * @class QuestLog
  */
-export default class QuestLog {
+export default class {
   /**
    * Active and completed quests in insertion order.
    * @property {SignalValue<readonly QuestProgress[]>} quests

@@ -1,11 +1,11 @@
 import { computedValue, signalValue, type ComputedValue, type SignalValue } from 'reactive-values';
-import type { InventoryStack } from '../../interfaces/inventory-stack';
+import type { InventoryStack } from '../../interfaces';
 
 /**
  * Slot-limited, stack-based inventory for role-playing and survival games.
  * @class Inventory
  */
-export default class Inventory {
+export default class {
   /**
    * Maximum number of item stacks.
    * @property {number} capacity
@@ -35,6 +35,7 @@ export default class Inventory {
    * @param capacity Maximum stack count.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(capacity: number) {
     if (!Number.isInteger(capacity) || capacity <= 0) throw new RangeError('Inventory capacity must be a positive integer.');

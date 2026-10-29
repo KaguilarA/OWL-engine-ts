@@ -18,7 +18,7 @@ import type {
  * Renders and handles the shared pause, fullscreen, and reset controls.
  * @class GameControls
  */
-export class GameControls {
+export default class {
   /**
    * Determines whether the reset icon is displayed and accepts pointer input.
    * @property {boolean} showResetButton
@@ -26,6 +26,12 @@ export class GameControls {
    * @readonly
    */
   private readonly showResetButton: boolean;
+  /**
+   * Menu alignment configuration or state owned by GameControls.
+   * @property {"left" | "right"} menuAlignment
+   * @readonly
+   * @private
+   */
   private readonly menuAlignment: 'left' | 'right';
   /**
    * Stores the pause icon state.
@@ -62,7 +68,19 @@ export class GameControls {
    * @readonly
    */
   private readonly menuIcon = new CanvasIcon(houseSvg);
+  /**
+   * Callback handling reset for GameControls.
+   * @property {() => void} onReset
+   * @readonly
+   * @private
+   */
   private readonly onReset: () => void;
+  /**
+   * Callback invoked when this game returns to the selector.
+   * @property {(() => void) | undefined} onReturnToMenu
+   * @readonly
+   * @private
+   */
   private readonly onReturnToMenu: (() => void) | undefined;
   /**
    * Stores the paused state.
@@ -85,11 +103,47 @@ export class GameControls {
    * @readonly
    */
   private readonly fullscreenOnly = signalValue(false);
+  /**
+   * Pause button configuration or state owned by GameControls.
+   * @property {Button} pauseButton
+   * @readonly
+   * @private
+   */
   private readonly pauseButton: Button;
+  /**
+   * Fullscreen button configuration or state owned by GameControls.
+   * @property {Button} fullscreenButton
+   * @readonly
+   * @private
+   */
   private readonly fullscreenButton: Button;
+  /**
+   * Reset button configuration or state owned by GameControls.
+   * @property {Button} resetButton
+   * @readonly
+   * @private
+   */
   private readonly resetButton: Button;
+  /**
+   * Menu button configuration or state owned by GameControls.
+   * @property {Button} menuButton
+   * @readonly
+   * @private
+   */
   private readonly menuButton: Button;
+  /**
+   * Restart action button configuration or state owned by GameControls.
+   * @property {Button} restartActionButton
+   * @readonly
+   * @private
+   */
   private readonly restartActionButton: Button;
+  /**
+   * Menu action button configuration or state owned by GameControls.
+   * @property {Button} menuActionButton
+   * @readonly
+   * @private
+   */
   private readonly menuActionButton: Button;
 
   /**
@@ -99,6 +153,7 @@ export class GameControls {
    * @param options - Visibility configuration for optional shared controls.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(
     onReset: () => void,
@@ -109,7 +164,7 @@ export class GameControls {
     this.onReturnToMenu = onReturnToMenu;
     this.showResetButton = options.showResetButton ?? true;
     this.menuAlignment = options.menuAlignment ?? 'right';
-    this.pauseButton = this.createButton(() => this.paused.set(!this.paused()));
+    this.pauseButton = this.createButton(() => this.togglePause());
     this.fullscreenButton = this.createButton(() => { void this.toggleFullscreen(); });
     this.resetButton = this.createButton(() => { this.paused.set(false); this.onReset(); });
     this.menuButton = this.createButton(() => this.onReturnToMenu?.());
@@ -129,6 +184,13 @@ export class GameControls {
   public get isPaused(): boolean {
     return this.paused();
   }
+
+  /**
+   * Shared pause action used by pointer, keyboard and gamepad.
+   * @returns {void}
+   * @public
+   */
+  public togglePause(): void { this.paused.set(!this.paused()); }
 
   /**
    * Draws all shared controls and the pause overlay when paused.
@@ -257,39 +319,40 @@ export class GameControls {
   public getLayout(): GameControlsLayout {
     const dimensions = GameContext.gameDimensionsModel;
     const unit = GameContext.viewportUnit();
+    const safe = GameContext.safeAreaInsets;
     const availableWidth = dimensions.getWidth() * 0.5;
     const padding = Math.max(8, Math.min(unit * 0.02, 14));
     const gap = Math.max(7, Math.min(unit * 0.014, 12));
     const maxRadius = Math.max(12, Math.floor((availableWidth - padding * 2 - gap * 3) / 8));
     const buttonRadius = Math.max(14, Math.min(unit * 0.034, 24, maxRadius));
     const buttonDiameter = buttonRadius * 2;
-    const rightmostX = dimensions.getWidth() - padding - buttonRadius;
+    const rightmostX = dimensions.getWidth() - safe.right - padding - buttonRadius;
     const resetX = rightmostX;
     const fullscreenX = rightmostX - buttonDiameter * (this.showResetButton ? 1 : 0) - gap * (this.showResetButton ? 1 : 0);
     const pauseX = fullscreenX - buttonDiameter - gap;
     const menuX = this.menuAlignment === 'left'
-      ? padding + buttonRadius
+      ? safe.left + padding + buttonRadius
       : pauseX - buttonDiameter - gap;
 
     return {
       pauseButton: {
         x: pauseX,
-        y: padding + buttonRadius,
+        y: safe.top + padding + buttonRadius,
         radius: buttonRadius
       },
       fullscreenButton: {
         x: fullscreenX,
-        y: padding + buttonRadius,
+        y: safe.top + padding + buttonRadius,
         radius: buttonRadius
       },
       resetButton: {
         x: resetX,
-        y: padding + buttonRadius,
+        y: safe.top + padding + buttonRadius,
         radius: buttonRadius
       },
       menuButton: {
         x: menuX,
-        y: padding + buttonRadius,
+        y: safe.top + padding + buttonRadius,
         radius: buttonRadius
       }
     };
@@ -310,11 +373,21 @@ export class GameControls {
    * @property {(x: number, y: number) => void} handlePointerDown
    * @private
    * @readonly
+   * @param {() => void} onClick The on click supplied to this operation.
+   * @returns {Button} Constructs button for GameControls.
    */
   private createButton(onClick: () => void): Button {
     return new Button(new Texture({}, 0, 0), { onClick, shape: 'circle' });
   }
 
+  /**
+   * Updates circle button for GameControls.
+   * @param {Button} button Button whose layout or enabled state is being synchronized.
+   * @param {GameControlCircle} circle Circular hit region in logical canvas coordinates.
+   * @param {boolean} enabled Whether this component or control accepts updates.
+   * @returns {void}
+   * @private
+   */
   private setCircleButton(button: Button, circle: GameControlCircle, enabled: boolean): void {
     button.dimensions.setPosition(circle.x, circle.y);
     button.dimensions.setSize(circle.radius * 2, circle.radius * 2);
@@ -322,6 +395,17 @@ export class GameControls {
     button.setDisabled(!enabled);
   }
 
+  /**
+   * Updates action button for GameControls.
+   * @param {Button} button Button whose layout or enabled state is being synchronized.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {boolean} enabled Whether this component or control accepts updates.
+   * @returns {void}
+   * @private
+   */
   private setActionButton(button: Button, x: number, y: number, width: number, height: number, enabled: boolean): void {
     button.dimensions.setPosition(x + width / 2, y + height / 2);
     button.dimensions.setSize(width, height);
@@ -333,6 +417,12 @@ export class GameControls {
    * Draws a rectangular text action used by the end-state overlay.
    * @private
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {string} color Color applied when rendering this content.
+   * @param {string} label The label supplied to this operation.
    */
   private drawActionButton(
     x: number,
@@ -359,6 +449,8 @@ export class GameControls {
    * Draws a circular arcade-style button background.
    * @private
    * @return {void}
+   * @param {GameControlCircle} circle Circular hit region in logical canvas coordinates.
+   * @param {string} color Color applied when rendering this content.
    */
   private drawArcadeButton(circle: GameControlCircle, color: string): void {
     const inset1 = Math.max(2, Math.round(circle.radius * 0.16));
@@ -388,6 +480,10 @@ export class GameControls {
    * Centers an icon within a button.
    * @private
    * @return {void}
+   * @param {CanvasIcon} icon The icon supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} size The size supplied to this operation.
    */
   private drawIcon(
     icon: CanvasIcon,

@@ -4,7 +4,7 @@ import { signalValue, type SignalValue } from 'reactive-values';
  * Reactive named numeric attributes for RPG characters, items, and enemies.
  * @class StatBlock
  */
-export default class StatBlock {
+export default class {
   /**
    * Current stat values keyed by stat name.
    * @property {SignalValue<Readonly<Record<string, number>>>} values
@@ -18,6 +18,7 @@ export default class StatBlock {
    * @param values Initial stat values.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(values: Readonly<Record<string, number>> = {}) {
     this.validateValues(values);

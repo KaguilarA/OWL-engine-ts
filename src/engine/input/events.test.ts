@@ -55,7 +55,8 @@ describe('GameEvents', () => {
   });
 
   it('registers keyboard listeners once and tracks pressed keys', async () => {
-    const { default: gameEvents } = await import('./events');
+    const { GameEvents: gameEvents } = await import('./');
+    gameEvents.initEvents();
 
     expect(addEventListener).toHaveBeenCalledTimes(3);
 
@@ -70,7 +71,8 @@ describe('GameEvents', () => {
   });
 
   it('removes listeners and clears state when destroyed', async () => {
-    const { default: gameEvents } = await import('./events');
+    const { GameEvents: gameEvents } = await import('./');
+    gameEvents.initEvents();
 
     listeners.get('keydown')?.({ key: 'ArrowRight' } as KeyboardEvent);
     gameEvents.destroy();
@@ -83,7 +85,8 @@ describe('GameEvents', () => {
   });
 
   it('tracks virtual keys independently for each active touch pointer', async () => {
-    const { default: gameEvents } = await import('./events');
+    const { GameEvents: gameEvents } = await import('./');
+    gameEvents.initEvents();
 
     gameEvents.setPointerKey(1, 'ArrowLeft');
     gameEvents.setPointerKey(2, ' ');
