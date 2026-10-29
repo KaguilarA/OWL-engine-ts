@@ -105,8 +105,8 @@ export default class {
     this.layers.set([]);
     this.insertionOrder.clear();
     this.nextInsertionOrder = 0;
-    for (const body of this.physics.getBodies()) this.physics.removeBody(body);
     this.camera.stopFollowing();
+    this.physics.clear();
   }
 
   /**

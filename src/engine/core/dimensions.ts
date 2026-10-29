@@ -303,6 +303,13 @@ export default class {
   );
 
   /**
+   * Signed scale derived from the underlying reactive axes, including mirror changes.
+   * @property {ComputedValue<object>} scale
+   * @readonly
+   */
+  public readonly scale = computedValue(() => ({ x: this.scaleX(), y: this.scaleY() }), [this.scaleX, this.scaleY]);
+
+  /**
    * Creates a reactive dimensions model.
    *
    * @param width - The initial unscaled width. Defaults to `0`.

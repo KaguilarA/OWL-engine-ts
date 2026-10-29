@@ -26,4 +26,9 @@ export interface PhysicsWorldOptions {
    * @property {number} restitution
    */
   restitution?: number;
+  /**
+   * Maximum continuous time-of-impact passes per fixed step. On exhaustion, remaining motion is conservatively discarded.
+   * @property {number | undefined} maxCollisionPasses
+   */
+  maxCollisionPasses?: number;
 }

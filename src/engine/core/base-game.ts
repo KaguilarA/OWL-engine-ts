@@ -1,9 +1,9 @@
 import { signalValue } from 'reactive-values';
-import { MathUtils, GameContext } from './';
+import { MathUtils, GameContext, PhysicsWorld } from './';
 import { GameControls, GameInput } from '../input';
 import { Label } from '../ui';
 import { SceneLayer, SceneManager, WorldScene } from '../scene';
-import type { GameControlsOptions, GameScene, LabelRenderState } from '../interfaces';
+import type { GameControlsOptions, GameScene, LabelRenderState, PhysicsWorldOptions } from '../interfaces';
 
 /**
  * Shared lifecycle for every playable game.
@@ -22,7 +22,7 @@ export default abstract class implements GameScene {
    * @protected
    * @readonly
    */
-  protected readonly worldScene = new WorldScene();
+  protected readonly worldScene: WorldScene;
   /**
    * Default layer for actors updated by the game loop.
    * @property {SceneLayer} worldActors
@@ -129,13 +129,16 @@ export default abstract class implements GameScene {
    * @protected
    * @param {Function} [onReturnToMenu] Callback used to return to the selector.
    * @param {GameControlsOptions} [controlOptions] Visibility options for shared controls.
+   * @param {PhysicsWorldOptions} [physicsOptions] Immutable configuration for this game's scene-owned physics world.
    * @return {void}
    */
   protected constructor(
     onReturnToMenu?: () => void,
-    controlOptions: GameControlsOptions = {}
+    controlOptions: GameControlsOptions = {},
+    physicsOptions: PhysicsWorldOptions = {}
   ) {
     this.onReturnToMenu = onReturnToMenu;
+    this.worldScene = new WorldScene(undefined, new PhysicsWorld(physicsOptions));
     this.worldScene.addLayer(this.worldActors);
     this.controls = new GameControls(
       () => this.restart(),

@@ -1,108 +1,26 @@
-import { PhysicsBody } from '../core';
+import { RigidBody2D } from '../core';
+import type { RigidBodyOptions } from '../interfaces';
 
 /**
- * Reactive circular collision body backed by the engine's 2D integrator.
+ * Backward-compatible circle collider sharing the general rigid-body motion and filtering model.
  * @class CircleBody
  */
-export default class {
+export default class extends RigidBody2D {
   /**
-   * Motion configuration or state owned by CircleBody.
-   * @property {default} motion
-   * @readonly
-   * @public
-   */
-  public readonly motion: PhysicsBody;
-  /**
-   * Radius of the circular shape.
-   * @property {number} radius
-   * @readonly
-   * @public
-   */
-  public readonly radius: number;
-
-  /**
-   * Initializes CircleBody and its owned resources from the supplied arguments.
-   * @constructor
-   * @param {number} x Horizontal coordinate in the owning coordinate space.
-   * @param {number} y Vertical coordinate in the owning coordinate space.
-   * @param {number} radius Radius of the circular shape.
+   * Creates a validated circle with dynamic, equal-mass defaults matching the legacy API.
+   * @param {number} x Initial horizontal center.
+   * @param {number} y Initial vertical center.
+   * @param {number} radius Positive circle radius.
+   * @param {object} [options] Optional type, mass, sensor, material, and category configuration.
    * @returns {void}
-   * @public
    */
-  public constructor(x: number, y: number, radius: number) {
-    if (!Number.isFinite(radius) || radius <= 0) {
-      throw new RangeError('Circle radius must be a positive finite number.');
-    }
-    this.motion = new PhysicsBody(x, y);
-    this.radius = radius;
+  public constructor(x: number, y: number, radius: number, options: Omit<RigidBodyOptions, 'shape' | 'x' | 'y'> = {}) {
+    super({ ...options, x, y, shape: { kind: 'circle', radius } });
   }
 
   /**
-   * Returns x from the current CircleBody state.
-   * @returns {number} x from the current CircleBody state.
-   * @public
+   * Returns the immutable radius from the validated collider geometry.
+   * @returns {number} Circle radius in world units.
    */
-  public get x(): number { return this.motion.x(); }
-  /**
-   * Returns y from the current CircleBody state.
-   * @returns {number} y from the current CircleBody state.
-   * @public
-   */
-  public get y(): number { return this.motion.y(); }
-  /**
-   * Returns velocity x from the current CircleBody state.
-   * @returns {number} velocity x from the current CircleBody state.
-   * @public
-   */
-  public get velocityX(): number { return this.motion.velocityX(); }
-  /**
-   * Returns velocity y from the current CircleBody state.
-   * @returns {number} velocity y from the current CircleBody state.
-   * @public
-   */
-  public get velocityY(): number { return this.motion.velocityY(); }
-
-  /**
-   * Updates position for CircleBody.
-   * @param {number} x Horizontal coordinate in the owning coordinate space.
-   * @param {number} y Vertical coordinate in the owning coordinate space.
-   * @returns {void}
-   * @public
-   */
-  public setPosition(x: number, y: number): void {
-    this.motion.setPosition(x, y);
-  }
-
-  /**
-   * Updates velocity for CircleBody.
-   * @param {number} x Horizontal coordinate in the owning coordinate space.
-   * @param {number} y Vertical coordinate in the owning coordinate space.
-   * @returns {void}
-   * @public
-   */
-  public setVelocity(x: number, y: number): void {
-    this.motion.setVelocity(x, y);
-  }
-
-  /**
-   * Adds velocity for CircleBody.
-   * @param {number} x Horizontal coordinate in the owning coordinate space.
-   * @param {number} y Vertical coordinate in the owning coordinate space.
-   * @returns {void}
-   * @public
-   */
-  public addVelocity(x: number, y: number): void {
-    this.setVelocity(this.velocityX + x, this.velocityY + y);
-  }
-
-  /**
-   * Advances CircleBody simulation and dependent presentation state for one frame.
-   * @param {number} deltaSeconds Elapsed simulation time in seconds.
-   * @param {number} [gravityY] The gravity y supplied to this operation.
-   * @returns {void}
-   * @public
-   */
-  public update(deltaSeconds: number, gravityY = 0): void {
-    this.motion.update(deltaSeconds, gravityY);
-  }
+  public get radius(): number { return this.shape.radius!; }
 }

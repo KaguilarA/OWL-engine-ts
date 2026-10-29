@@ -9,17 +9,22 @@ const drawingContext = {
   beginPath: vi.fn(),
   clearRect: vi.fn(),
   clip: vi.fn(),
+  closePath: vi.fn(),
   drawImage: vi.fn(),
   fill: vi.fn(),
   fillRect: vi.fn(),
   fillText: vi.fn(),
   measureText: vi.fn(() => ({ width: 0 })),
+  moveTo: vi.fn(),
+  lineTo: vi.fn(),
   restore: vi.fn(),
   rect: vi.fn(),
   rotate: vi.fn(),
   save: vi.fn(),
   scale: vi.fn(),
   setTransform: vi.fn(),
+  stroke: vi.fn(),
+  strokeRect: vi.fn(),
   translate: vi.fn()
 };
 

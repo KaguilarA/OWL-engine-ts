@@ -1,6 +1,6 @@
-import { signalValue, type SignalValue } from 'reactive-values';
+import { computedValue, signalValue, type ComputedValue, type SignalValue } from 'reactive-values';
 import { Dimensions, GameContext } from '../core';
-import type { TilemapOptions } from '../interfaces';
+import type { CollisionRect, TilemapOptions } from '../interfaces';
 
 /**
  * Grid-based tilemap using zero for empty cells and one-based tileset indices.
@@ -105,6 +105,11 @@ export default class {
    * @private
    */
   private readonly cells: SignalValue<readonly number[]>;
+  /**
+   * Immutable cell snapshot derived from the tile source, enabling reactive collision adapters.
+   * @property {ComputedValue<readonly number[]>} tiles
+   */
+  public readonly tiles: ComputedValue<readonly number[]>;
 
   /**
    * Initializes Tilemap and its owned resources from the supplied arguments.
@@ -165,6 +170,7 @@ export default class {
     this.mapWidth = options.mapWidth;
     this.mapHeight = options.mapHeight;
     this.cells = signalValue<readonly number[]>(Array.from({ length: this.mapWidth * this.mapHeight }, () => 0));
+    this.tiles = computedValue(() => Object.freeze([...this.cells()]), [this.cells]);
     this.dimensions = new Dimensions(
       this.mapWidth * this.drawTileWidth,
       this.mapHeight * this.drawTileHeight,
@@ -183,6 +189,20 @@ export default class {
   public getTile(x: number, y: number): number {
     this.assertCell(x, y);
     return this.cells()[y * this.mapWidth + x];
+  }
+
+  /**
+   * Computes a cell's actual world rectangle using the same origin and signed scale as rendering.
+   * @param {number} x Cell column.
+   * @param {number} y Cell row.
+   * @returns {CollisionRect} Normalized world-space cell bounds.
+   */
+  public getCellBounds(x: number, y: number): CollisionRect {
+    this.assertCell(x, y);
+    const width = this.drawTileWidth * this.dimensions.getScaleX();
+    const height = this.drawTileHeight * this.dimensions.getScaleY();
+    const originX = this.dimensions.getX() + x * width, originY = this.dimensions.getY() + y * height;
+    return { x: Math.min(originX, originX + width), y: Math.min(originY, originY + height), width: Math.abs(width), height: Math.abs(height) };
   }
 
   /**

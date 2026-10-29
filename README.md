@@ -4,14 +4,14 @@ A browser-based 2D game engine written in TypeScript and built on Canvas 2D. The
 
 ## Composition
 
-- **Core (`core/`)**: `GameContext` manages the canvas and game-area dimensions. `BaseGame` centralizes lifecycle, updates, pause, restart, shared controls, and cleanup. This module also provides dimensions, in-place `Vector2`, `ObjectPool` and `GamePools` for zero-allocation recycling, `PhysicsBody`, the scene-scoped fixed-step `PhysicsWorld`, collision helpers, health, and math utilities.
+- **Core (`core/`)**: `GameContext` manages the canvas and game-area dimensions. `BaseGame` centralizes lifecycle, updates, pause, restart, shared controls, and cleanup. This module also provides dimensions, in-place `Vector2`, `ObjectPool` and `GamePools` for zero-allocation recycling, `PhysicsBody`, `RigidBody2D`, and the scene-scoped fixed-step `PhysicsWorld` with continuous collision detection, sensors, filtering, and queries, plus collision helpers, health, and math utilities.
 - **Scene (`scene/`)**: `SceneManager` coordinates scene loading, entry, pause, exit, retry, and resource disposal; `SceneResources` owns per-instance cleanup. `WorldScene` coordinates the camera and layers; `Camera2D` transforms between world and screen coordinates, follows targets, and supports zoom; `SceneLayer` controls visibility, draw order, parallax, and stable rendering; `Tilemap` renders maps from a tileset; `Container` organizes UI elements.
 - **Entities (`entities/`)**: `Entity` combines components with a transform; `Component` defines a functional unit's lifecycle; `SpriteRendererComponent` connects an entity to a drawable; `Prefab` and `PrefabRegistry` create and register reusable configurations. The module also includes entities for common use cases.
 - **Assets (`assets/`)**: `GameLoader` loads and caches images, audio, and atlases; `AtlasParser`, `Atlas`, and `AtlasAnimationCatalog` handle regions and animations.
 - **Audio (`audio/`)**: `GameAudio` (`AudioManager`) centralizes master, SFX, and BGM volume controls, provides mute toggling, and automatically pauses/resumes audio on window visibility changes.
 - **Animation (`animations/`)**: atlas-based animated sprites and a native Spine 2D runtime (`SpineRuntime`, `SpineRenderer`, `SpineSprite`, `SpineBinaryParser`) with animation blending and cross-fading, one-bone and two-bone inverse kinematics (IK) with runtime target aiming, and JSON and compact binary (`.skel`) format support.
 - **Particles (`particles/`)**: native, zero-allocation particle engine using contiguous `Float32Array` buffers; `ParticleSystem`, `ParticleEmitter`, and ready-to-use `ParticlePresets` (jackpot coin showers, confetti, sparkles, explosions, sparks).
-- **Rendering (`rendering/`)**: textures, canvas icons, and backgrounds.
+- **Rendering (`rendering/`)**: textures, canvas icons, backgrounds, and optional physics debug visualization.
 - **Input (`input/`)**: keyboard and pointer events, reactive semantic actions through `GameInput`, standard-mapped gamepads with analog axes, context-specific bindings, shared controls, and touch controls.
 - **UI (`ui/`)**: labels, numeric labels, and buttons.
 - **Slots (`slots/`)**: reusable primitives for reels, symbols, icons, and reel animation.
@@ -126,6 +126,81 @@ Use `setSessionData(key, snapshot)` and `getSessionData(key)` for detached JSON
 progress that survives scene changes and unload. `clearSession()` explicitly
 starts a new session. Session data is in memory; use `GameSaves` explicitly to
 persist it. Automatic world serialization belongs to a later roadmap phase.
+
+## Physics and World Queries
+
+`PhysicsWorld` owns registered bodies and fixed-step simulation for one scene.
+`RigidBody2D` supports centered circles and boxes plus strictly convex polygons
+with local vertices in either winding order. `CircleBody(x, y, radius, options?)`
+preserves the existing API and inherits the shared body model. Bodies cannot
+belong to two worlds simultaneously; remove one before registering it elsewhere.
+
+```ts
+import { CircleBody, PhysicsWorld, RigidBody2D } from './engine';
+
+const world = new PhysicsWorld({ gravityY: 980, restitution: 0 });
+const actor = new CircleBody(24, 0, 8);
+const ground = new RigidBody2D({
+  type: 'static', x: 100, y: 160,
+  shape: { kind: 'box', width: 200, height: 16 }
+});
+world.addBody(actor);
+world.addBody(ground);
+world.update(1 / 60);
+const hits = world.raycast({ x: 24, y: 0 }, { x: 24, y: 200 });
+```
+
+`WorldScene.update()` already advances its `physics` world; do not update that
+world a second time. Games extending `BaseGame` can configure it with the third
+super-constructor argument: `super(onMenu, {}, { gravityY: 980, restitution: 0 })`.
+Register colliders in `this.worldScene.physics` and read their reactive motion
+when positioning renderers. `motion` exposes the existing `PhysicsBody` signals,
+`angle` is reactive, and `vertices` and `bounds` are computed values. Configuration
+such as shape, mass, category, and body type is immutable after construction.
+
+Dynamic bodies integrate acceleration and gravity and receive inverse-mass
+impulses. Static bodies do not move. Kinematic bodies follow prescribed velocity
+without gravity or acceleration and can push dynamic bodies. Sensors report
+contacts without separating or bouncing either body. Both colliders' category
+and mask bitsets must agree for contact detection. Per-body restitution overrides
+the world fallback; a pair uses the smaller coefficient.
+
+`onContact(listener)` returns an unsubscribe callback. Events contain `first`,
+`second`, a first-to-second normal, overlap `depth`, `sensor`, and `phase`
+(`begin`, `stay`, or `end`). Filter by the participating actor as well as the
+sensor flag: touching static sensor/terrain pairs may also report events.
+Sensors crossed entirely within a step emit begin followed by end. Contact state
+is reactive through `world.contacts()`. Body additions and removals requested by
+motion effects or contact listeners are deferred until the current fixed step
+and its event batch commit. Nested calls to `update()` are rejected. Removing a body ends its retained
+contacts; `clear()` releases registrations and contacts before notifying listeners.
+
+`queryPoint`, `queryArea`, and `raycast` test actual shapes rather than only their
+bounds. Query filters accept a category `mask`, `includeSensors`, and an optional
+predicate. Ray queries return all hits ordered by segment fraction, including
+position, distance, and an outward normal. Segments beginning inside a collider
+return fraction zero; zero-length segments behave as point queries.
+
+`TilemapCollider(map, world, options?)` builds owned static boxes for nonzero
+tiles. Supply `isSolid`, `isSensor`, and `isOneWay` rules to classify cells.
+Cell, position, and signed-scale changes automatically update colliders through
+`reactive-values` effects. Call `refresh()` only when external rule data changes.
+One-way platforms are unrotated boxes blocking downward-relative landings from
+above. `getCellBounds()` matches the tilemap renderer's origin and signed scale.
+Register `adapter.dispose()` in the scene's `SceneResources` or `BaseGame`
+cleanup list; it releases subscriptions and only the adapter-owned colliders.
+
+`PhysicsDebugRenderer.draw(world, camera?)` shows collider outlines and contact
+normals. `drawRay(start, end, hits, camera?)` and `drawArea(area, camera?)` show
+query geometry. These tools are opt-in and restore canvas state after rendering.
+
+The solver simulates translation, not angular momentum. Shape orientation can
+be set explicitly but remains fixed during each linear continuous sweep. Angular
+impulses, torque, friction, swept rotation, and joint constraints are outside the
+current solver. `maxCollisionPasses` bounds continuous impact work; if exhausted,
+remaining displacement is conservatively discarded. `candidateCount()` reports
+broad-phase candidate evaluations for the latest fixed step. Dense overlapping
+worlds can still produce quadratic candidate counts despite sweep-and-prune.
 
 ## Input actions
 

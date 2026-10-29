@@ -37,7 +37,7 @@ mean they are complete for a visual editing workflow:
 - Sprite animation, a Spine runtime, and particles.
 - Audio with volume controls and visibility-based pausing.
 - Keyboard and pointer input, and shared touch controls.
-- Collision primitives and a fixed-step physics world centered on circles.
+- Collision primitives and a fixed-step physics world for circles, boxes, and convex polygons, with continuous detection and queries.
 - Reusable movement and gameplay primitives.
 - A JSON save service with per-game slots, versioning, and validation.
 
@@ -151,16 +151,36 @@ scenes, and update it while preserving explicit per-instance overrides.
 
 ## Phase 6 — Physics and World Queries
 
-- [ ] Expand supported shapes with boxes and convex polygons.
-- [ ] Define static, dynamic, and kinematic bodies.
-- [ ] Add sensors and contact begin, stay, and end events.
-- [ ] Add collision layers and masks.
-- [ ] Expose point, area, and ray queries.
-- [ ] Add a broad phase to reduce the number of collision pairs evaluated.
-- [ ] Prevent fast-moving objects from passing through obstacles.
-- [ ] Integrate tilemap collisions and one-way platforms.
-- [ ] Add tools to visualize bodies, contacts, and queries.
-- [ ] Evaluate constraints and joints when games require them.
+- [x] Expand supported shapes with boxes and convex polygons.
+- [x] Define static, dynamic, and kinematic bodies.
+- [x] Add sensors and contact begin, stay, and end events.
+- [x] Add collision layers and masks.
+- [x] Expose point, area, and ray queries.
+- [x] Add a broad phase to reduce the number of collision pairs evaluated.
+- [x] Prevent fast-moving objects from passing through obstacles.
+- [x] Integrate tilemap collisions and one-way platforms.
+- [x] Add tools to visualize bodies, contacts, and queries.
+- [x] Evaluate constraints and joints when games require them.
+
+Implemented by extending the existing `PhysicsWorld` and preserving `CircleBody`
+through the general `RigidBody2D` model. Motion, collider orientation, world
+registrations, contacts, and diagnostics use `reactive-values`; world bounds and
+vertices are derived through `computedValue`. Stateless geometry, broad-phase,
+contact response, and debug rendering use shared singleton services.
+
+Fixed-orientation linear sweeps handle circle/circle, circle/convex, and
+convex/convex impacts. Continuous passes are bounded; on budget exhaustion the
+remaining motion is discarded conservatively rather than permitting tunneling.
+`TilemapCollider` derives owned static colliders from reactive tiles, position,
+and signed scale, including sensor cells and upper-face-only platforms.
+
+Constraints and joints were evaluated against the existing demonstrations:
+prescribed kinematic motion covers moving obstacles, while existing pinball
+flipper behavior remains specialized. Freely articulated assemblies are not yet
+required by a migrated scene. Joint constraints, angular impulses, torque,
+friction, and swept rotation are not implemented by this translational solver;
+they require a separate extension if a game needs those behaviors. Explicit
+orientation changes are supported, but orientation stays fixed within a sweep.
 
 **Completion criterion:** build a scene with terrain, obstacles, sensors, and
 moving objects without implementing a separate collision system for every game.
