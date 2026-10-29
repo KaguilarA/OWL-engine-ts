@@ -11,7 +11,7 @@ export interface EntityOptions extends TransformOptions {
    */
   name?: string;
   /**
-   * Z index configuration or state owned by EntityOptions.
+   * Draw-order value used to sort this entity relative to its peers.
    * @property {number | undefined} zIndex
    */
   zIndex?: number;

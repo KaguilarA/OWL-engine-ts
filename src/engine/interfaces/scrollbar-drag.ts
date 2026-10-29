@@ -9,22 +9,22 @@ export interface ScrollbarDrag {
    */
   pointerId: number;
   /**
-   * Pointer y configuration or state owned by ScrollbarDrag.
+   * Pointer position recorded when the scrollbar drag began.
    * @property {number} pointerY
    */
   pointerY: number;
   /**
-   * Vertical scroll offset of the container contents.
+   * Scroll offset recorded when the scrollbar drag began.
    * @property {number} scrollY
    */
   scrollY: number;
   /**
-   * Dragging thumb configuration or state owned by ScrollbarDrag.
+   * Whether the interaction began on the scrollbar thumb.
    * @property {boolean} draggingThumb
    */
   draggingThumb: boolean;
   /**
-   * Moved configuration or state owned by ScrollbarDrag.
+   * Whether the current scrollbar interaction has become a drag.
    * @property {boolean} moved
    */
   moved: boolean;

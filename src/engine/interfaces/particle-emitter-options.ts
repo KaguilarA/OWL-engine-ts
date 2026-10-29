@@ -6,17 +6,17 @@ import type { ParticleSystem, ParticleShape } from '../particles';
  */
 export interface ParticleEmitterOptions {
   /**
-   * System configuration or state owned by ParticleEmitterOptions.
+   * Particle system receiving emitted particles; a system is created when omitted.
    * @property {ParticleSystem | undefined} system
    */
   system?: ParticleSystem;
   /**
-   * Max particles configuration or state owned by ParticleEmitterOptions.
+   * Maximum particle capacity used when constructing the emitter-owned system.
    * @property {number | undefined} maxParticles
    */
   maxParticles?: number;
   /**
-   * Rate configuration or state owned by ParticleEmitterOptions.
+   * Continuous emission rate in particles per second.
    * @property {number | undefined} rate
    */
   rate?: number;
@@ -26,187 +26,187 @@ export interface ParticleEmitterOptions {
    */
   active?: boolean;
   /**
-   * Lifetime configuration or state owned by ParticleEmitterOptions.
+   * Range of initial particle lifetimes in seconds.
    * @property {{ min: number; max: number; } | undefined} lifetime
    */
-  lifetime?: { 
+  lifetime?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * Speed configuration or state owned by ParticleEmitterOptions.
+   * Range of initial particle speed magnitudes.
    * @property {{ min: number; max: number; } | undefined} speed
    */
-  speed?: { 
+  speed?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * Angle configuration or state owned by ParticleEmitterOptions.
+   * Range of initial emission directions in radians.
    * @property {{ min: number; max: number; } | undefined} angle
    */
-  angle?: { 
+  angle?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * Gravity configuration or state owned by ParticleEmitterOptions.
+   * Acceleration applied to emitted particles along each axis.
    * @property {{ x: number; y: number; } | undefined} gravity
    */
-  gravity?: { 
+  gravity?: {
   /**
    * Horizontal coordinate in the owning coordinate space.
    * @property {number} x
    */
-  x: number; 
+  x: number;
   /**
    * Vertical coordinate in the owning coordinate space.
    * @property {number} y
    */
   y: number };
   /**
-   * Start size configuration or state owned by ParticleEmitterOptions.
+   * Range of particle sizes sampled at birth.
    * @property {{ min: number; max: number; } | undefined} startSize
    */
-  startSize?: { 
+  startSize?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * End size configuration or state owned by ParticleEmitterOptions.
+   * Range of particle sizes approached at the end of their lifetimes.
    * @property {{ min: number; max: number; } | undefined} endSize
    */
-  endSize?: { 
+  endSize?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * Start alpha configuration or state owned by ParticleEmitterOptions.
+   * Range of opacity values sampled at particle birth.
    * @property {{ min: number; max: number; } | undefined} startAlpha
    */
-  startAlpha?: { 
+  startAlpha?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * End alpha configuration or state owned by ParticleEmitterOptions.
+   * Range of opacity values approached at the end of particle lifetimes.
    * @property {{ min: number; max: number; } | undefined} endAlpha
    */
-  endAlpha?: { 
+  endAlpha?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * Color applied when rendering this content.
+   * Base RGB color used for emitted particles.
    * @property {{ r: number; g: number; b: number; } | undefined} color
    */
-  color?: { 
+  color?: {
   /**
-   * R configuration or state owned by ParticleEmitterOptions.
+   * Red channel of the base particle color.
    * @property {number} r
    */
-  r: number; 
+  r: number;
   /**
-   * G configuration or state owned by ParticleEmitterOptions.
+   * Green channel of the base particle color.
    * @property {number} g
    */
-  g: number; 
+  g: number;
   /**
-   * B configuration or state owned by ParticleEmitterOptions.
+   * Blue channel of the base particle color.
    * @property {number} b
    */
   b: number };
   /**
-   * Color variation configuration or state owned by ParticleEmitterOptions.
+   * Amount of random variation applied to the base particle color.
    * @property {number | undefined} colorVariation
    */
   colorVariation?: number;
   /**
-   * Rotation speed configuration or state owned by ParticleEmitterOptions.
+   * Range of angular velocities sampled for emitted particles.
    * @property {{ min: number; max: number; } | undefined} rotationSpeed
    */
-  rotationSpeed?: { 
+  rotationSpeed?: {
   /**
-   * Min configuration or state owned by ParticleEmitterOptions.
+   * Lower bound of this sampled range.
    * @property {number} min
    */
-  min: number; 
+  min: number;
   /**
-   * Max configuration or state owned by ParticleEmitterOptions.
+   * Upper bound of this sampled range.
    * @property {number} max
    */
   max: number };
   /**
-   * Shape configuration or state owned by ParticleEmitterOptions.
+   * Primitive shape used to render particles without a texture.
    * @property {ParticleShape | undefined} shape
    */
   shape?: ParticleShape;
   /**
-   * Texture configuration or state owned by ParticleEmitterOptions.
+   * Optional image used to render particles instead of a primitive shape.
    * @property {HTMLImageElement | undefined} texture
    */
   texture?: HTMLImageElement;
   /**
-   * Blend mode configuration or state owned by ParticleEmitterOptions.
+   * Canvas compositing operation used when drawing particles.
    * @property {GlobalCompositeOperation | undefined} blendMode
    */
   blendMode?: GlobalCompositeOperation;
   /**
-   * Area width configuration or state owned by ParticleEmitterOptions.
+   * Horizontal extent of the area from which particles are emitted.
    * @property {number | undefined} areaWidth
    */
   areaWidth?: number;
   /**
-   * Area height configuration or state owned by ParticleEmitterOptions.
+   * Vertical extent of the area from which particles are emitted.
    * @property {number | undefined} areaHeight
    */
   areaHeight?: number;

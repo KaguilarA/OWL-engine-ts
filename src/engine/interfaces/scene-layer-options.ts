@@ -9,27 +9,27 @@ export interface SceneLayerOptions {
    */
   name?: string;
   /**
-   * Order configuration or state owned by SceneLayerOptions.
+   * Layer sorting priority within its world scene.
    * @property {number | undefined} order
    */
   order?: number;
   /**
-   * Parallax x configuration or state owned by SceneLayerOptions.
+   * Horizontal camera movement multiplier for this layer.
    * @property {number | undefined} parallaxX
    */
   parallaxX?: number;
   /**
-   * Parallax y configuration or state owned by SceneLayerOptions.
+   * Vertical camera movement multiplier for this layer.
    * @property {number | undefined} parallaxY
    */
   parallaxY?: number;
   /**
-   * Visible configuration or state owned by SceneLayerOptions.
+   * Whether this layer participates in rendering.
    * @property {boolean | undefined} visible
    */
   visible?: boolean;
   /**
-   * Update objects configuration or state owned by SceneLayerOptions.
+   * Whether this layer advances the objects it contains.
    * @property {boolean | undefined} updateObjects
    */
   updateObjects?: boolean;

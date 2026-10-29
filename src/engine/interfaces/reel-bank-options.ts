@@ -6,27 +6,27 @@ import type { ReelSymbolVisual } from './';
  */
 export interface ReelBankOptions {
   /**
-   * Reel count configuration or state owned by ReelBankOptions.
+   * Number of reels managed by the bank.
    * @property {number} reelCount
    */
   reelCount: number;
   /**
-   * Row count configuration or state owned by ReelBankOptions.
+   * Number of visible symbol rows in each reel.
    * @property {number} rowCount
    */
   rowCount: number;
   /**
-   * Random symbol configuration or state owned by ReelBankOptions.
+   * Factory selecting a symbol for a generated reel column.
    * @property {() => string} randomSymbol
    */
   randomSymbol: () => string;
   /**
-   * Spin speed multiplier configuration or state owned by ReelBankOptions.
+   * Multiplier applied to reel spin timing and motion.
    * @property {number | undefined} spinSpeedMultiplier
    */
   spinSpeedMultiplier?: number;
   /**
-   * Create visual configuration or state owned by ReelBankOptions.
+   * Factory constructing the visual for a specific reel and icon slot.
    * @property {((reelIndex: number, iconIndex: number) => ReelSymbolVisual) | undefined} createVisual
    */
   createVisual?: (reelIndex: number, iconIndex: number) => ReelSymbolVisual;

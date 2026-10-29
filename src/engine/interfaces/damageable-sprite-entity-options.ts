@@ -4,12 +4,12 @@
  */
 export interface DamageableSpriteEntityOptions {
   /**
-   * Callback handling damaged for DamageableSpriteEntityOptions.
+   * Callback notified with the damage actually taken by the entity.
    * @property {((damageTaken: number) => void) | undefined} onDamaged
    */
   onDamaged?: (damageTaken: number) => void;
   /**
-   * Callback handling defeated for DamageableSpriteEntityOptions.
+   * Callback invoked when the entity enters its defeated state.
    * @property {(() => void) | undefined} onDefeated
    */
   onDefeated?: () => void;

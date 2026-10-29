@@ -7,13 +7,13 @@ import type { SpineRecord } from './';
  */
 export interface LoadedSpineAsset {
   /**
-   * Atlas configuration or state owned by LoadedSpineAsset.
+   * Texture atlas supplying the skeletal asset regions and page image.
    * @property {Atlas} atlas
    * @readonly
    */
   readonly atlas: Atlas;
   /**
-   * Snapshot payload persisted by the save service.
+   * Parsed Spine skeleton and animation data paired with the atlas.
    * @property {SpineRecord} data
    * @readonly
    */

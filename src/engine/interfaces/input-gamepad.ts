@@ -26,13 +26,13 @@ export interface InputGamepad {
    * @property {readonly { readonly value: number; readonly pressed: boolean; }[]} buttons
    * @readonly
    */
-  readonly buttons: readonly { 
+  readonly buttons: readonly {
   /**
    * Value to read, validate, format, or assign.
    * @property {number} value
    * @readonly
    */
-  readonly value: number; 
+  readonly value: number;
   /**
    * Pressed configuration or state owned by InputGamepad.
    * @property {boolean} pressed

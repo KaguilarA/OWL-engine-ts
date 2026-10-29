@@ -16,12 +16,12 @@ export interface PresetOptions {
    */
   y?: number;
   /**
-   * System configuration or state owned by PresetOptions.
+   * Particle system receiving emitted particles; a system is created when omitted.
    * @property {ParticleSystem | undefined} system
    */
   system?: ParticleSystem;
   /**
-   * Texture configuration or state owned by PresetOptions.
+   * Optional image used to render particles instead of a primitive shape.
    * @property {HTMLImageElement | undefined} texture
    */
   texture?: HTMLImageElement;

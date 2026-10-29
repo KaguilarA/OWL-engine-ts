@@ -17,12 +17,12 @@ type InputBinding = {
    * Axes configuration or state owned by InputBinding.
    * @property {{ index: number; direction: 1 | -1; }[] | undefined} axes
    */
-  axes?: { 
+  axes?: {
   /**
    * Index identifying the item within its collection.
    * @property {number} index
    */
-  index: number; 
+  index: number;
   /**
    * Direction configuration or state owned by InputBinding.
    * @property {1 | -1} direction

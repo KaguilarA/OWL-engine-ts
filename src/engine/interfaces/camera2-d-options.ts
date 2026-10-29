@@ -14,22 +14,22 @@ export interface Camera2DOptions {
    */
   y?: number;
   /**
-   * Zoom configuration or state owned by Camera2DOptions.
+   * Initial camera zoom factor.
    * @property {number | undefined} zoom
    */
   zoom?: number;
   /**
-   * Viewport width configuration or state owned by Camera2DOptions.
+   * Width of the viewport used by camera coordinate transforms.
    * @property {number | undefined} viewportWidth
    */
   viewportWidth?: number;
   /**
-   * Viewport height configuration or state owned by Camera2DOptions.
+   * Height of the viewport used by camera coordinate transforms.
    * @property {number | undefined} viewportHeight
    */
   viewportHeight?: number;
   /**
-   * Smoothing configuration or state owned by Camera2DOptions.
+   * Smoothing coefficient used when following a camera target.
    * @property {number | undefined} smoothing
    */
   smoothing?: number;

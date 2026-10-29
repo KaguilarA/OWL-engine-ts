@@ -2,12 +2,12 @@
  * Explicit outcome so storage failures do not interrupt gameplay.
  * @typedef {SaveResult<T>} SaveResult
  */
-type SaveResult<T> = { 
+type SaveResult<T> = {
 /**
  * Ok configuration or state owned by SaveResult.
  * @property {true} ok
  */
-ok: true; 
+ok: true;
 /**
  * Value to read, validate, format, or assign.
  * @property {T} value

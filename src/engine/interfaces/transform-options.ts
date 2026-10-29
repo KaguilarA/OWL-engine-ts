@@ -24,22 +24,22 @@ export interface TransformOptions {
    */
   height?: number;
   /**
-   * Scale x configuration or state owned by TransformOptions.
+   * Horizontal scale multiplier applied to the entity transform.
    * @property {number | undefined} scaleX
    */
   scaleX?: number;
   /**
-   * Scale y configuration or state owned by TransformOptions.
+   * Vertical scale multiplier applied to the entity transform.
    * @property {number | undefined} scaleY
    */
   scaleY?: number;
   /**
-   * Pivot x configuration or state owned by TransformOptions.
+   * Horizontal pivot used to anchor the transform.
    * @property {number | undefined} pivotX
    */
   pivotX?: number;
   /**
-   * Pivot y configuration or state owned by TransformOptions.
+   * Vertical pivot used to anchor the transform.
    * @property {number | undefined} pivotY
    */
   pivotY?: number;
