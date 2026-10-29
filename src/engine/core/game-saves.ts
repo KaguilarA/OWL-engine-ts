@@ -4,17 +4,17 @@ import type { SaveData, SavedGame, SaveResult, SaveStorage } from '../interfaces
  * Shared persistence service. Each game owns its snapshot format and validation.
  * @class GameSaveService
  */
-class GameSaveService {
+export default (class {
   /**
    * Single engine-wide persistence service.
    * @property {GameSaveService} instance
    * @readonly
    * @public
    */
-  public static readonly instance = new GameSaveService();
+  public static readonly instance = new this();
 
   /**
-   * function Object() { [native code] }
+   * Creates the sole persistence service without accessing browser storage.
    * @constructor
    * @returns {void}
    * @private
@@ -136,6 +136,4 @@ class GameSaveService {
     ancestors.delete(value);
     return valid;
   }
-}
-
-export default GameSaveService.instance;
+}).instance;

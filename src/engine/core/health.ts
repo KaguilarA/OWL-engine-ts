@@ -57,6 +57,8 @@ export default class {
    * Creates a health pool with the requested positive integer capacity.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} maximum The maximum supplied to this operation.
    */
   constructor(maximum: number) {
     if (!Number.isInteger(maximum) || maximum <= 0) {
@@ -75,6 +77,7 @@ export default class {
    * Applies damage and reports whether it changed or depleted health.
    * @public
    * @return {DamageResult}
+   * @param {number} [amount] The amount supplied to this operation.
    */
   public receiveDamage(amount = 1): DamageResult {
     if (!Number.isFinite(amount) || amount <= 0) {

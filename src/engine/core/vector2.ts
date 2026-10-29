@@ -1,8 +1,9 @@
+import { Vector2 } from './';
 /**
  * High-performance 2D vector with mutable in-place operations.
  * @class Vector2
  */
-export default class Vector2 {
+export default class {
   /**
    * Stores the horizontal component.
    * @property {number} x
@@ -23,7 +24,7 @@ export default class Vector2 {
    * @public
    * @readonly
    */
-  public static readonly scratch1 = new Vector2(0, 0);
+  public static readonly scratch1 = new this(0, 0);
 
   /**
    * Scratch instance 2 for temporary calculations.
@@ -31,7 +32,7 @@ export default class Vector2 {
    * @public
    * @readonly
    */
-  public static readonly scratch2 = new Vector2(0, 0);
+  public static readonly scratch2 = new this(0, 0);
 
   /**
    * Scratch instance 3 for temporary calculations.
@@ -39,12 +40,15 @@ export default class Vector2 {
    * @public
    * @readonly
    */
-  public static readonly scratch3 = new Vector2(0, 0);
+  public static readonly scratch3 = new this(0, 0);
 
   /**
    * Creates a vector with initial components.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} [x] Horizontal coordinate in the owning coordinate space.
+   * @param {number} [y] Vertical coordinate in the owning coordinate space.
    */
   public constructor(x = 0, y = 0) {
     this.x = x;
@@ -55,6 +59,8 @@ export default class Vector2 {
    * Sets components in-place.
    * @public
    * @return {this}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   public set(x: number, y: number): this {
     this.x = x;
@@ -66,6 +72,7 @@ export default class Vector2 {
    * Copies components from another vector.
    * @public
    * @return {this}
+   * @param {Vector2} source The source supplied to this operation.
    */
   public copy(source: Vector2): this {
     this.x = source.x;
@@ -88,6 +95,7 @@ export default class Vector2 {
    * Adds another vector in-place.
    * @public
    * @return {this}
+   * @param {Vector2} v The v supplied to this operation.
    */
   public add(v: Vector2): this {
     this.x += v.x;
@@ -99,6 +107,8 @@ export default class Vector2 {
    * Adds scalar values directly in-place.
    * @public
    * @return {this}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   public addValues(x: number, y: number): this {
     this.x += x;
@@ -110,6 +120,8 @@ export default class Vector2 {
    * Adds another vector scaled by factor in-place.
    * @public
    * @return {this}
+   * @param {Vector2} v The v supplied to this operation.
+   * @param {number} scalar The scalar supplied to this operation.
    */
   public addScaled(v: Vector2, scalar: number): this {
     this.x += v.x * scalar;
@@ -121,6 +133,7 @@ export default class Vector2 {
    * Subtracts another vector in-place.
    * @public
    * @return {this}
+   * @param {Vector2} v The v supplied to this operation.
    */
   public sub(v: Vector2): this {
     this.x -= v.x;
@@ -132,6 +145,7 @@ export default class Vector2 {
    * Scales vector components by factor in-place.
    * @public
    * @return {this}
+   * @param {number} scalar The scalar supplied to this operation.
    */
   public scale(scalar: number): this {
     this.x *= scalar;
@@ -143,6 +157,7 @@ export default class Vector2 {
    * Divides vector components by factor in-place.
    * @public
    * @return {this}
+   * @param {number} scalar The scalar supplied to this operation.
    */
   public divide(scalar: number): this {
     if (scalar !== 0) {
@@ -156,6 +171,7 @@ export default class Vector2 {
    * Calculates dot product with target vector.
    * @public
    * @return {number}
+   * @param {Vector2} v The v supplied to this operation.
    */
   public dot(v: Vector2): number {
     return this.x * v.x + this.y * v.y;
@@ -165,6 +181,7 @@ export default class Vector2 {
    * Calculates 2D cross product with target vector.
    * @public
    * @return {number}
+   * @param {Vector2} v The v supplied to this operation.
    */
   public cross(v: Vector2): number {
     return this.x * v.y - this.y * v.x;
@@ -206,6 +223,7 @@ export default class Vector2 {
    * Calculates squared distance to target vector.
    * @public
    * @return {number}
+   * @param {Vector2} v The v supplied to this operation.
    */
   public distanceToSquared(v: Vector2): number {
     const dx = this.x - v.x;
@@ -217,6 +235,7 @@ export default class Vector2 {
    * Calculates Euclidean distance to target vector.
    * @public
    * @return {number}
+   * @param {Vector2} v The v supplied to this operation.
    */
   public distanceTo(v: Vector2): number {
     return Math.hypot(this.x - v.x, this.y - v.y);
@@ -226,6 +245,8 @@ export default class Vector2 {
    * Linearly interpolates toward target vector in-place.
    * @public
    * @return {this}
+   * @param {Vector2} target The target supplied to this operation.
+   * @param {number} alpha The alpha supplied to this operation.
    */
   public lerp(target: Vector2, alpha: number): this {
     this.x += (target.x - this.x) * alpha;
@@ -237,6 +258,7 @@ export default class Vector2 {
    * Rotates vector by radians in-place.
    * @public
    * @return {this}
+   * @param {number} radians The radians supplied to this operation.
    */
   public rotate(radians: number): this {
     const cos = Math.cos(radians);

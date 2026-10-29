@@ -5,14 +5,14 @@ import type { Poolable } from '../interfaces';
  * Global registry for game-wide pools following SOLID singleton design.
  * @class PoolRegistry
  */
-class PoolRegistry {
+export default (class {
   /**
    * The single registry for engine-wide object pools.
    * @property {PoolRegistry} instance
    * @public
    * @readonly
    */
-  public static readonly instance = new PoolRegistry();
+  public static readonly instance = new this();
 
   /**
    * Stores registered pools by name.
@@ -72,6 +72,4 @@ class PoolRegistry {
     }
     this.pools.clear();
   }
-}
-
-export default PoolRegistry.instance;
+}).instance;

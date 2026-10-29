@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import Dimensions from './dimensions';
+import { Dimensions } from './';
 
 describe('Dimensions', () => {
   it('uses zero dimensions, position, and pivot by default', () => {

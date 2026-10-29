@@ -1,12 +1,12 @@
-import type { CircleBody } from '../entities/circle-body';
-import type { PhysicsWorldOptions } from '../interfaces/physics-world-options';
+import type { CircleBody } from '../entities';
+import type { PhysicsWorldOptions } from '../interfaces';
 import { signalValue, type SignalValue } from 'reactive-values';
 
 /**
  * Advances scene-owned circular bodies with fixed time steps and pair collisions.
  * @class PhysicsWorld
  */
-export default class PhysicsWorld {
+export default class {
   /**
    * Downward acceleration applied to each body.
    * @property {number} gravityY
@@ -58,6 +58,8 @@ export default class PhysicsWorld {
   /**
    * Creates a physics world for bodies belonging to one scene or game.
    * @param options Gravity and fixed-step simulation settings.
+   * @constructor
+   * @returns {void}
    */
   public constructor(options: PhysicsWorldOptions = {}) {
     this.gravityY = options.gravityY ?? 0;
@@ -71,6 +73,7 @@ export default class PhysicsWorld {
    * Adds a circular body to the simulation once.
    * @public
    * @return {void}
+   * @param {CircleBody} body The body supplied to this operation.
    */
   public addBody(body: CircleBody): void {
     if (!this.bodies.includes(body)) this.bodies.push(body);
@@ -80,6 +83,7 @@ export default class PhysicsWorld {
    * Removes a circular body and reports whether it was present.
    * @public
    * @return {boolean}
+   * @param {CircleBody} body The body supplied to this operation.
    */
   public removeBody(body: CircleBody): boolean {
     const index = this.bodies.indexOf(body);

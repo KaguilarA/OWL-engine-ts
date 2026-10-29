@@ -2,14 +2,14 @@
  * Allocation-free math helpers operating strictly on primitive numbers.
  * @class MathUtils
  */
-class MathUtils {
+export default (class {
   /**
    * The single math utility instance shared by engine clients.
    * @property {MathUtils} instance
    * @public
    * @readonly
    */
-  public static readonly instance = new MathUtils();
+  public static readonly instance = new this();
 
   /**
    * Degrees to radians conversion multiplier.
@@ -211,7 +211,4 @@ class MathUtils {
   public approximately(a: number, b: number, epsilon = 0.00001): boolean {
     return Math.abs(a - b) <= epsilon;
   }
-}
-
-
-export default MathUtils.instance;
+}).instance;

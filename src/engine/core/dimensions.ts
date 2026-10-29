@@ -311,6 +311,8 @@ export default class {
    * @param y - The initial vertical position. Defaults to `0`.
    * @param pivotX - The horizontal pivot ratio. Defaults to `0`.
    * @param pivotY - The vertical pivot ratio. Defaults to `0`.
+   * @constructor
+   * @returns {void}
    */
   constructor(
     width = 0,
@@ -337,12 +339,26 @@ export default class {
     this.updateAspectRatio();
   }
 
+  /**
+   * Rejects numeric values that are not finite.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @param {string} name Name used to identify or look up this resource.
+   * @returns {void}
+   * @private
+   */
   private assertFiniteNumber(value: number, name: string): void {
     if (!Number.isFinite(value)) {
       throw new RangeError(`${name} must be a finite number.`);
     }
   }
 
+  /**
+   * Rejects dimensions that are negative or not finite.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @param {string} name Name used to identify or look up this resource.
+   * @returns {void}
+   * @private
+   */
   private assertNonNegativeDimension(value: number, name: string): void {
     this.assertFiniteNumber(value, name);
     if (value < 0) {
@@ -354,6 +370,7 @@ export default class {
    * Updates the aspect ratio when both unscaled dimensions are positive.
    *
    * A ratio of `0` means the current dimensions cannot establish a ratio.
+   * @returns {void}
    */
   private updateAspectRatio(): void {
     const width = this.width();

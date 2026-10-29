@@ -10,7 +10,7 @@ import type { Poolable } from '../interfaces';
  * High-performance object pool with zero runtime allocations and reactive tracking.
  * @class ObjectPool
  */
-export default class ObjectPool<T extends Poolable> {
+export default class<T extends Poolable> {
   /**
    * Stores idle pooled instances.
    * @property {T[]} items

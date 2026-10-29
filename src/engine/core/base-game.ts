@@ -5,8 +5,6 @@ import { Label } from '../ui';
 import { SceneLayer, WorldScene } from '../scene';
 import type { GameControlsOptions, LabelRenderState } from '../interfaces';
 
-
-
 /**
  * Shared lifecycle for every playable game.
  *
@@ -17,7 +15,7 @@ import type { GameControlsOptions, LabelRenderState } from '../interfaces';
  * @class BaseGame
  * @abstract
  */
-export default abstract class BaseGame {
+export default abstract class {
   /**
    * Scene graph available to games that use the world APIs.
    * @property {WorldScene} worldScene

@@ -6,7 +6,7 @@ import type { SafeAreaInsets } from '../interfaces';
  * Owns canvas sizing, responsive dimensions, and drawing helpers.
  * @class Context
  */
-class Context {
+export default (class {
   /**
    * Stores the dimensions state.
    * @property {Dimensions} dimensions
@@ -69,7 +69,7 @@ class Context {
    * @static
    * @readonly
    */
-  public static readonly instance = new Context();
+  public static readonly instance = new this();
 
   /**
    * Reactive viewport height in CSS pixels.
@@ -105,6 +105,7 @@ class Context {
   /**
    * Gets the logical game area used by entities and rendering. Its dimensions
    * always match the viewport in CSS pixels.
+   * @returns {Dimensions} game dimensions model from the current Context state.
    */
   public get gameDimensionsModel(): Dimensions {
     return this.gameDimensions;
@@ -112,6 +113,7 @@ class Context {
 
   /**
    * Determines whether the current viewport is taller than it is wide.
+   * @returns {boolean} is portrait from the current Context state.
    */
   public get isPortrait(): boolean {
     return this.dimensions.getHeight() > this.dimensions.getWidth();
@@ -173,7 +175,17 @@ class Context {
    * @private
    * @return {void}
    */
-  private getParentDimensions(): { width: number; height: number } {
+  private getParentDimensions(): {
+  /**
+   * Width of the represented area.
+   * @property {number} width
+   */
+  width: number;
+  /**
+   * Height of the represented area.
+   * @property {number} height
+   */
+  height: number } {
     const parent = this.canvas?.parentElement;
     const width = (parent && parent.clientWidth > 0)
       ? parent.clientWidth
@@ -188,6 +200,12 @@ class Context {
     };
   }
 
+  /**
+   * Initializes Context and its owned resources from the supplied arguments.
+   * @constructor
+   * @returns {void}
+   * @private
+   */
   private constructor() {
     if (!this.canvas) {
       throw new Error('Failed to find the canvas element with id "game-canvas".');
@@ -256,6 +274,8 @@ class Context {
    * Synchronizes backing-store size and scale with the logical viewport.
    * @public
    * @return {void}
+   * @param {number} [pixelRatio] The pixel ratio supplied to this operation.
+   * @param {boolean} [resizeBackingStore] The resize backing store supplied to this operation.
    */
   public syncCanvasDimensions(
     pixelRatio = window.devicePixelRatio || 1,
@@ -300,6 +320,11 @@ class Context {
    * Draws an image in logical game coordinates.
    * @public
    * @return {void}
+   * @param {CanvasImageSource} image Image source used to render the associated content.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
    */
   public drawImage(
     image: CanvasImageSource,
@@ -343,6 +368,13 @@ class Context {
    * Draws fitted text with the requested alignment and fill color.
    * @public
    * @return {void}
+   * @param {string} text Text to parse, display, or assign.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} size The size supplied to this operation.
+   * @param {string} color Color applied when rendering this content.
+   * @param {CanvasTextAlign} [align] The align supplied to this operation.
+   * @param {number | undefined} [maxWidth] The max width supplied to this operation.
    */
   public drawText(
     text: string,
@@ -390,6 +422,11 @@ class Context {
    * Draws a filled rectangle in logical canvas coordinates.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {string} color Color applied when rendering this content.
    */
   public drawRect(
     x: number,
@@ -406,6 +443,10 @@ class Context {
    * Draws a filled circle in logical canvas coordinates.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} radius Radius of the circular shape.
+   * @param {string} color Color applied when rendering this content.
    */
   public drawCircle(
     x: number,
@@ -441,6 +482,4 @@ class Context {
     await this.canvas.requestFullscreen();
   }
 
-}
-
-export default Context.instance;
+}).instance;
