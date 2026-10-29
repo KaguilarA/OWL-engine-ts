@@ -2,20 +2,24 @@ import { signalValue } from 'reactive-values';
 import {
   AnimatedShipEntity,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   Health,
   MathUtils,
   Sprite
 } from '../../engine';
 
+/**
+ * Defines the player animation contract shared by its consumers.
+ * @typedef {PlayerAnimation} PlayerAnimation
+ */
 type PlayerAnimation = 'idle' | 'moving' | 'shooting';
 
 /**
  * Player ship with horizontal movement, animated firing, and two-hit health.
  * @class Player
  */
-export class Player extends AnimatedShipEntity {
+export default class extends AnimatedShipEntity {
   /**
    * Current horizontal movement speed in canvas pixels per second.
    * @property {Signal} speed
@@ -53,6 +57,9 @@ export class Player extends AnimatedShipEntity {
    * Creates the player ship and its animated engine trail.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} [width] Width of the represented area.
+   * @param {number} [height] Height of the represented area.
    */
   constructor(width = 70, height = 50) {
     const shipAtlas = GameLoader.getAtlas('player');
@@ -82,6 +89,8 @@ export class Player extends AnimatedShipEntity {
 
   /**
    * Reserves space below the player for controls or other interface elements.
+   * @param {number} margin The margin supplied to this operation.
+   * @returns {void}
    */
   public setBottomMargin(margin: number): void {
     if (!Number.isFinite(margin) || margin < 0) {
@@ -91,6 +100,11 @@ export class Player extends AnimatedShipEntity {
     this.bottomMargin = margin;
   }
 
+  /**
+   * Synchronizes layout for Player.
+   * @returns {void}
+   * @private
+   */
   private updateLayout(): void {
     const gameDimensions = GameContext.gameDimensionsModel;
     const unit = Math.min(gameDimensions.getWidth(), gameDimensions.getHeight());
@@ -117,6 +131,7 @@ export class Player extends AnimatedShipEntity {
    * Updates movement, animation, and the temporary shooting pose.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     this.shootingTime = Math.max(0, this.shootingTime - deltaSeconds);
@@ -138,6 +153,7 @@ export class Player extends AnimatedShipEntity {
 
   /**
    * Applies one projectile impact and reports whether one player life was lost.
+   * @returns {boolean} Applies the take damage operation to Player.
    */
   public takeDamage(): boolean {
     const damage = this.health.receiveDamage();
@@ -157,6 +173,12 @@ export class Player extends AnimatedShipEntity {
     this.health.restore();
   }
 
+  /**
+   * Synchronizes animation for Player.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @private
+   */
   private updateAnimation(deltaSeconds: number): void {
     const nextAnimation: PlayerAnimation = this.shootingTime > 0
       ? 'shooting'
@@ -180,20 +202,21 @@ export class Player extends AnimatedShipEntity {
     this.sprite.update(deltaSeconds);
   }
 
+  /**
+   * Synchronizes speed for Player.
+   * @returns {void}
+   * @private
+   */
   private updateSpeed(): void {
-    if (GameEvents.isKeyPressed('ArrowLeft')) {
-      this.speed.set(-240);
-      return;
-    }
-
-    if (GameEvents.isKeyPressed('ArrowRight')) {
-      this.speed.set(240);
-      return;
-    }
-
-    this.speed.set(0);
+    this.speed.set(GameInput.axis('moveX') * 240);
   }
 
+  /**
+   * Synchronizes position for Player.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @private
+   */
   private updatePosition(deltaSeconds: number): void {
     this.advanceMovement(deltaSeconds, this.speed(), 0);
     const maxX = GameContext.gameDimensionsModel.getWidth() - this.width;

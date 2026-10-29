@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PatternBoard } from './board';
+import { PatternBoard } from './';
 
 describe('PatternBoard', () => {
   it('creates a board without automatic three-pattern matches', () => {

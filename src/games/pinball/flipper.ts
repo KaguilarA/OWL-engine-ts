@@ -1,26 +1,102 @@
 import { signalValue } from 'reactive-values';
 import { CircleBody, Collision2D, GameContext } from '../../engine';
 
-import type { PinballBounds } from './board';
+import type { PinballBounds } from './';
 
+/**
+ * Defines the flipper side contract shared by its consumers.
+ * @typedef {FlipperSide} FlipperSide
+ */
 export type FlipperSide = 'left' | 'right';
 
-/** Rotating bat controlled by keyboard or a held touch button. */
-export class PinballFlipper {
+/**
+ * Rotating bat controlled by keyboard or a held touch button.
+ * @class PinballFlipper
+ */
+export default class {
+  /**
+   * Side configuration or state owned by PinballFlipper.
+   * @property {FlipperSide} side
+   * @readonly
+   * @private
+   */
   private readonly side: FlipperSide;
+  /**
+   * Reactive angle state owned by PinballFlipper.
+   * @property {SignalValue<number> & (() => number)} angle
+   * @readonly
+   * @private
+   */
   private readonly angle = signalValue(0);
+  /**
+   * Reactive pivot x state owned by PinballFlipper.
+   * @property {SignalValue<number> & (() => number)} pivotX
+   * @readonly
+   * @private
+   */
   private readonly pivotX = signalValue(0);
+  /**
+   * Reactive pivot y state owned by PinballFlipper.
+   * @property {SignalValue<number> & (() => number)} pivotY
+   * @readonly
+   * @private
+   */
   private readonly pivotY = signalValue(0);
+  /**
+   * Reactive length state owned by PinballFlipper.
+   * @property {SignalValue<number> & (() => number)} length
+   * @readonly
+   * @private
+   */
   private readonly length = signalValue(0);
+  /**
+   * Reactive thickness state owned by PinballFlipper.
+   * @property {SignalValue<number> & (() => number)} thickness
+   * @readonly
+   * @private
+   */
   private readonly thickness = signalValue(0);
+  /**
+   * Whether this object participates in its owning system.
+   * @property {SignalValue<boolean> & (() => boolean)} active
+   * @readonly
+   * @private
+   */
   private readonly active = signalValue(false);
+  /**
+   * Reactive previous angle state owned by PinballFlipper.
+   * @property {SignalValue<number> & (() => number)} previousAngle
+   * @readonly
+   * @private
+   */
   private readonly previousAngle = signalValue(0);
+  /**
+   * Reactive impact cooldown state owned by PinballFlipper.
+   * @property {SignalValue<number> & (() => number)} impactCooldown
+   * @readonly
+   * @private
+   */
   private readonly impactCooldown = signalValue(0);
 
+  /**
+   * Initializes PinballFlipper and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {FlipperSide} side The side supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public constructor(side: FlipperSide) {
     this.side = side;
   }
 
+  /**
+   * Advances PinballFlipper simulation and dependent presentation state for one frame.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @param {boolean} pressed The pressed supplied to this operation.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @public
+   */
   public update(bounds: PinballBounds, pressed: boolean, deltaSeconds: number): void {
     this.impactCooldown.set(Math.max(0, this.impactCooldown() - deltaSeconds));
     const isLeft = this.side === 'left';
@@ -38,6 +114,13 @@ export class PinballFlipper {
     this.angle.set(this.angle() + (destination - this.angle()) * blend);
   }
 
+  /**
+   * Applies the collide operation to PinballFlipper.
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {boolean} pressed The pressed supplied to this operation.
+   * @returns {boolean} Applies the collide operation to PinballFlipper.
+   * @public
+   */
   public collide(body: CircleBody, pressed: boolean): boolean {
     const endX = this.pivotX() + Math.cos(this.angle()) * this.length();
     const endY = this.pivotY() + Math.sin(this.angle()) * this.length();
@@ -59,6 +142,11 @@ export class PinballFlipper {
     return true;
   }
 
+  /**
+   * Renders PinballFlipper using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const endX = this.pivotX() + Math.cos(this.angle()) * this.length();
     const endY = this.pivotY() + Math.sin(this.angle()) * this.length();

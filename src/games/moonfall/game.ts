@@ -1,27 +1,58 @@
 import { signalValue, type SignalValue } from 'reactive-values';
+import crosshairSvg from 'lucide-static/icons/crosshair.svg?raw';
+import dashSvg from 'lucide-static/icons/zap.svg?raw';
 import {
   BaseGame,
+  CanvasIcon,
   Collision2D,
   GameBackground,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   MathUtils,
   PlatformerController,
   Projectile,
   Sprite,
-  Weapon
+  TouchControls,
+  Weapon,
+  type CollisionRect,
+  type TouchControlCircle
 } from '../../engine';
-import type { CollisionRect } from '../../engine';
-import MoonWisp from './wisp';
+import { MoonWisp } from './';
 
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const ROOM_NAMES = ['MOONLIT GROVE', 'SUNKEN AQUEDUCT', 'SUNDERED CITADEL'] as const;
 
 /**
  * A side-scrolling metroidvania about opening a route through an ancient citadel.
  * @class MoonfallGame
  */
-export default class MoonfallGame extends BaseGame {
+export default class extends BaseGame {
+  /**
+   * Scene-scoped movement and jump buttons, shared with the other platformer.
+   * @property {TouchControls} touchControls
+   * @readonly
+   * @private
+   */
+  private readonly touchControls = new TouchControls({ showVerticalControls: false, primaryAction: 'jump' });
+  /**
+   * Icons for the independent ranged attack and dash actions.
+   * @property {CanvasIcon} fireIcon
+   * @readonly
+   * @private
+   */
+  private readonly fireIcon = new CanvasIcon(crosshairSvg);
+  /**
+   * Dash icon configuration or state owned by MoonfallGame.
+   * @property {CanvasIcon} dashIcon
+   * @readonly
+   * @private
+   */
+  private readonly dashIcon = new CanvasIcon(dashSvg);
+
   /**
    * Platformer movement, jump buffering, and coyote time for the explorer.
    * @property {PlatformerController} controller
@@ -107,21 +138,7 @@ export default class MoonfallGame extends BaseGame {
    */
   private readonly completed: SignalValue<boolean> = signalValue(false);
 
-  /**
-   * Edge state for jump input.
-   * @property {SignalValue<boolean>} jumpWasPressed
-   * @private
-   * @readonly
-   */
-  private readonly jumpWasPressed: SignalValue<boolean> = signalValue(false);
 
-  /**
-   * Edge state for dash input.
-   * @property {SignalValue<boolean>} dashWasPressed
-   * @private
-   * @readonly
-   */
-  private readonly dashWasPressed: SignalValue<boolean> = signalValue(false);
 
   /**
    * Horizontal facing direction used by the dash.
@@ -176,15 +193,17 @@ export default class MoonfallGame extends BaseGame {
    * @param onReturnToMenu Callback used by the shared controls to return to the selector.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu);
+    this.registerCleanup(() => this.touchControls.dispose());
     const width = GameContext.gameDimensionsModel.getWidth();
     this.wisp = new MoonWisp(width * 2.65, width * 2.54, width * 2.78, 5);
     this.playerSprite = new Sprite(GameLoader.getImage('mario'), 64, 80, 0, 0, 0.5, 1);
     this.playerSprite.playAtlasClip(GameLoader.getAtlas('mario').getAnimation('idle'));
     this.restartGame();
-    this.start();
+    this.start('moonfall');
   }
 
   /**
@@ -255,7 +274,31 @@ export default class MoonfallGame extends BaseGame {
     this.drawProjectiles(cameraX, scale);
     this.drawExplorer(height, cameraX);
     this.drawHud(width, height, cameraX, scale);
-    if (this.isGameOver) this.drawEnding(width, height, scale);
+    if (this.isGameOver) {
+      this.touchControls.draw(false);
+      this.drawEnding(width, height, scale);
+    } else this.drawTouchControls();
+  }
+
+  /**
+   * Maps separate touch regions to jump, fire, and dash keyboard actions.
+   * @returns {void}
+   * @private
+   */
+  private drawTouchControls(): void {
+    this.touchControls.draw();
+    const { shoot } = this.touchControls.layout;
+    const fire: TouchControlCircle = { ...shoot, x: shoot.x - shoot.radius * 2.5 };
+    const dash: TouchControlCircle = { ...shoot, y: shoot.y - shoot.radius * 2.5 };
+    this.touchControls.setExtraActions([[fire, 'attack'], [dash, 'dash']]);
+    this.touchControls.drawExtra(fire, this.fireIcon, '#bd6544', 0);
+    this.touchControls.drawExtra(dash, this.dashIcon, this.hasDash() ? '#497fd4' : '#555c70', 1);
+    if (!GameContext.isMobileDevice) return;
+    const fontSize = Math.max(9, shoot.radius * 0.32);
+    for (const [circle, label] of [[shoot, 'JUMP'], [fire, 'FIRE'], [dash, 'DASH']] as const) {
+      this.drawLabel(label, circle.x, circle.y + circle.radius + fontSize,
+        fontSize, '#ffffff', 'center');
+    }
   }
 
   /**
@@ -277,8 +320,6 @@ export default class MoonfallGame extends BaseGame {
     this.hasDash.set(false);
     this.gateOpen.set(false);
     this.completed.set(false);
-    this.jumpWasPressed.set(false);
-    this.dashWasPressed.set(false);
     this.facing.set(1);
     this.jumpsUsed.set(0);
     this.dashRemaining.set(0);
@@ -296,8 +337,7 @@ export default class MoonfallGame extends BaseGame {
    * @return {number}
    */
   private readHorizontalInput(): number {
-    return Number(GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d'))
-      - Number(GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a'));
+    return GameInput.axis('moveX');
   }
 
   /**
@@ -316,9 +356,7 @@ export default class MoonfallGame extends BaseGame {
    * @return {void}
    */
   private updateJumpInput(): void {
-    const pressed = GameEvents.isKeyPressed(' ') || GameEvents.isKeyPressed('ArrowUp')
-      || GameEvents.isKeyPressed('w');
-    if (pressed && !this.jumpWasPressed()) {
+    if (GameInput.wasPressed('jump')) {
       if (this.controller.grounded()) {
         this.controller.requestJump();
         this.jumpsUsed.set(1);
@@ -328,7 +366,6 @@ export default class MoonfallGame extends BaseGame {
         this.jumpsUsed.set(2);
       }
     }
-    this.jumpWasPressed.set(pressed);
   }
 
   /**
@@ -341,8 +378,7 @@ export default class MoonfallGame extends BaseGame {
   private updateDashInput(deltaSeconds: number, viewportWidth: number): void {
     this.dashCooldown.set(Math.max(0, this.dashCooldown() - deltaSeconds));
     this.dashRemaining.set(Math.max(0, this.dashRemaining() - deltaSeconds));
-    const pressed = GameEvents.isKeyPressed('Shift') || GameEvents.isKeyPressed('x');
-    if (pressed && !this.dashWasPressed() && this.hasDash() && this.dashCooldown() === 0) {
+    if (GameInput.wasPressed('dash') && this.hasDash() && this.dashCooldown() === 0) {
       this.dashRemaining.set(0.2);
       this.dashCooldown.set(0.85);
       this.controller.body.velocityY.set(0);
@@ -352,7 +388,6 @@ export default class MoonfallGame extends BaseGame {
         this.message.set('THE CRYSTAL SEAL SHATTERS.');
       }
     }
-    this.dashWasPressed.set(pressed);
   }
 
   /**
@@ -407,7 +442,7 @@ export default class MoonfallGame extends BaseGame {
   ): void {
     this.weapon.update(deltaSeconds);
     this.wisp.update(deltaSeconds);
-    if (GameEvents.isKeyPressed('z') && this.weapon.tryFire()) {
+    if (GameInput.isDown('attack') && this.weapon.tryFire()) {
       const x = this.controller.body.x() + (this.facing() > 0 ? playerWidth : 0);
       const y = this.controller.body.y() + playerHeight * 0.52;
       this.projectiles.set([...this.projectiles(), new Projectile(x, y, this.facing() * 560, 0, 1, 1.4)]);
@@ -745,11 +780,13 @@ export default class MoonfallGame extends BaseGame {
       18 * scale, '#d9e8ff', 'center', width * 0.8);
     this.drawLabel(`HEARTS  ${'◆ '.repeat(this.hearts()).trim()}    ${this.hasDash() ? 'MOON DASH READY' : 'MOON DASH LOCKED'}`,
       width * 0.5, height * 0.12, 11 * scale, '#b8f4e9', 'center', width * 0.9);
-    this.drawLabel(this.message(), width * 0.5, height * 0.88,
+    this.drawLabel(this.message(), width * 0.5, height * (GameContext.isMobileDevice ? 0.18 : 0.88),
       10 * scale, '#ffffff', 'center', width * 0.9);
-    this.drawLabel('MOVE  A/D OR ARROWS     JUMP  SPACE     MOON DASH  SHIFT / X',
+    if (!GameContext.isMobileDevice) {
+      this.drawLabel('MOVE  A/D OR ARROWS     JUMP  SPACE     MOON DASH  SHIFT / X',
       width * 0.5, height * 0.93, 9 * scale, '#d6e5f7', 'center', width * 0.92);
     this.drawLabel('FIRE  Z', width * 0.5, height * 0.965, 9 * scale, '#a8c9df', 'center', width * 0.92);
+    }
     const beaconX = width * ROOM_NAMES.length - cameraX;
     GameContext.drawRect(beaconX - 12 * scale, height * 0.57, 24 * scale, height * 0.25, '#b5d8ff');
     GameContext.drawRect(beaconX - 5 * scale, height * 0.6, 10 * scale, height * 0.19, '#e8fff9');

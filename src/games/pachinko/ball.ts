@@ -1,23 +1,65 @@
 import { signalValue } from 'reactive-values';
 import { CircleBody, GameContext } from '../../engine';
 
-/** Lightweight game token that delegates motion to the engine's circle body. */
-export class PachinkoBall {
+/**
+ * Lightweight game token that delegates motion to the engine's circle body.
+ * @class PachinkoBall
+ */
+export default class {
+  /**
+   * Body configuration or state owned by PachinkoBall.
+   * @property {CircleBody} body
+   * @readonly
+   * @public
+   */
   public readonly body: CircleBody;
+  /**
+   * Reactive deflection state state owned by PachinkoBall.
+   * @property {SignalValue<number> & (() => number)} deflectionState
+   * @readonly
+   * @private
+   */
   private readonly deflectionState = signalValue(0x6d2b79f5);
+  /**
+   * Reactive peg contact state owned by PachinkoBall.
+   * @property {SignalValue<number> & (() => number)} pegContact
+   * @readonly
+   * @private
+   */
   private readonly pegContact = signalValue(-1);
 
+  /**
+   * Initializes PachinkoBall and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} radius Radius of the circular shape.
+   * @returns {void}
+   * @public
+   */
   public constructor(x: number, y: number, radius: number) {
     this.body = new CircleBody(x, y, radius);
     this.body.setVelocity(0, 35);
     this.deflectionState.set((Math.floor(x * 17 + y * 31) | 0) || 0x6d2b79f5);
   }
 
+  /**
+   * Advances PachinkoBall simulation and dependent presentation state for one frame.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @public
+   */
   public update(deltaSeconds: number): void {
     this.body.update(deltaSeconds, 720);
   }
 
-  /** Adds deterministic lateral motion to perfectly centered peg impacts. */
+  /**
+   * Adds deterministic lateral motion to perfectly centered peg impacts.
+   * @param {number} pegX
+   * @param {number} pegIndex
+   * @returns {void}
+   * @public
+   */
   public deflectFromPeg(pegX: number, pegIndex: number): void {
     if (this.pegContact() === pegIndex || Math.abs(this.body.x - pegX) > this.body.radius * 0.6) return;
     this.pegContact.set(pegIndex);
@@ -33,10 +75,20 @@ export class PachinkoBall {
     this.body.setVelocity(lateralVelocity, this.body.velocityY);
   }
 
+  /**
+   * Clears the remembered peg contact before another collision can be registered.
+   * @returns {void}
+   * @public
+   */
   public clearPegContact(): void {
     this.pegContact.set(-1);
   }
 
+  /**
+   * Renders PachinkoBall using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const { x, y, radius } = this.body;
     GameContext.drawCircle(x, y, radius + 2, '#ffca57');

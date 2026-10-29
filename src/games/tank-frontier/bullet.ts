@@ -6,14 +6,13 @@ import {
   Sprite
 } from '../../engine';
 
-import type { Direction } from './interfaces/direction';
-import type { Rect } from './interfaces/rect';
+import type { Direction, Rect } from './interfaces';
 
 /**
  * Reusable directional tank projectile with animated sprite frames.
  * @class Bullet
  */
-export class Bullet {
+export default class {
   /**
    * Stores the sprite state.
    * @property {Sprite} sprite
@@ -28,6 +27,12 @@ export class Bullet {
    * @readonly
    */
   private readonly physics = new PhysicsBody();
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {SignalValue<number>} x
+   * @readonly
+   * @public
+   */
   public readonly x = this.physics.x;
   /**
    * Stores the y state.
@@ -54,6 +59,7 @@ export class Bullet {
    * Creates an inactive bullet ready to be reused.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor() {
     const atlas = GameLoader.getAtlas('enemyProjectile');
@@ -105,6 +111,9 @@ export class Bullet {
    * Activates the bullet with a position and cardinal travel direction.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {Direction} direction The direction supplied to this operation.
    */
   public start(x: number, y: number, direction: Direction): void {
     this.physics.setPosition(x, y);
@@ -128,6 +137,7 @@ export class Bullet {
    * Moves the active bullet and updates its sprite animation.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     if (!this.active()) return;

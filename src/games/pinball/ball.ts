@@ -1,15 +1,45 @@
 import { signalValue } from 'reactive-values';
 import { CircleBody, GameContext } from '../../engine';
 
-/** Pinball sphere with engine-backed position, velocity, and acceleration. */
-export class PinballBall {
+/**
+ * Pinball sphere with engine-backed position, velocity, and acceleration.
+ * @class PinballBall
+ */
+export default class {
+  /**
+   * Body configuration or state owned by PinballBall.
+   * @property {CircleBody} body
+   * @readonly
+   * @public
+   */
   public readonly body: CircleBody;
+  /**
+   * Reactive in shooter lane state owned by PinballBall.
+   * @property {SignalValue<boolean> & (() => boolean)} inShooterLane
+   * @readonly
+   * @private
+   */
   private readonly inShooterLane = signalValue(true);
 
+  /**
+   * Initializes PinballBall and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} radius Radius of the circular shape.
+   * @returns {void}
+   * @public
+   */
   public constructor(x: number, y: number, radius: number) {
     this.body = new CircleBody(x, y, radius);
   }
 
+  /**
+   * Advances PinballBall simulation and dependent presentation state for one frame.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @public
+   */
   public update(deltaSeconds: number): void {
     this.body.update(deltaSeconds, 680);
     const horizontalDrag = Math.pow(0.995, deltaSeconds * 60);
@@ -20,7 +50,13 @@ export class PinballBall {
     }
   }
 
-  /** Turns the ball into the playfield once, without changing its position. */
+  /**
+   * Turns the ball into the playfield once, without changing its position.
+   * @param {number} vx
+   * @param {number} vy
+   * @returns {boolean}
+   * @public
+   */
   public leaveShooter(vx: number, vy: number): boolean {
     if (!this.inShooterLane()) return false;
     this.inShooterLane.set(false);
@@ -28,6 +64,11 @@ export class PinballBall {
     return true;
   }
 
+  /**
+   * Renders PinballBall using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const { x, y, radius } = this.body;
     GameContext.drawCircle(x + 2, y + 3, radius + 1, 'rgba(0, 0, 0, 0.45)');

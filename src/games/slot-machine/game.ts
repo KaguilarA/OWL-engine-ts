@@ -5,7 +5,7 @@ import {
   CanvasIcon,
   GameBackground,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   Label,
   MathUtils,
@@ -16,9 +16,13 @@ import {
 } from '../../engine';
 import resetSvg from 'lucide-static/icons/rotate-ccw.svg?raw';
 
-import { CosmicSymbolVisual } from './cosmic-symbol-visual';
-import type { CosmicSymbolAsset } from './interfaces/cosmic-symbol-asset';
+import { CosmicSymbolVisual } from './';
+import type { CosmicSymbolAsset } from './interfaces';
 
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const ALIEN_SYMBOLS = [
   'beetlemorph',
   'rhinomorph',
@@ -27,14 +31,22 @@ const ALIEN_SYMBOLS = [
   'phantommorph',
   'squidmorph'
 ] as const;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const ROW_COUNT = 3;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const REEL_COUNT = 3;
 
 /**
  * Three-reel arcade slot machine with credits, wagers, and animated payouts.
  * @class SlotMachineGame
  */
-export class SlotMachineGame extends BaseGame {
+export default class extends BaseGame {
   /**
    * Holds the three reel models whose reactive motion and outcomes drive the game.
    * @property {Reel[]} reels
@@ -60,6 +72,7 @@ export class SlotMachineGame extends BaseGame {
    * @property {SignalValue<number>} credits
    * @private
    * @readonly
+   * @returns {SignalValue<number>} credits from the current SlotMachineGame state.
    */
   private get credits() { return this.bankroll.credits; }
   /**
@@ -76,14 +89,13 @@ export class SlotMachineGame extends BaseGame {
    * @readonly
    */
   private readonly spinning = signalValue(false);
-  private readonly stopRequested = signalValue(false);
   /**
-   * Remembers the prior keyboard state so one press starts only one spin.
-   * @property {SignalValue<boolean>} spaceWasPressed
-   * @private
+   * Reactive stop requested state owned by SlotMachineGame.
+   * @property {SignalValue<boolean> & (() => boolean)} stopRequested
    * @readonly
+   * @private
    */
-  private readonly spaceWasPressed = signalValue(false);
+  private readonly stopRequested = signalValue(false);
   /**
    * Stores the message displayed beneath the reels.
    * @property {SignalValue<string>} message
@@ -112,13 +124,28 @@ export class SlotMachineGame extends BaseGame {
    * @readonly
    */
   private readonly spinIcon = new CanvasIcon(resetSvg, '#493500');
-  /** @property {Button} spinButton */
+  /**
+   * Pointer button that requests a spin when the current round permits it.
+   * @property {Button} spinButton
+   * @readonly
+   * @private
+   */
   private readonly spinButton: Button;
-  /** @property {NumberLabel} creditsLabel */
+  /**
+   * Numeric HUD label displaying the player's available credits.
+   * @property {NumberLabel} creditsLabel
+   * @readonly
+   * @private
+   */
   private readonly creditsLabel = new NumberLabel(100, {
     width: 220, height: 30, align: 'center', color: '#ffffff', fontSize: 24
   }, { mode: 'count', locale: 'en-US' });
-  /** @property {Label} messageLabel */
+  /**
+   * HUD label displaying spin instructions and round results.
+   * @property {Label} messageLabel
+   * @readonly
+   * @private
+   */
   private readonly messageLabel = new Label('MATCH SYMBOLS TO WIN', {
     width: 300, height: 24, align: 'center', color: '#b6c5ff', fontSize: 17
   });
@@ -134,6 +161,7 @@ export class SlotMachineGame extends BaseGame {
    * @param onReturnToMenu - Optional callback invoked when the player exits.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu, { showResetButton: false });
@@ -172,9 +200,7 @@ export class SlotMachineGame extends BaseGame {
    * @return {void}
    */
   protected updateGame(deltaSeconds: number): void {
-    const spacePressed = GameEvents.isKeyPressed(' ');
-    if (spacePressed && !this.spaceWasPressed()) this.spin();
-    this.spaceWasPressed.set(spacePressed);
+    if (GameInput.wasPressed('spin')) this.spin();
     this.spinButton.setDisabled(!this.spinning() && this.credits() < this.bet);
     this.spinButton.setBlocked(false);
     const settled = this.reelBank.update(deltaSeconds);
@@ -309,7 +335,6 @@ export class SlotMachineGame extends BaseGame {
     this.bankroll.reset(100);
     this.spinning.set(false);
     this.stopRequested.set(false);
-    this.spaceWasPressed.set(false);
     this.message.set('MATCH SYMBOLS TO WIN');
     this.stopWinningAnimation();
     this.reelBank.reset();
@@ -384,6 +409,11 @@ export class SlotMachineGame extends BaseGame {
     this.winningSymbol.set(undefined);
   }
 
+  /**
+   * Selects a symbol using the game’s configured random selection rules.
+   * @returns {string} Selects a symbol using the game’s configured random selection rules.
+   * @private
+   */
   private randomSymbol(): string {
     return ALIEN_SYMBOLS[Math.floor(Math.random() * ALIEN_SYMBOLS.length)];
   }

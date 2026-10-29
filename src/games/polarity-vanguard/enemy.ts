@@ -1,12 +1,12 @@
 import { GameLoader, SpriteEntity, Sprite } from '../../engine';
 
-import type { Polarity } from './polarity';
+import type { Polarity } from './';
 
 /**
  * Formation enemy that drifts downward and plays a death animation.
  * @class PolarityVanguardEnemy
  */
-export class PolarityVanguardEnemy extends SpriteEntity {
+export default class extends SpriteEntity {
   /**
    * Stores the phase state.
    * @property {number} phase
@@ -53,6 +53,13 @@ export class PolarityVanguardEnemy extends SpriteEntity {
    * Creates an enemy with a phase-specific row and gameplay polarity.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {Polarity} polarity The polarity supplied to this operation.
+   * @param {number} phase The phase supplied to this operation.
+   * @param {number} [width] Width of the represented area.
+   * @param {number} [height] Height of the represented area.
    */
   public constructor(
     x: number,
@@ -91,6 +98,7 @@ export class PolarityVanguardEnemy extends SpriteEntity {
    * Updates enemy movement and marks it inactive after death animation.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     this.updateSprite(deltaSeconds);
@@ -124,6 +132,11 @@ export class PolarityVanguardEnemy extends SpriteEntity {
     );
   }
 
+  /**
+   * Renders PolarityVanguardEnemy using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public override draw(): void {
     if (this.alive) {
       this.sprite.draw();

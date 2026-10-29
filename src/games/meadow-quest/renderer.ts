@@ -3,39 +3,125 @@ import {
   GameLoader,
   Sprite
 } from '../../engine';
-import type { Coin, Platform } from './level';
+import type { Coin, Platform } from './';
 
+/**
+ * Defines the platformer render state contract shared by its consumers.
+ * @interface PlatformerRenderState
+ */
 export interface PlatformerRenderState {
+  /**
+   * Camera x configuration or state owned by PlatformerRenderState.
+   * @property {number} cameraX
+   */
   cameraX: number;
+  /**
+   * Player x configuration or state owned by PlatformerRenderState.
+   * @property {number} playerX
+   */
   playerX: number;
+  /**
+   * Player y configuration or state owned by PlatformerRenderState.
+   * @property {number} playerY
+   */
   playerY: number;
+  /**
+   * Facing configuration or state owned by PlatformerRenderState.
+   * @property {number} facing
+   */
   facing: number;
+  /**
+   * Score configuration or state owned by PlatformerRenderState.
+   * @property {number} score
+   */
   score: number;
+  /**
+   * Lives configuration or state owned by PlatformerRenderState.
+   * @property {number} lives
+   */
   lives: number;
+  /**
+   * Won configuration or state owned by PlatformerRenderState.
+   * @property {boolean} won
+   */
   won: boolean;
+  /**
+   * Enemy x configuration or state owned by PlatformerRenderState.
+   * @property {number} enemyX
+   */
   enemyX: number;
+  /**
+   * Moving configuration or state owned by PlatformerRenderState.
+   * @property {boolean} moving
+   */
   moving: boolean;
+  /**
+   * Platforms configuration or state owned by PlatformerRenderState.
+   * @property {Platform[]} platforms
+   */
   platforms: Platform[];
+  /**
+   * Coins configuration or state owned by PlatformerRenderState.
+   * @property {Coin[]} coins
+   */
   coins: Coin[];
 }
 
+/**
+ * Defines the draw label contract shared by its consumers.
+ * @typedef {DrawLabel} DrawLabel
+ */
 type DrawLabel = (text: string, x: number, y: number, size: number, color: string, align: CanvasTextAlign) => void;
 
-/** Draws the platformer scene without owning its gameplay state. */
-export class PlatformerRenderer {
+/**
+ * Draws the platformer scene without owning its gameplay state.
+ * @class PlatformerRenderer
+ */
+export default class {
+  /**
+   * Hero sprite configuration or state owned by PlatformerRenderer.
+   * @property {Sprite} heroSprite
+   * @readonly
+   * @private
+   */
   private readonly heroSprite: Sprite;
+  /**
+   * Active hero clip configuration or state owned by PlatformerRenderer.
+   * @property {string} activeHeroClip
+   * @private
+   */
   private activeHeroClip = '';
 
+  /**
+   * Initializes PlatformerRenderer and its owned resources from the supplied arguments.
+   * @constructor
+   * @returns {void}
+   * @public
+   */
   public constructor() {
     this.heroSprite = new Sprite(GameLoader.getImage('mario'), 56, 65, 0, 0, 0.5, 1);
     this.setHeroClip('idle');
   }
 
+  /**
+   * Advances PlatformerRenderer simulation and dependent presentation state for one frame.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @param {boolean} moving The moving supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public update(deltaSeconds: number, moving: boolean): void {
     this.setHeroClip(moving ? 'run' : 'idle');
     this.heroSprite.update(deltaSeconds);
   }
 
+  /**
+   * Renders PlatformerRenderer using its current geometry and presentation state.
+   * @param {PlatformerRenderState} state Presentation or lifecycle state selected for this object.
+   * @param {DrawLabel} drawLabel The draw label supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public draw(state: PlatformerRenderState, drawLabel: DrawLabel): void {
     const viewport = GameContext.gameDimensionsModel;
     const width = viewport.getWidth();
@@ -95,12 +181,26 @@ export class PlatformerRenderer {
     if (state.won) drawLabel('LEVEL CLEAR!', width * 0.5, height * 0.43, Math.max(34, height * 0.075), '#fff6a5', 'center');
   }
 
+  /**
+   * Updates hero clip for PlatformerRenderer.
+   * @param {"idle" | "run"} name Name used to identify or look up this resource.
+   * @returns {void}
+   * @private
+   */
   private setHeroClip(name: 'idle' | 'run'): void {
     if (this.activeHeroClip === name) return;
     this.heroSprite.playAtlasClip(GameLoader.getAtlas('mario').getAnimation(name));
     this.activeHeroClip = name;
   }
 
+  /**
+   * Renders clouds for PlatformerRenderer.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {number} cameraX The camera x supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private drawClouds(width: number, height: number, cameraX: number): void {
     const drift = cameraX * 0.2;
     for (let index = 0; index < 7; index++) {

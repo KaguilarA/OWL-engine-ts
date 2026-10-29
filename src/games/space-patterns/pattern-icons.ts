@@ -1,4 +1,4 @@
-import type { PatternIcon } from './interfaces/pattern-icon';
+import type { PatternIcon } from './interfaces';
 
 /**
  * Sprite frame definitions used as the board's matchable patterns.

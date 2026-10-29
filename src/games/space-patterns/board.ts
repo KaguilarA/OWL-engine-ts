@@ -1,15 +1,18 @@
 import { GridBoard } from '../../engine';
 
-import type { BoardCell } from './interfaces/board-cell';
-import type { PatternFall } from './interfaces/pattern-fall';
+import type { BoardCell, PatternFall } from './interfaces';
 
+/**
+ * Shared values used to configure board.
+ * @constant
+ */
 const EMPTY_CELL = -1;
 
 /**
  * Match-three board state and the operations that resolve its matches.
  * @class PatternBoard
  */
-export class PatternBoard {
+export default class {
   /**
    * Stores the cells state.
    * @property {SignalValue<number[][]>} cells
@@ -43,6 +46,10 @@ export class PatternBoard {
    * Creates and fills a board without initial horizontal or vertical matches.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} columns Number or contents of the grid columns.
+   * @param {number} rows The rows supplied to this operation.
+   * @param {number} patternCount The pattern count supplied to this operation.
    */
   public constructor(columns: number, rows: number, patternCount: number) {
     this.columns = columns;
@@ -56,6 +63,7 @@ export class PatternBoard {
    * Returns the pattern index stored at a cell.
    * @public
    * @return {number}
+   * @param {BoardCell} cell The cell supplied to this operation.
    */
   public get(cell: BoardCell): number {
     return this.grid.get(cell.column, cell.row) ?? EMPTY_CELL;
@@ -83,6 +91,8 @@ export class PatternBoard {
    * Swaps adjacent cells only when that swap creates a match.
    * @public
    * @return {BoardCell[] | undefined}
+   * @param {BoardCell} first The first supplied to this operation.
+   * @param {BoardCell} second The second supplied to this operation.
    */
   public trySwap(first: BoardCell, second: BoardCell): BoardCell[] | undefined {
     if (!this.areAdjacent(first, second)) return undefined;
@@ -127,7 +137,17 @@ export class PatternBoard {
     );
     const falls: PatternFall[] = [];
     for (let column = 0; column < this.columns; column++) {
-      const survivors: Array<{ pattern: number; fromRow: number }> = [];
+      const survivors: Array<{
+      /**
+       * Pattern configuration or state owned by PatternBoard.
+       * @property {number} pattern
+       */
+      pattern: number;
+      /**
+       * From row configuration or state owned by PatternBoard.
+       * @property {number} fromRow
+       */
+      fromRow: number }> = [];
 
       for (let row = this.rows - 1; row >= 0; row--) {
         const pattern = cells[row][column];
@@ -213,6 +233,8 @@ export class PatternBoard {
    * Reports whether two cells share an edge.
    * @private
    * @return {boolean}
+   * @param {BoardCell} first The first supplied to this operation.
+   * @param {BoardCell} second The second supplied to this operation.
    */
   private areAdjacent(first: BoardCell, second: BoardCell): boolean {
     const columnDistance = Math.abs(first.column - second.column);
@@ -317,6 +339,7 @@ export class PatternBoard {
    * Encodes a grid coordinate for set-based match collection.
    * @private
    * @return {string}
+   * @param {BoardCell} cell The cell supplied to this operation.
    */
   private cellKey(cell: BoardCell): string {
     return `${cell.column},${cell.row}`;
@@ -326,6 +349,7 @@ export class PatternBoard {
    * Decodes a coordinate key created by {@link cellKey}.
    * @private
    * @return {BoardCell}
+   * @param {string} key Key identifying the associated input or resource.
    */
   private parseCellKey(key: string): BoardCell {
     const [column, row] = key.split(',').map(Number);
@@ -337,6 +361,7 @@ export class PatternBoard {
    * Converts collected coordinate keys back into grid cells.
    * @private
    * @return {BoardCell[]}
+   * @param {Set<string>} matches The matches supplied to this operation.
    */
   private toCells(matches: Set<string>): BoardCell[] {
     return [...matches].map((key) => this.parseCellKey(key));

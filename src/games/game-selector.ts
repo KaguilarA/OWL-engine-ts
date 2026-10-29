@@ -5,35 +5,34 @@ import {
   GameBackground,
   GameContext,
   GameControls,
-  GameEvents,
+  GameInput,
   GameLoader,
   Label,
   MathUtils,
   Texture
 } from '../engine';
 
-// import { MusketeersSlotGame } from './musketeers-slot/game';
-import { MeadowQuestGame } from './meadow-quest/game';
-import { ScratchCardGame } from './scratch-card/game';
-import { PolarityVanguardGame } from './polarity-vanguard/game';
-import { PachinkoGame } from './pachinko/game';
-import { PinballGame } from './pinball/game';
-import { ShootEmAllGame } from './shoot-em-all/game';
-import { Game as SpaceHuntersGame } from './space-hunters/game';
-import { SlotMachineGame } from './slot-machine/game';
-import { SpacePatternsGame } from './space-patterns/game';
+// import { MusketeersSlotGame } from './musketeers-slot';
+import { MeadowQuestGame } from './meadow-quest';
+import { ScratchCardGame } from './scratch-card';
+import { PolarityVanguardGame } from './polarity-vanguard';
+import { PachinkoGame } from './pachinko';
+import { PinballGame } from './pinball';
+import { ShootEmAllGame } from './shoot-em-all';
+import { Game as SpaceHuntersGame } from './space-hunters';
+import { SlotMachineGame } from './slot-machine';
+import { SpacePatternsGame } from './space-patterns';
 import { TankFrontierGame } from './tank-frontier';
-import CrystalOathGame from './crystal-oath/game';
-import MoonfallGame from './moonfall/game';
+import { CrystalOathGame } from './crystal-oath';
+import { MoonfallGame } from './moonfall';
 
-import type { GameChoice } from './interfaces/game-choice';
-
+import type { GameChoice } from './interfaces';
 
 /**
  * Presents the game list and starts the selected game.
  * @class GameSelector
  */
-export class GameSelector {
+export default class {
   /**
    * Stores the choices state.
    * @property {GameChoice[]} choices
@@ -109,11 +108,46 @@ export class GameSelector {
       start: (onReturnToMenu) => { new MoonfallGame(onReturnToMenu); }
     }
   ];
+  /**
+   * Choices container configuration or state owned by GameSelector.
+   * @property {Container} choicesContainer
+   * @readonly
+   * @private
+   */
   private readonly choicesContainer = new Container({ width: 0, height: 0, clipChildren: true, scrollable: true });
+  /**
+   * Choice buttons configuration or state owned by GameSelector.
+   * @property {Button[]} choiceButtons
+   * @private
+   */
   private choiceButtons: Button[] = [];
+  /**
+   * Title label configuration or state owned by GameSelector.
+   * @property {Label} titleLabel
+   * @readonly
+   * @private
+   */
   private readonly titleLabel = new Label('ARCADE FRONTIER', { align: 'center', baseline: 'middle', color: '#ffffff' });
+  /**
+   * Subtitle label configuration or state owned by GameSelector.
+   * @property {Label} subtitleLabel
+   * @readonly
+   * @private
+   */
   private readonly subtitleLabel = new Label('SELECT A MISSION', { align: 'center', baseline: 'middle', color: '#b6c5ff' });
+  /**
+   * Choice title labels configuration or state owned by GameSelector.
+   * @property {Label[]} choiceTitleLabels
+   * @readonly
+   * @private
+   */
   private readonly choiceTitleLabels = this.choices.map((choice) => new Label(choice.title, { align: 'center', baseline: 'middle' }));
+  /**
+   * Choice description labels configuration or state owned by GameSelector.
+   * @property {Label[]} choiceDescriptionLabels
+   * @readonly
+   * @private
+   */
   private readonly choiceDescriptionLabels = this.choices.map((choice) => new Label(choice.description, { align: 'center', baseline: 'middle', color: '#ffffff' }));
   /**
    * Stores the selected index state.
@@ -121,24 +155,44 @@ export class GameSelector {
    * @private
    */
   private readonly selectedIndexState = signalValue(0);
-  private readonly selectionNeedsVisibility = signalValue(true);
-  private get selectedIndex(): number { return this.selectedIndexState(); }
-  private set selectedIndex(value: number) { this.selectedIndexState.set(value); }
   /**
-   * Stores the direction was pressed state.
-   * @property {boolean} directionWasPressed
+   * Reactive selection needs visibility state owned by GameSelector.
+   * @property {SignalValue<boolean> & (() => boolean)} selectionNeedsVisibility
+   * @readonly
    * @private
    */
-  private readonly directionWasPressedState = signalValue(false);
-  private get directionWasPressed(): boolean { return this.directionWasPressedState(); }
-  private set directionWasPressed(value: boolean) { this.directionWasPressedState.set(value); }
+  private readonly selectionNeedsVisibility = signalValue(true);
+  /**
+   * Returns selected index from the current GameSelector state.
+   * @returns {number} selected index from the current GameSelector state.
+   * @private
+   */
+  private get selectedIndex(): number { return this.selectedIndexState(); }
+  /**
+   * Updates selected index in the GameSelector state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
+  private set selectedIndex(value: number) { this.selectedIndexState.set(value); }
   /**
    * Stores the started state.
    * @property {boolean} started
    * @private
    */
   private readonly startedState = signalValue(false);
+  /**
+   * Returns started from the current GameSelector state.
+   * @returns {boolean} started from the current GameSelector state.
+   * @private
+   */
   private get started(): boolean { return this.startedState(); }
+  /**
+   * Updates started in the GameSelector state.
+   * @param {boolean} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set started(value: boolean) { this.startedState.set(value); }
   /**
    * Stores the last frame time state.
@@ -157,8 +211,11 @@ export class GameSelector {
    * Creates the selector, installs its controls, and starts its render loop.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor() {
+    GameInput.loadPreferences();
+    GameInput.activateContext('menu');
     this.controls = new GameControls(() => {});
     this.createChoiceButtons();
     this.gameLoop();
@@ -174,7 +231,9 @@ export class GameSelector {
 
     const deltaSeconds = MathUtils.clamp((time - this.lastFrameTime) / 1000, 0, 0.05);
     this.lastFrameTime = time;
+    GameInput.update();
     this.update(deltaSeconds);
+    if (this.started) return;
     this.draw();
     requestAnimationFrame(this.gameLoop);
   };
@@ -183,27 +242,23 @@ export class GameSelector {
    * Updates mission selection from keyboard input.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private update(deltaSeconds: number): void {
     this.choicesContainer.update(deltaSeconds);
     const directionPressed = (
-      GameEvents.isKeyPressed('ArrowUp')
-      || GameEvents.isKeyPressed('ArrowDown')
-      || GameEvents.isKeyPressed('w')
-      || GameEvents.isKeyPressed('s')
+      GameInput.wasPressed('moveUp')
+      || GameInput.wasPressed('moveDown')
     );
 
-    if (directionPressed && !this.directionWasPressed) {
-      this.selectedIndex = (this.selectedIndex + 1) % this.choices.length;
+    if (directionPressed) {
+      const direction = GameInput.isDown('moveUp') ? -1 : 1;
+      this.selectedIndex = (this.selectedIndex + direction + this.choices.length) % this.choices.length;
       this.selectionNeedsVisibility.set(true);
     }
 
-    this.directionWasPressed = directionPressed;
 
-    if (
-      GameEvents.isKeyPressed('Enter')
-      || GameEvents.isKeyPressed(' ')
-    ) {
+    if (GameInput.wasPressed('confirm')) {
       this.startSelectedGame();
     }
   }
@@ -264,6 +319,11 @@ export class GameSelector {
     return Math.max(34, Math.min(availableHeight / 6.5, 54));
   }
 
+  /**
+   * Returns choice width for GameSelector.
+   * @returns {number} choice width for GameSelector.
+   * @private
+   */
   private getChoiceWidth(): number {
     const dimensions = GameContext.gameDimensionsModel;
     return Math.min(460, dimensions.getWidth() * 0.8);
@@ -273,6 +333,7 @@ export class GameSelector {
    * Returns the vertical center of a mission card.
    * @private
    * @return {number}
+   * @param {number} index Index identifying the item within its collection.
    */
   private getChoiceY(index: number): number {
     const choiceHeight = this.getChoiceHeight();
@@ -284,6 +345,11 @@ export class GameSelector {
    * Draws one mission card with a selected or idle style.
    * @private
    * @return {void}
+   * @param {string} title The title supplied to this operation.
+   * @param {string} description The description supplied to this operation.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {boolean} selected The selected supplied to this operation.
+   * @param {number} index Index identifying the item within its collection.
    */
   private drawChoice(
     title: string,
@@ -322,6 +388,17 @@ export class GameSelector {
     descriptionLabel.draw();
   }
 
+  /**
+   * Applies the layout label operation to GameSelector.
+   * @param {Label} label The label supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {number} fontSize Font size used to render the label.
+   * @returns {void}
+   * @private
+   */
   private layoutLabel(label: Label, x: number, y: number, width: number, height: number, fontSize: number): void {
     label.dimensions.setPosition(x, y);
     label.dimensions.setSize(width, height);
@@ -334,6 +411,7 @@ export class GameSelector {
    * @property {(x: number, y: number) => void} handlePointerDown
    * @private
    * @readonly
+   * @returns {void}
    */
 
   private createChoiceButtons(): void {
@@ -383,6 +461,7 @@ export class GameSelector {
    * @readonly
    */
   private readonly returnToMenu = (): void => {
+    GameInput.activateContext('menu');
     this.started = false;
     this.lastFrameTime = performance.now();
     this.choicesContainer.visible.set(true);

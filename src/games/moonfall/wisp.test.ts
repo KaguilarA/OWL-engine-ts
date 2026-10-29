@@ -6,7 +6,8 @@ const { playAtlasClip, spriteDraw, spriteUpdate } = vi.hoisted(() => ({
   spriteUpdate: vi.fn()
 }));
 
-vi.mock('../../engine', () => ({
+vi.mock('../../engine', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../engine')>(),
   GameLoader: {
     getAtlas: vi.fn(() => ({ getAnimation: vi.fn((name: string) => ({ name })) })),
     getImage: vi.fn(() => ({}))
@@ -19,7 +20,7 @@ vi.mock('../../engine', () => ({
   }
 }));
 
-import MoonWisp from './wisp';
+import { MoonWisp } from './';
 
 /**
  * Verifies Moonfall's reusable phantom enemy behavior.

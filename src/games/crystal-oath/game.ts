@@ -3,35 +3,72 @@ import {
   BaseGame,
   GameBackground,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   Inventory,
   MathUtils,
   QuestLog,
   Sprite,
+  TouchControls,
   TurnQueue
 } from '../../engine';
 
-import RpgCombatant from './combatant';
+import { RpgCombatant } from './';
 
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const PARTY_SETUP = [
   { name: 'AERIN  /  KNIGHT', hp: 58, mp: 5, attack: 12, defense: 8, speed: 6, color: '#69c7ff' },
   { name: 'LYRA  /  MAGE', hp: 38, mp: 16, attack: 8, defense: 4, speed: 8, color: '#c79aff' },
   { name: 'BRAM  /  FIGHTER', hp: 52, mp: 7, attack: 11, defense: 6, speed: 5, color: '#ff9b68' },
   { name: 'SERA  /  HEALER', hp: 42, mp: 14, attack: 7, defense: 5, speed: 7, color: '#91e2a4' }
 ] as const;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const ACTIONS = ['ATTACK', 'SPELL', 'POTION'] as const;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const WORLD_COLUMNS = 20;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const WORLD_ROWS = 12;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const CRYSTAL_TILE = { x: 11, y: 3 };
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const DUNGEON_TILE = { x: 17, y: 8 };
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const INN_TILE = { x: 2, y: 8 };
 
 /**
  * A compact turn-based fantasy RPG built to exercise the engine's RPG systems.
  * @class CrystalOathGame
  */
-export default class CrystalOathGame extends BaseGame {
+export default class extends BaseGame {
+  /**
+   * Scene-scoped movement and interaction controls for phones and tablets.
+   * @property {TouchControls} touchControls
+   * @readonly
+   * @private
+   */
+  private readonly touchControls = new TouchControls({ primaryAction: 'interact' });
+
   /**
    * The four adventurers whose stats and turns are managed by the engine.
    * @property {RpgCombatant[]} party
@@ -109,21 +146,7 @@ export default class CrystalOathGame extends BaseGame {
    */
   private readonly message: SignalValue<string> = signalValue('A CRYSTAL WARDEN BLOCKS THE PASS!');
 
-  /**
-   * Previous frame's action key states for single-press command input.
-   * @property {SignalValue<boolean>} actionKeyWasPressed
-   * @private
-   * @readonly
-   */
-  private readonly actionKeyWasPressed: SignalValue<boolean> = signalValue(false);
 
-  /**
-   * Previous frame's navigation key states for single-step menu movement.
-   * @property {SignalValue<boolean>} navigationWasPressed
-   * @private
-   * @readonly
-   */
-  private readonly navigationWasPressed: SignalValue<boolean> = signalValue(false);
 
   /**
    * Current adventure section.
@@ -139,7 +162,17 @@ export default class CrystalOathGame extends BaseGame {
    * @private
    * @readonly
    */
-  private readonly worldPosition: SignalValue<{ x: number; y: number }> = signalValue({ x: 3, y: 8 });
+  private readonly worldPosition: SignalValue<{
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number }> = signalValue({ x: 3, y: 8 });
 
   /**
    * Whether the party has recovered the sun crystal.
@@ -162,9 +195,11 @@ export default class CrystalOathGame extends BaseGame {
    * @param onReturnToMenu Callback used by the shared controls to return to the selector.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu);
+    this.registerCleanup(() => this.touchControls.dispose());
     this.guardianSprite.playAtlasClip(GameLoader.getAtlas('boss8').getAnimation('idle-row-6'));
     this.inventory.add('potion', 2);
     this.questLog.start('crystal-oath', [1, 1]);
@@ -187,6 +222,7 @@ export default class CrystalOathGame extends BaseGame {
    * @param deltaSeconds Duration of the frame in seconds.
    * @protected
    * @return {void}
+   * @param {number} _deltaSeconds Elapsed simulation time in seconds.
    */
   protected updateGame(_deltaSeconds: number): void {
     if (this.phase() === 'overworld') {
@@ -195,20 +231,15 @@ export default class CrystalOathGame extends BaseGame {
     }
     if (this.phase() !== 'battle' || this.result() !== 'active') return;
     this.guardianSprite.update(_deltaSeconds);
-    const navigationPressed = GameEvents.isKeyPressed('ArrowLeft')
-      || GameEvents.isKeyPressed('ArrowRight')
-      || GameEvents.isKeyPressed('a')
-      || GameEvents.isKeyPressed('d');
-    const movingRight = GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d');
-    if (navigationPressed && !this.navigationWasPressed()) {
+    const navigationPressed = GameInput.wasPressed('moveLeft')
+      || GameInput.wasPressed('moveRight');
+    const movingRight = GameInput.isDown('moveRight');
+    if (navigationPressed) {
       const direction = movingRight ? 1 : -1;
       this.actionIndex.set((this.actionIndex() + direction + ACTIONS.length) % ACTIONS.length);
     }
-    this.navigationWasPressed.set(navigationPressed);
 
-    const actionPressed = GameEvents.isKeyPressed('Enter') || GameEvents.isKeyPressed(' ');
-    if (actionPressed && !this.actionKeyWasPressed()) this.performSelectedAction();
-    this.actionKeyWasPressed.set(actionPressed);
+    if (GameInput.wasPressed('interact')) this.performSelectedAction();
   }
 
   /**
@@ -218,14 +249,17 @@ export default class CrystalOathGame extends BaseGame {
    */
   protected drawGame(): void {
     const width = GameContext.gameDimensionsModel.getWidth();
-    const height = GameContext.gameDimensionsModel.getHeight();
+    const height = GameContext.gameDimensionsModel.getHeight()
+      - (GameContext.isMobileDevice && !this.isGameOver ? this.touchControls.layout.reservedBottom : 0);
     const unit = Math.min(width, height);
     const scale = MathUtils.clamp(unit / 720, 0.62, 1.15);
     if (this.phase() === 'overworld') {
       this.drawOverworld(width, height, scale);
+      this.drawTouchControls();
       return;
     }
     if (this.phase() === 'victory' || this.phase() === 'defeat') {
+      this.touchControls.draw(false);
       this.drawAdventureEnding(width, height, scale);
       return;
     }
@@ -234,6 +268,21 @@ export default class CrystalOathGame extends BaseGame {
     this.drawParty(width, height, scale);
     this.drawCommandPanel(width, height, scale);
     this.drawResult(width, height, scale);
+    this.drawTouchControls();
+  }
+
+  /**
+   * Shows the shared action as interact in the world and confirm in combat.
+   * @returns {void}
+   * @private
+   */
+  private drawTouchControls(): void {
+    this.touchControls.draw();
+    if (!GameContext.isMobileDevice) return;
+    const { shoot } = this.touchControls.layout;
+    const fontSize = Math.max(9, shoot.radius * 0.32);
+    this.drawLabel(this.phase() === 'overworld' ? 'INTERACT' : 'CONFIRM',
+      shoot.x, shoot.y + shoot.radius + fontSize, fontSize, '#ffffff', 'center');
   }
 
   /**
@@ -260,8 +309,6 @@ export default class CrystalOathGame extends BaseGame {
     this.result.set('active');
     this.message.set('FIND THE SUN CRYSTAL IN THE EASTERN WOODS.');
     this.actionIndex.set(0);
-    this.actionKeyWasPressed.set(false);
-    this.navigationWasPressed.set(false);
     this.setTurnOrder();
   }
 
@@ -274,10 +321,7 @@ export default class CrystalOathGame extends BaseGame {
   private updateOverworld(deltaSeconds: number): void {
     this.moveDelay.set(Math.max(0, this.moveDelay() - deltaSeconds));
     if (this.moveDelay() === 0) this.movePartyOneTile();
-    const interactPressed = GameEvents.isKeyPressed('Enter') || GameEvents.isKeyPressed(' ')
-      || GameEvents.isKeyPressed('e');
-    if (interactPressed && !this.actionKeyWasPressed()) this.interactWithLandmark();
-    this.actionKeyWasPressed.set(interactPressed);
+    if (GameInput.wasPressed('interact')) this.interactWithLandmark();
   }
 
   /**
@@ -286,10 +330,10 @@ export default class CrystalOathGame extends BaseGame {
    * @return {void}
    */
   private movePartyOneTile(): void {
-    const dx = Number(GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d'))
-      - Number(GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a'));
-    const dy = Number(GameEvents.isKeyPressed('ArrowDown') || GameEvents.isKeyPressed('s'))
-      - Number(GameEvents.isKeyPressed('ArrowUp') || GameEvents.isKeyPressed('w'));
+    const dx = Number(GameInput.isDown('moveRight'))
+      - Number(GameInput.isDown('moveLeft'));
+    const dy = Number(GameInput.isDown('moveDown'))
+      - Number(GameInput.isDown('moveUp'));
     if (dx === 0 && dy === 0) return;
     const current = this.worldPosition();
     const next = { x: current.x + dx, y: current.y + dy };
@@ -374,7 +418,10 @@ export default class CrystalOathGame extends BaseGame {
     const questStep = this.hasSunCrystal() ? 'ENTER THE SEALED DUNGEON' : 'FIND THE SUN CRYSTAL';
     this.drawLabel(`QUEST  ${questStep}`, width * 0.5, originY + mapHeight + 25 * scale,
       12 * scale, '#d9f1e2', 'center', width * 0.92);
-    this.drawLabel(`${this.message()}   •   ARROWS/WASD MOVE   •   ENTER INTERACT   •   INN RESTORES HP/MP`,
+    const instructions = GameContext.isMobileDevice
+      ? 'TOUCH ARROWS TO MOVE   •   INTERACT   •   INN RESTORES HP/MP'
+      : 'ARROWS/WASD MOVE   •   ENTER INTERACT   •   INN RESTORES HP/MP';
+    this.drawLabel(`${this.message()}   •   ${instructions}`,
       width * 0.5, height * 0.91, 10 * scale, '#ffffff', 'center', width * 0.94);
   }
 
@@ -549,7 +596,8 @@ export default class CrystalOathGame extends BaseGame {
       this.drawLabel(action, actionX, y + height * 0.115 + 22 * scale,
         10 * scale, '#ffffff', 'center', gap * 0.8);
     });
-    this.drawLabel(`POTIONS  ${this.inventory.count('potion')}     ← → SELECT   ENTER CONFIRM`,
+    const confirm = GameContext.isMobileDevice ? 'TAP CONFIRM' : 'ENTER CONFIRM';
+    this.drawLabel(`POTIONS  ${this.inventory.count('potion')}     ← → SELECT   ${confirm}`,
       x + panelWidth * 0.5, y + height * 0.225,
       9 * scale, '#bfcee4', 'center', panelWidth - 14 * scale);
   }

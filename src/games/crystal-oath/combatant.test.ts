@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import RpgCombatant from './combatant';
+import { RpgCombatant } from './';
 
 /**
  * Verifies the combatant state used by Crystal Oath battles.

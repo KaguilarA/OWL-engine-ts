@@ -4,20 +4,31 @@ import {
   PhysicsBody
 } from '../../engine';
 
-import { POLARITY_COLORS, type Polarity } from './polarity';
+import { POLARITY_COLORS, type Polarity } from './';
 
 /**
  * Vertical projectile whose color and collision state follow its polarity.
  * @class PolarityProjectile
  */
-export class PolarityProjectile {
+export default class {
   /**
    * Stores the active state.
    * @property {boolean} active
    * @public
    */
   private readonly activeState = signalValue(false);
+  /**
+   * Returns active from the current PolarityProjectile state.
+   * @returns {boolean} active from the current PolarityProjectile state.
+   * @public
+   */
   public get active(): boolean { return this.activeState(); }
+  /**
+   * Updates active in the PolarityProjectile state.
+   * @param {boolean} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @public
+   */
   public set active(value: boolean) { this.activeState.set(value); }
   /**
    * Stores the x state.
@@ -61,6 +72,10 @@ export class PolarityProjectile {
    * Creates a pooled projectile with fixed speed and rendered radius.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} speed The speed supplied to this operation.
+   * @param {Polarity} polarity The polarity supplied to this operation.
+   * @param {number} radius Radius of the circular shape.
    */
   public constructor(speed: number, polarity: Polarity, radius: number) {
     this.speed = speed;
@@ -68,12 +83,20 @@ export class PolarityProjectile {
     this.radius = radius;
   }
 
-  /** Current horizontal world coordinate. */
+  /**
+   * Current horizontal world coordinate.
+   * @returns {number}
+   * @public
+   */
   public get x(): number {
     return this.motion.x();
   }
 
-  /** Current vertical world coordinate. */
+  /**
+   * Current vertical world coordinate.
+   * @returns {number}
+   * @public
+   */
   public get y(): number {
     return this.motion.y();
   }
@@ -82,6 +105,10 @@ export class PolarityProjectile {
    * Activates or reuses the projectile at a position and travel direction.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {1 | -1} direction The direction supplied to this operation.
+   * @param {Polarity} [polarity] The polarity supplied to this operation.
    */
   public start(
     x: number,
@@ -100,6 +127,7 @@ export class PolarityProjectile {
    * Moves the projectile and deactivates it after it leaves the viewport.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     if (!this.active) return;

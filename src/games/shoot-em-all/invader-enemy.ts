@@ -4,10 +4,30 @@ import {
   Sprite
 } from '../../engine';
 
+/**
+ * Defines the invader kind contract shared by its consumers.
+ * @typedef {InvaderKind} InvaderKind
+ */
 export type InvaderKind = 'beetlemorph' | 'rhinomorph' | 'lobstermorph';
 
-/** Supplies Shoot ’Em All's alien art to the shared engine combat behavior. */
-export class InvaderEnemy extends DamageableSpriteEntity {
+/**
+ * Supplies Shoot ’Em All's alien art to the shared engine combat behavior.
+ * @class InvaderEnemy
+ */
+export default class extends DamageableSpriteEntity {
+  /**
+   * Initializes InvaderEnemy and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} points The points supplied to this operation.
+   * @param {number} maximumHealth The maximum health supplied to this operation.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {InvaderKind} kind The kind supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public constructor(
     x: number,
     y: number,

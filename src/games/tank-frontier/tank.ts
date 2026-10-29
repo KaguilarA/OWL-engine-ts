@@ -5,14 +5,13 @@ import {
   Sprite
 } from '../../engine';
 
-import type { Direction } from './interfaces/direction';
-import type { EnemyBehavior } from './interfaces/enemy-behavior';
+import type { Direction, EnemyBehavior } from './interfaces';
 
 /**
  * Player or enemy tank with sprite animation, health, and combat timers.
  * @class Tank
  */
-export class Tank {
+export default class {
   /**
    * Stores the sprite state.
    * @property {Sprite} sprite
@@ -27,6 +26,12 @@ export class Tank {
    * @readonly
    */
   private readonly physics = new PhysicsBody();
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {SignalValue<number>} x
+   * @readonly
+   * @public
+   */
   public readonly x = this.physics.x;
   /**
    * Stores the y state.
@@ -82,7 +87,18 @@ export class Tank {
    * @public
    */
   private readonly dyingState = signalValue(false);
+  /**
+   * Returns is dying from the current Tank state.
+   * @returns {boolean} is dying from the current Tank state.
+   * @public
+   */
   public get isDying(): boolean { return this.dyingState(); }
+  /**
+   * Updates is dying in the Tank state.
+   * @param {boolean} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @public
+   */
   public set isDying(value: boolean) { this.dyingState.set(value); }
   /**
    * Stores the shot cooldown state.
@@ -120,6 +136,13 @@ export class Tank {
    * Creates a tank and selects its sprite row and enemy behavior.
    * @public
    * @return {void}
+   * @constructor
+   * @param {string} imageName The image name supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} [size] The size supplied to this operation.
+   * @param {number} [maximumHealth] The maximum health supplied to this operation.
+   * @param {EnemyBehavior | undefined} [enemyBehavior] The enemy behavior supplied to this operation.
    */
   public constructor(
     imageName: string,
@@ -165,6 +188,8 @@ export class Tank {
    * Places the tank at the requested center position.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   public setPosition(x: number, y: number): void {
     this.physics.setPosition(x, y);
@@ -195,6 +220,7 @@ export class Tank {
    * Resizes the tank while preserving its square aspect ratio.
    * @public
    * @return {void}
+   * @param {number} size The size supplied to this operation.
    */
   public setSize(size: number): void {
     this.size = size;
@@ -205,6 +231,7 @@ export class Tank {
    * Advances the tank's living or death animation.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public updateAnimation(deltaSeconds: number): void {
     this.sprite.update(deltaSeconds);
@@ -250,6 +277,7 @@ export class Tank {
    * Counts down the delay before the tank can attack another wall.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public updateWallAttackCooldown(deltaSeconds: number): void {
     this.wallAttackCooldown.set(
@@ -279,6 +307,7 @@ export class Tank {
    * Counts down the delay before the tank can fire again.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public updateShotCooldown(deltaSeconds: number): void {
     this.shotCooldown = Math.max(0, this.shotCooldown - deltaSeconds);
@@ -297,6 +326,7 @@ export class Tank {
    * Starts the firing delay for the supplied number of seconds.
    * @public
    * @return {void}
+   * @param {number} seconds The seconds supplied to this operation.
    */
   public startShotCooldown(seconds: number): void {
     this.shotCooldown = seconds;
@@ -306,6 +336,7 @@ export class Tank {
    * Counts down the delay before the enemy can choose a new direction.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public updateAiDirectionCooldown(deltaSeconds: number): void {
     this.aiDirectionCooldown = Math.max(0, this.aiDirectionCooldown - deltaSeconds);
@@ -324,6 +355,7 @@ export class Tank {
    * Delays the next enemy direction decision.
    * @public
    * @return {void}
+   * @param {number} seconds The seconds supplied to this operation.
    */
   public startAiDirectionCooldown(seconds: number): void {
     this.aiDirectionCooldown = seconds;

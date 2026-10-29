@@ -1,32 +1,26 @@
 import {
   AnimatedShipEntity,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   MathUtils,
   Sprite,
   TopDownController
 } from '../../engine';
 
-import { oppositePolarity, type Polarity } from './polarity';
+import { oppositePolarity, type Polarity } from './';
 
 /**
  * Player ship with four-direction movement and switchable polarity.
  * @class PolarityVanguardPlayer
  */
-export class PolarityVanguardPlayer extends AnimatedShipEntity {
+export default class extends AnimatedShipEntity {
   /**
    * Stores the polarity state.
    * @property {Polarity} polarity
    * @private
    */
   private polarity: Polarity = 'light';
-  /**
-   * Stores the polarity key was pressed state.
-   * @property {boolean} polarityKeyWasPressed
-   * @private
-   */
-  private polarityKeyWasPressed = false;
   /**
    * Stores the bottom margin state.
    * @property {number} bottomMargin
@@ -54,6 +48,9 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
    * Creates the ship sprites and initializes the player at the field bottom.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} [width] Width of the represented area.
+   * @param {number} [height] Height of the represented area.
    */
   public constructor(width = 84, height = 72) {
     const shipAtlas = GameLoader.getAtlas('player');
@@ -79,6 +76,11 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
     this.reset();
   }
 
+  /**
+   * Synchronizes size for PolarityVanguardPlayer.
+   * @returns {void}
+   * @private
+   */
   private updateSize(): void {
     const dimensions = GameContext.gameDimensionsModel;
     const unit = Math.min(dimensions.getWidth(), dimensions.getHeight());
@@ -114,6 +116,7 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
    * Reserves space below the player for controls or interface elements.
    * @public
    * @return {void}
+   * @param {number} margin The margin supplied to this operation.
    */
   public setBottomMargin(margin: number): void {
     if (!Number.isFinite(margin) || margin < 0) {
@@ -127,18 +130,13 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
    * Updates movement, engine animation, and edge-triggered polarity input.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     this.updateSize();
     const dimensions = GameContext.gameDimensionsModel;
-    const horizontal = (
-      Number(GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d'))
-      - Number(GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a'))
-    );
-    const vertical = (
-      Number(GameEvents.isKeyPressed('ArrowDown') || GameEvents.isKeyPressed('s'))
-      - Number(GameEvents.isKeyPressed('ArrowUp') || GameEvents.isKeyPressed('w'))
-    );
+    const horizontal = GameInput.axis('moveX');
+    const vertical = GameInput.axis('moveY');
     this.movement.body.x.set(this.x);
     this.movement.body.y.set(this.y);
     this.movement.update(deltaSeconds, horizontal, vertical);
@@ -158,16 +156,10 @@ export class PolarityVanguardPlayer extends AnimatedShipEntity {
     );
     this.updateSprite(deltaSeconds);
     this.updateJets(deltaSeconds);
-    const polarityKeyPressed = (
-      GameEvents.isKeyPressed('Shift')
-      || GameEvents.isKeyPressed('c')
-    );
-
-    if (polarityKeyPressed && !this.polarityKeyWasPressed) {
+    if (GameInput.wasPressed('polarity')) {
       this.polarity = oppositePolarity(this.polarity);
     }
 
-    this.polarityKeyWasPressed = polarityKeyPressed;
     this.setPosition(x, y);
     this.movement.body.x.set(x);
     this.movement.body.y.set(y);

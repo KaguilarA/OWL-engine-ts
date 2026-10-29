@@ -9,14 +9,18 @@ import {
   type GamePointer
 } from '../../engine';
 
-import { PatternBoard } from './board';
-import { PATTERN_ICONS } from './pattern-icons';
-import type { BoardCell } from './interfaces/board-cell';
-import type { BoardLayout } from './interfaces/board-layout';
-import type { FallingPattern } from './interfaces/falling-pattern';
-import type { SwapAnimation } from './interfaces/swap-animation';
+import { PatternBoard, PATTERN_ICONS } from './';
+import type { BoardCell, BoardLayout, FallingPattern, SwapAnimation } from './interfaces';
 
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const SWAP_ANIMATION_SECONDS = 0.16;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const FALL_ACCELERATION = 42;
 
 /**
@@ -28,7 +32,7 @@ type ResolutionState = 'exploding' | 'falling' | 'idle';
  * Match-three game with timed cascades, animated sprites, and score goals.
  * @class SpacePatternsGame
  */
-export class SpacePatternsGame extends BaseGame {
+export default class extends BaseGame {
   /**
    * Stores the board state.
    * @property {PatternBoard} board
@@ -41,7 +45,18 @@ export class SpacePatternsGame extends BaseGame {
    * @private
    */
   private readonly selectedCellState = signalValue<BoardCell | undefined>(undefined);
+  /**
+   * Returns selected cell from the current SpacePatternsGame state.
+   * @returns {BoardCell | undefined} selected cell from the current SpacePatternsGame state.
+   * @private
+   */
   private get selectedCell(): BoardCell | undefined { return this.selectedCellState(); }
+  /**
+   * Updates selected cell in the SpacePatternsGame state.
+   * @param {BoardCell | undefined} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set selectedCell(value: BoardCell | undefined) { this.selectedCellState.set(value); }
   /**
    * Stores the currently moving pair of patterns.
@@ -49,7 +64,18 @@ export class SpacePatternsGame extends BaseGame {
    * @private
    */
   private readonly swapAnimationState = signalValue<SwapAnimation | undefined>(undefined);
+  /**
+   * Returns swap animation from the current SpacePatternsGame state.
+   * @returns {SwapAnimation | undefined} swap animation from the current SpacePatternsGame state.
+   * @private
+   */
   private get swapAnimation(): SwapAnimation | undefined { return this.swapAnimationState(); }
+  /**
+   * Updates swap animation in the SpacePatternsGame state.
+   * @param {SwapAnimation | undefined} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set swapAnimation(value: SwapAnimation | undefined) { this.swapAnimationState.set(value); }
   /**
    * Stores the moves remaining state.
@@ -57,7 +83,18 @@ export class SpacePatternsGame extends BaseGame {
    * @private
    */
   private readonly movesRemainingState = signalValue(30);
+  /**
+   * Returns moves remaining from the current SpacePatternsGame state.
+   * @returns {number} moves remaining from the current SpacePatternsGame state.
+   * @private
+   */
   private get movesRemaining(): number { return this.movesRemainingState(); }
+  /**
+   * Updates moves remaining in the SpacePatternsGame state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set movesRemaining(value: number) { this.movesRemainingState.set(value); }
   /**
    * Stores the score state.
@@ -65,7 +102,18 @@ export class SpacePatternsGame extends BaseGame {
    * @private
    */
   private readonly scoreState = signalValue(0);
+  /**
+   * Returns score from the current SpacePatternsGame state.
+   * @returns {number} score from the current SpacePatternsGame state.
+   * @private
+   */
   private get score(): number { return this.scoreState(); }
+  /**
+   * Updates score in the SpacePatternsGame state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set score(value: number) { this.scoreState.set(value); }
   /**
    * Stores the target score state.
@@ -79,7 +127,18 @@ export class SpacePatternsGame extends BaseGame {
    * @private
    */
   private readonly gameEndedState = signalValue(false);
+  /**
+   * Returns game ended from the current SpacePatternsGame state.
+   * @returns {boolean} game ended from the current SpacePatternsGame state.
+   * @private
+   */
   private get gameEnded(): boolean { return this.gameEndedState(); }
+  /**
+   * Updates game ended in the SpacePatternsGame state.
+   * @param {boolean} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set gameEnded(value: boolean) { this.gameEndedState.set(value); }
   /**
    * Stores the resolution state state.
@@ -117,6 +176,8 @@ export class SpacePatternsGame extends BaseGame {
    * Creates the initial board, registers pointer input, and starts the loop.
    * @public
    * @return {void}
+   * @constructor
+   * @param {(() => void) | undefined} [onReturnToMenu] Callback invoked when this game returns to the selector.
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu, { showResetButton: false });
@@ -139,6 +200,7 @@ export class SpacePatternsGame extends BaseGame {
    * Advances cascade animations and resolves automatic follow-up matches.
    * @protected
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   protected updateGame(deltaSeconds: number): void {
     if (this.swapAnimation !== undefined) {
@@ -279,6 +341,9 @@ export class SpacePatternsGame extends BaseGame {
    * Draws a static pattern icon in its board cell.
    * @private
    * @return {void}
+   * @param {BoardCell} cell The cell supplied to this operation.
+   * @param {number} pattern The pattern supplied to this operation.
+   * @param {BoardLayout} layout The layout supplied to this operation.
    */
   private drawPattern(
     cell: BoardCell,
@@ -299,6 +364,11 @@ export class SpacePatternsGame extends BaseGame {
    * Draws one static pattern tile at an arbitrary pixel position.
    * @private
    * @return {void}
+   * @param {number} pattern The pattern supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} tileSize The tile size supplied to this operation.
+   * @param {boolean} [isSelected] The is selected supplied to this operation.
    */
   private drawPatternAt(
     pattern: number,
@@ -524,6 +594,7 @@ export class SpacePatternsGame extends BaseGame {
    * Advances the swap and starts match resolution after successful movement.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateSwapAnimation(deltaSeconds: number): void {
     const animation = this.swapAnimation;
@@ -546,6 +617,7 @@ export class SpacePatternsGame extends BaseGame {
    * Advances the explosion and resolves the following board cascade.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateResolution(deltaSeconds: number): void {
     if (this.resolutionState() === 'falling') {
@@ -612,6 +684,7 @@ export class SpacePatternsGame extends BaseGame {
    * Starts the removal animation and scoring for a set of matched cells.
    * @private
    * @return {void}
+   * @param {BoardCell[]} matches The matches supplied to this operation.
    */
   private startExplosion(matches: BoardCell[]): void {
     this.resolutionMatches.set(matches);
@@ -654,6 +727,8 @@ export class SpacePatternsGame extends BaseGame {
    * Maps a pointer coordinate to a board cell when inside the grid.
    * @private
    * @return {BoardCell | undefined}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   private getCellAt(x: number, y: number): BoardCell | undefined {
     const layout = this.getBoardLayout();
@@ -710,6 +785,7 @@ export class SpacePatternsGame extends BaseGame {
    * Encodes a board coordinate for animation lookup.
    * @private
    * @return {string}
+   * @param {BoardCell} cell The cell supplied to this operation.
    */
   private cellKey(cell: BoardCell): string {
     return `${cell.column},${cell.row}`;

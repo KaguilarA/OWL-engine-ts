@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Enemy } from './enemy';
+import { Enemy } from './';
 
 const { drawImage } = vi.hoisted(() => ({
   drawImage: vi.fn()

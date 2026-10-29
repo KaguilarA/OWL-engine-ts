@@ -4,25 +4,77 @@ import {
   type Button
 } from '../../engine';
 
-import type { MusketeersSlotAssets } from './assets';
-import type { MusketeersSlotRound } from './round';
-import { MUSKETEERS_REEL_COUNT } from './round';
-import { PAYLINE_COUNT } from './paylines';
+import { type MusketeersSlotAssets, type MusketeersSlotRound, MUSKETEERS_REEL_COUNT, PAYLINE_COUNT } from './';
 
+/**
+ * Defines the label drawer contract shared by its consumers.
+ * @typedef {LabelDrawer} LabelDrawer
+ */
 type LabelDrawer = (
   text: string, x: number, y: number, fontSize: number, color: string,
   align?: CanvasTextAlign, maxWidth?: number
 ) => void;
 
-/** Draws the slot presentation without owning its round state or loading assets. */
-export class MusketeersSlotRenderer {
+/**
+ * Draws the slot presentation without owning its round state or loading assets.
+ * @class MusketeersSlotRenderer
+ */
+export default class {
+  /**
+   * Assets configuration or state owned by MusketeersSlotRenderer.
+   * @property {MusketeersSlotAssets} assets
+   * @readonly
+   * @private
+   */
   private readonly assets: MusketeersSlotAssets;
+  /**
+   * Round configuration or state owned by MusketeersSlotRenderer.
+   * @property {MusketeersSlotRound} round
+   * @readonly
+   * @private
+   */
   private readonly round: MusketeersSlotRound;
+  /**
+   * Spin button configuration or state owned by MusketeersSlotRenderer.
+   * @property {Button} spinButton
+   * @readonly
+   * @private
+   */
   private readonly spinButton: Button;
+  /**
+   * Decrease bet button configuration or state owned by MusketeersSlotRenderer.
+   * @property {Button} decreaseBetButton
+   * @readonly
+   * @private
+   */
   private readonly decreaseBetButton: Button;
+  /**
+   * Increase bet button configuration or state owned by MusketeersSlotRenderer.
+   * @property {Button} increaseBetButton
+   * @readonly
+   * @private
+   */
   private readonly increaseBetButton: Button;
+  /**
+   * Label drawer configuration or state owned by MusketeersSlotRenderer.
+   * @property {LabelDrawer} labelDrawer
+   * @readonly
+   * @private
+   */
   private readonly labelDrawer: LabelDrawer;
 
+  /**
+   * Initializes MusketeersSlotRenderer and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {MusketeersSlotAssets} assets The assets supplied to this operation.
+   * @param {MusketeersSlotRound} round The round supplied to this operation.
+   * @param {Button} spinButton The spin button supplied to this operation.
+   * @param {Button} decreaseBetButton The decrease bet button supplied to this operation.
+   * @param {Button} increaseBetButton The increase bet button supplied to this operation.
+   * @param {LabelDrawer} labelDrawer The label drawer supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public constructor(
     assets: MusketeersSlotAssets,
     round: MusketeersSlotRound,
@@ -39,6 +91,11 @@ export class MusketeersSlotRenderer {
     this.labelDrawer = labelDrawer;
   }
 
+  /**
+   * Renders MusketeersSlotRenderer using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const width = GameContext.gameDimensionsModel.getWidth();
     const height = GameContext.gameDimensionsModel.getHeight();
@@ -55,13 +112,52 @@ export class MusketeersSlotRenderer {
     this.drawHud(width, height, board);
   }
 
+  /**
+   * Renders label for MusketeersSlotRenderer.
+   * @param {string} text Text to parse, display, or assign.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} fontSize Font size used to render the label.
+   * @param {string} color Color applied when rendering this content.
+   * @param {CanvasTextAlign} [align] The align supplied to this operation.
+   * @param {number | undefined} [maxWidth] The max width supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private drawLabel(
     text: string, x: number, y: number, fontSize: number, color: string,
     align: CanvasTextAlign = 'left', maxWidth?: number
   ): void {
     this.labelDrawer(text, x, y, fontSize, color, align, maxWidth);
   }
-  private getBoardBounds(width: number, height: number): { x: number; y: number; width: number; height: number } {
+  /**
+   * Returns board bounds for MusketeersSlotRenderer.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @returns {{ x: number; y: number; width: number; height: number }} board bounds for MusketeersSlotRenderer.
+   * @private
+   */
+  private getBoardBounds(width: number, height: number): {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number;
+  /**
+   * Width of the represented area.
+   * @property {number} width
+   */
+  width: number;
+  /**
+   * Height of the represented area.
+   * @property {number} height
+   */
+  height: number } {
     const aspectRatio = 1126 / 689;
     if (this.isPortraitLayout(width, height)) {
       const maxBoardHeight = Math.max(80, Math.min(height * 0.56, height * 0.705 - width * 0.2));
@@ -84,6 +180,15 @@ export class MusketeersSlotRenderer {
     };
   }
 
+  /**
+   * Renders reels for MusketeersSlotRenderer.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @returns {void}
+   * @private
+   */
   private drawReels(x: number, y: number, width: number, height: number): void {
     const round = this.round;
     if (!round) return;
@@ -114,10 +219,38 @@ export class MusketeersSlotRenderer {
     });
   }
 
+  /**
+   * Renders hud for MusketeersSlotRenderer.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {{ x: number; y: number; width: number; height: number; }} board The board supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private drawHud(
     width: number,
     height: number,
-    board: { x: number; y: number; width: number; height: number }
+    board: {
+    /**
+     * Horizontal coordinate in the owning coordinate space.
+     * @property {number} x
+     */
+    x: number;
+    /**
+     * Vertical coordinate in the owning coordinate space.
+     * @property {number} y
+     */
+    y: number;
+    /**
+     * Width of the represented area.
+     * @property {number} width
+     */
+    width: number;
+    /**
+     * Height of the represented area.
+     * @property {number} height
+     */
+    height: number }
   ): void {
     const round = this.round;
     if (!round) return;
@@ -172,6 +305,18 @@ export class MusketeersSlotRenderer {
     this.drawButton(increaseX, betY, betButtonRadius, '+', betTextSize, '#72221b');
   }
 
+  /**
+   * Renders bottom bar for MusketeersSlotRenderer.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {number} footerHeight The footer height supplied to this operation.
+   * @param {boolean} portrait The portrait supplied to this operation.
+   * @param {number} unit The unit supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private drawBottomBar(
     x: number,
     y: number,
@@ -255,12 +400,30 @@ export class MusketeersSlotRenderer {
       footerTextBaseline, footerSize, '#ffe8bb', 'center', width * 0.42);
   }
 
+  /**
+   * Renders button for MusketeersSlotRenderer.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} radius Radius of the circular shape.
+   * @param {string} label The label supplied to this operation.
+   * @param {number} size The size supplied to this operation.
+   * @param {string} color Color applied when rendering this content.
+   * @returns {void}
+   * @private
+   */
   private drawButton(x: number, y: number, radius: number, label: string, size: number, color: string): void {
     GameContext.drawCircle(x, y, radius, 'rgba(30,12,7,0.75)');
     GameContext.drawCircle(x, y - 2, radius * 0.85, color);
     this.drawLabel(label, x, y + size * 0.28, size * 1.25, '#fff4d1', 'center');
   }
 
+  /**
+   * Checks whether the object satisfies portrait layout for MusketeersSlotRenderer.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @returns {boolean} the object satisfies portrait layout for MusketeersSlotRenderer.
+   * @private
+   */
   private isPortraitLayout(width: number, height: number): boolean {
     return height > width;
   }

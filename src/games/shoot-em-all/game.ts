@@ -5,7 +5,7 @@ import {
   Collision2D,
   GameBackground,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   MathUtils,
   PhysicsBody,
@@ -14,18 +14,25 @@ import {
 } from '../../engine';
 import heartSvg from 'lucide-static/icons/heart.svg?raw';
 
-import { InvaderEnemy, type InvaderKind } from './invader-enemy';
-import type { Invader } from './interfaces/invader';
-import type { Shot } from './interfaces/shot';
+import { InvaderEnemy, type InvaderKind } from './';
+import type { Invader, Shot } from './interfaces';
 
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const ENEMY_KINDS: InvaderKind[] = ['beetlemorph', 'rhinomorph', 'lobstermorph'];
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const TARGET_KILLS = 30;
 
 /**
  * Multi-direction survival shooter that reuses the shared sprite and touch systems.
  * @class ShootEmAllGame
  */
-export class ShootEmAllGame extends BaseGame {
+export default class extends BaseGame {
   /**
    * Provides the shared touch layout for directional movement and firing.
    * @property {TouchControls} touchControls
@@ -122,6 +129,7 @@ export class ShootEmAllGame extends BaseGame {
    * @param onReturnToMenu - Optional callback invoked when the player exits.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu);
@@ -260,14 +268,10 @@ export class ShootEmAllGame extends BaseGame {
    * @return {void}
    */
   private updatePlayer(deltaSeconds: number, width: number, height: number): void {
-    const left = GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a');
-    const right = GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d');
-    const up = GameEvents.isKeyPressed('ArrowUp') || GameEvents.isKeyPressed('w');
-    const down = GameEvents.isKeyPressed('ArrowDown') || GameEvents.isKeyPressed('s');
     const speed = Math.min(width, height) * 0.58;
-    const dx = Number(right) - Number(left);
-    const dy = Number(down) - Number(up);
-    const magnitude = Math.hypot(dx, dy) || 1;
+    const dx = GameInput.axis('moveX');
+    const dy = GameInput.axis('moveY');
+    const magnitude = Math.max(1, Math.hypot(dx, dy));
     this.playerMotion.setVelocity(
       dx / magnitude * speed,
       dy / magnitude * speed
@@ -288,7 +292,7 @@ export class ShootEmAllGame extends BaseGame {
     }
     this.player().update(deltaSeconds);
     this.fireCooldown.set(Math.max(0, this.fireCooldown() - deltaSeconds));
-    if (GameEvents.isKeyPressed(' ') && this.fireCooldown() === 0) {
+    if (GameInput.isDown('attack') && this.fireCooldown() === 0) {
       this.firePlayerShot();
     }
   }

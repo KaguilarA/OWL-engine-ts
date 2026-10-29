@@ -6,28 +6,87 @@ import {
   GameBackground,
   GameContext,
   GameEvents,
+  GameInput,
   GameLoader,
   Texture,
   type GamePointer
 } from '../../engine';
 
-import { PachinkoBall } from './ball';
-import { PachinkoBoard } from './board';
+import { PachinkoBall, PachinkoBoard } from './';
 
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const BET = 5;
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const PAYOUTS = [8, 4, 2, 1, 0, 1, 2, 4, 8] as const;
 
-/** Pachinko-style Keno game used to exercise engine physics and collision primitives. */
-export class PachinkoGame extends BaseGame {
+/**
+ * Pachinko-style Keno game used to exercise engine physics and collision primitives.
+ * @class PachinkoGame
+ */
+export default class extends BaseGame {
+  /**
+   * Board configuration or state owned by PachinkoGame.
+   * @property {PachinkoBoard} board
+   * @readonly
+   * @private
+   */
   private readonly board = new PachinkoBoard();
+  /**
+   * Reactive credits state owned by PachinkoGame.
+   * @property {SignalValue<number> & (() => number)} credits
+   * @readonly
+   * @private
+   */
   private readonly credits = signalValue(100);
+  /**
+   * Reactive selected lane state owned by PachinkoGame.
+   * @property {SignalValue<number> & (() => number)} selectedLane
+   * @readonly
+   * @private
+   */
   private readonly selectedLane = signalValue(4);
+  /**
+   * Reactive ball state owned by PachinkoGame.
+   * @property {SignalValue<PachinkoBall | undefined> & (() => PachinkoBall | undefined)} ball
+   * @readonly
+   * @private
+   */
   private readonly ball = signalValue<PachinkoBall | undefined>(undefined);
+  /**
+   * Reactive status state owned by PachinkoGame.
+   * @property {SignalValue<string> & (() => string)} status
+   * @readonly
+   * @private
+   */
   private readonly status = signalValue('SELECT A LANE, THEN DROP');
-  private readonly dropKeyWasPressed = signalValue(false);
+  /**
+   * Drop button configuration or state owned by PachinkoGame.
+   * @property {Button} dropButton
+   * @readonly
+   * @private
+   */
   private readonly dropButton: Button;
+  /**
+   * Remove pointer listener configuration or state owned by PachinkoGame.
+   * @property {() => void} removePointerListener
+   * @readonly
+   * @private
+   */
   private readonly removePointerListener: () => void;
 
+  /**
+   * Initializes PachinkoGame and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {(() => void) | undefined} [onReturnToMenu] Callback invoked when this game returns to the selector.
+   * @returns {void}
+   * @public
+   */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu, { showResetButton: false });
     this.dropButton = new Button(new Texture({}, 0, 0), { onClick: () => this.dropBall() });
@@ -37,14 +96,23 @@ export class PachinkoGame extends BaseGame {
     this.start();
   }
 
+  /**
+   * Returns is game over from the current PachinkoGame state.
+   * @returns {boolean} is game over from the current PachinkoGame state.
+   * @protected
+   */
   protected get isGameOver(): boolean {
     return this.credits() < BET && this.ball() === undefined;
   }
 
+  /**
+   * Advances game-specific simulation for one active frame.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @protected
+   */
   protected updateGame(deltaSeconds: number): void {
-    const dropPressed = GameEvents.isKeyPressed(' ') || GameEvents.isKeyPressed('Enter');
-    if (dropPressed && !this.dropKeyWasPressed()) this.dropBall();
-    this.dropKeyWasPressed.set(dropPressed);
+    if (GameInput.wasPressed('drop')) this.dropBall();
     this.dropButton.setDisabled(this.ball() !== undefined || this.credits() < BET);
 
     const ball = this.ball();
@@ -65,6 +133,11 @@ export class PachinkoGame extends BaseGame {
     this.ball.set(undefined);
   }
 
+  /**
+   * Renders the game scene and its current HUD before shared engine controls.
+   * @returns {void}
+   * @protected
+   */
   protected drawGame(): void {
     const dimensions = GameContext.gameDimensionsModel;
     const width = dimensions.getWidth();
@@ -88,14 +161,24 @@ export class PachinkoGame extends BaseGame {
     this.drawDropButton(width, height);
   }
 
+  /**
+   * Restores game-specific state for a new run.
+   * @returns {void}
+   * @protected
+   */
   protected restartGame(): void {
     this.credits.set(100);
     this.selectedLane.set(4);
     this.ball.set(undefined);
     this.status.set('SELECT A LANE, THEN DROP');
-    this.dropKeyWasPressed.set(false);
   }
 
+  /**
+   * Callback handling pointer down for PachinkoGame.
+   * @property {(pointer: GamePointer) => void} handlePointerDown
+   * @readonly
+   * @private
+   */
   private readonly handlePointerDown = (pointer: GamePointer): void => {
     if (this.controls.isPaused || this.ball() !== undefined) return;
     const bounds = this.board.bounds;
@@ -105,6 +188,11 @@ export class PachinkoGame extends BaseGame {
     this.selectedLane.set(this.board.laneAt(pointer.x));
   };
 
+  /**
+   * Drops ball for PachinkoGame.
+   * @returns {void}
+   * @private
+   */
   private dropBall(): void {
     if (this.ball() !== undefined || this.credits() < BET) return;
     const radius = Math.max(7, Math.min(10, GameContext.viewportUnit() * 0.015));
@@ -117,6 +205,13 @@ export class PachinkoGame extends BaseGame {
     ));
   }
 
+  /**
+   * Renders drop button for PachinkoGame.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @returns {void}
+   * @private
+   */
   private drawDropButton(width: number, height: number): void {
     const buttonWidth = Math.min(190, width * 0.42);
     const buttonHeight = Math.max(42, Math.min(54, GameContext.viewportUnit() * 0.09));

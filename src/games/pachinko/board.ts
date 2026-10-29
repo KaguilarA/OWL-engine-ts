@@ -3,31 +3,103 @@ import {
   GameContext,
   type CollisionRect
 } from '../../engine';
-import { PachinkoBall } from './ball';
+import { PachinkoBall } from './';
 
+/**
+ * Defines the pachinko peg contract shared by its consumers.
+ * @interface PachinkoPeg
+ */
 export interface PachinkoPeg {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
   x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
   y: number;
+  /**
+   * Radius of the circular shape.
+   * @property {number} radius
+   */
   radius: number;
 }
 
+/**
+ * Defines the pachinko bounds contract shared by its consumers.
+ * @interface PachinkoBounds
+ */
 export interface PachinkoBounds {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
   x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
   y: number;
+  /**
+   * Width of the represented area.
+   * @property {number} width
+   */
   width: number;
+  /**
+   * Height of the represented area.
+   * @property {number} height
+   */
   height: number;
 }
 
+/**
+ * Shared values used to configure board.
+ * @constant
+ */
 const LANE_COUNT = 9;
+/**
+ * Shared values used to configure board.
+ * @constant
+ */
 const ROW_COUNT = 8;
 
-/** Owns responsive peg geometry, board collisions, and payout-lane layout. */
-export class PachinkoBoard {
+/**
+ * Owns responsive peg geometry, board collisions, and payout-lane layout.
+ * @class PachinkoBoard
+ */
+export default class {
+  /**
+   * Bounds cache configuration or state owned by PachinkoBoard.
+   * @property {PachinkoBounds | undefined} boundsCache
+   * @private
+   */
   private boundsCache: PachinkoBounds | undefined;
+  /**
+   * Pegs cache configuration or state owned by PachinkoBoard.
+   * @property {readonly PachinkoPeg[]} pegsCache
+   * @private
+   */
   private pegsCache: readonly PachinkoPeg[] = [];
+  /**
+   * Rail cache configuration or state owned by PachinkoBoard.
+   * @property {readonly CollisionRect[]} railCache
+   * @private
+   */
   private railCache: readonly CollisionRect[] = [];
+  /**
+   * Lane wall cache configuration or state owned by PachinkoBoard.
+   * @property {readonly CollisionRect[]} laneWallCache
+   * @private
+   */
   private laneWallCache: readonly CollisionRect[] = [];
 
+  /**
+   * Returns bounds from the current PachinkoBoard state.
+   * @returns {PachinkoBounds} bounds from the current PachinkoBoard state.
+   * @public
+   */
   public get bounds(): PachinkoBounds {
     const viewport = GameContext.gameDimensionsModel;
     const width = Math.min(viewport.getWidth() * 0.78, 540);
@@ -53,24 +125,63 @@ export class PachinkoBoard {
     return this.boundsCache;
   }
 
+  /**
+   * Returns lane count from the current PachinkoBoard state.
+   * @returns {number} lane count from the current PachinkoBoard state.
+   * @public
+   */
   public get laneCount(): number { return LANE_COUNT; }
+  /**
+   * Returns lane top from the current PachinkoBoard state.
+   * @returns {number} lane top from the current PachinkoBoard state.
+   * @public
+   */
   public get laneTop(): number { return this.bounds.y + this.bounds.height - 54; }
+  /**
+   * Returns lane bottom from the current PachinkoBoard state.
+   * @returns {number} lane bottom from the current PachinkoBoard state.
+   * @public
+   */
   public get laneBottom(): number { return this.bounds.y + this.bounds.height; }
 
+  /**
+   * Applies the lane at operation to PachinkoBoard.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @returns {number} Applies the lane at operation to PachinkoBoard.
+   * @public
+   */
   public laneAt(x: number): number {
     const bounds = this.bounds;
     return Math.max(0, Math.min(LANE_COUNT - 1, Math.floor((x - bounds.x) / (bounds.width / LANE_COUNT))));
   }
 
+  /**
+   * Applies the lane center operation to PachinkoBoard.
+   * @param {number} index Index identifying the item within its collection.
+   * @returns {number} Applies the lane center operation to PachinkoBoard.
+   * @public
+   */
   public laneCenter(index: number): number {
     const bounds = this.bounds;
     return bounds.x + bounds.width * (index + 0.5) / LANE_COUNT;
   }
 
+  /**
+   * Launches y for PachinkoBoard.
+   * @param {number} radius Radius of the circular shape.
+   * @returns {number} Launches y for PachinkoBoard.
+   * @public
+   */
   public launchY(radius: number): number {
     return this.bounds.y + 14 + radius;
   }
 
+  /**
+   * Resolves pachinko board for PachinkoBoard.
+   * @param {PachinkoBall} ball The ball supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public resolve(ball: PachinkoBall): void {
     const body = ball.body;
     const bounds = this.bounds;
@@ -87,6 +198,13 @@ export class PachinkoBoard {
     Collision2D.resolveCircleAgainstHorizontalBounds(body, bounds.x, bounds.x + bounds.width, 0.55);
   }
 
+  /**
+   * Renders PachinkoBoard using its current geometry and presentation state.
+   * @param {number} selectedLane The selected lane supplied to this operation.
+   * @param {readonly number[]} payouts The payouts supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public draw(selectedLane: number, payouts: readonly number[]): void {
     const bounds = this.bounds;
     const { x, y, width, height } = bounds;
@@ -123,6 +241,12 @@ export class PachinkoBoard {
     });
   }
 
+  /**
+   * Constructs pegs for PachinkoBoard.
+   * @param {PachinkoBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {PachinkoPeg[]} Constructs pegs for PachinkoBoard.
+   * @private
+   */
   private createPegs(bounds: PachinkoBounds): PachinkoPeg[] {
     const spacingX = bounds.width / 10;
     const spacingY = (bounds.height - 142) / ROW_COUNT;
@@ -140,6 +264,12 @@ export class PachinkoBoard {
     return pegs;
   }
 
+  /**
+   * Constructs rails for PachinkoBoard.
+   * @param {PachinkoBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {CollisionRect[]} Constructs rails for PachinkoBoard.
+   * @private
+   */
   private createRails(bounds: PachinkoBounds): CollisionRect[] {
     const sideRailWidth = Math.max(6, bounds.width * 0.018);
     const railHeight = this.laneTop - bounds.y;
@@ -149,6 +279,12 @@ export class PachinkoBoard {
     ];
   }
 
+  /**
+   * Constructs lane walls for PachinkoBoard.
+   * @param {PachinkoBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {CollisionRect[]} Constructs lane walls for PachinkoBoard.
+   * @private
+   */
   private createLaneWalls(bounds: PachinkoBounds): CollisionRect[] {
     const slotTop = bounds.y + bounds.height - 54;
     const laneWidth = bounds.width / LANE_COUNT;

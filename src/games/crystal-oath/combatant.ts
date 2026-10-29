@@ -1,10 +1,10 @@
-import StatBlock from '../../engine/gameplay/rpg/stat-block';
+import { StatBlock } from '../../engine/gameplay/rpg';
 
 /**
  * A battle participant whose combat attributes are stored in a reactive stat block.
  * @class RpgCombatant
  */
-export default class RpgCombatant {
+export default class {
   /**
    * Display name used by the battle interface.
    * @property {string} name
@@ -36,6 +36,7 @@ export default class RpgCombatant {
    * @param stats Initial combat attributes.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(
     name: string,

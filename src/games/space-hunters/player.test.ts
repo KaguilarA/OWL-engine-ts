@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Player } from './player';
+import { Player } from './';
 
 vi.mock('../../engine/core/context', () => ({
   default: {
@@ -25,6 +25,10 @@ vi.mock('../../engine/input/events', () => ({
   default: {
     isKeyPressed: () => false
   }
+}));
+
+vi.mock('../../engine/input/game-input', () => ({
+  default: { axis: () => 0, isDown: () => false }
 }));
 
 vi.mock('../../engine/assets/loader', () => ({

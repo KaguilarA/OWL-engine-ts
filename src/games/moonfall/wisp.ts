@@ -5,7 +5,7 @@ import { GameLoader, Sprite } from '../../engine';
  * A roaming crystal spirit that guards the citadel's exit.
  * @class MoonWisp
  */
-export default class MoonWisp {
+export default class {
   /**
    * Left edge of the spirit's patrol range.
    * @property {number} minimumX
@@ -78,6 +78,7 @@ export default class MoonWisp {
    * @param health Initial and maximum health.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(
     startX: number,

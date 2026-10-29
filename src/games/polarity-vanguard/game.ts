@@ -6,18 +6,20 @@ import {
   FallingPickup,
   GameBackground,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   MathUtils,
   TouchControls,
   type TouchControlCircle
 } from '../../engine';
 
-import { PolarityVanguardEnemy } from './enemy';
-import type { Polarity } from './polarity';
-import { POLARITY_COLORS } from './polarity';
-import { PolarityVanguardPlayer } from './player';
-import { PolarityProjectile } from './projectile';
+import {
+  PolarityVanguardEnemy,
+  type Polarity,
+  POLARITY_COLORS,
+  PolarityVanguardPlayer,
+  PolarityProjectile
+} from './';
 import arrowLeftRightSvg from 'lucide-static/icons/arrow-left-right.svg?raw';
 import heartSvg from 'lucide-static/icons/heart.svg?raw';
 
@@ -25,7 +27,7 @@ import heartSvg from 'lucide-static/icons/heart.svg?raw';
  * Polarity shooter with absorbable shots and a score-chain system.
  * @class PolarityVanguardGame
  */
-export class PolarityVanguardGame extends BaseGame {
+export default class extends BaseGame {
   /**
    * Stores the touch controls state.
    * @property {TouchControls} touchControls
@@ -107,7 +109,18 @@ export class PolarityVanguardGame extends BaseGame {
    * @private
    */
   private readonly scoreState = signalValue(0);
+  /**
+   * Returns score from the current PolarityVanguardGame state.
+   * @returns {number} score from the current PolarityVanguardGame state.
+   * @private
+   */
   private get score(): number { return this.scoreState(); }
+  /**
+   * Updates score in the PolarityVanguardGame state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set score(value: number) { this.scoreState.set(value); }
   /**
    * Stores the absorbed shots state.
@@ -115,7 +128,18 @@ export class PolarityVanguardGame extends BaseGame {
    * @private
    */
   private readonly absorbedShotsState = signalValue(0);
+  /**
+   * Returns absorbed shots from the current PolarityVanguardGame state.
+   * @returns {number} absorbed shots from the current PolarityVanguardGame state.
+   * @private
+   */
   private get absorbedShots(): number { return this.absorbedShotsState(); }
+  /**
+   * Updates absorbed shots in the PolarityVanguardGame state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set absorbedShots(value: number) { this.absorbedShotsState.set(value); }
   /**
    * Stores the chain state.
@@ -123,7 +147,18 @@ export class PolarityVanguardGame extends BaseGame {
    * @private
    */
   private readonly chainState = signalValue(0);
+  /**
+   * Returns chain from the current PolarityVanguardGame state.
+   * @returns {number} chain from the current PolarityVanguardGame state.
+   * @private
+   */
   private get chain(): number { return this.chainState(); }
+  /**
+   * Updates chain in the PolarityVanguardGame state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set chain(value: number) { this.chainState.set(value); }
   /**
    * Stores the game over state.
@@ -131,7 +166,18 @@ export class PolarityVanguardGame extends BaseGame {
    * @private
    */
   private readonly gameOverState = signalValue(false);
+  /**
+   * Returns game over from the current PolarityVanguardGame state.
+   * @returns {boolean} game over from the current PolarityVanguardGame state.
+   * @private
+   */
   private get gameOver(): boolean { return this.gameOverState(); }
+  /**
+   * Updates game over in the PolarityVanguardGame state.
+   * @param {boolean} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set gameOver(value: boolean) { this.gameOverState.set(value); }
   /**
    * Stores the lives state.
@@ -166,6 +212,8 @@ export class PolarityVanguardGame extends BaseGame {
    * Initializes the player, controls, projectile pools, and enemy formation.
    * @public
    * @return {void}
+   * @constructor
+   * @param {(() => void) | undefined} [onReturnToMenu] Callback invoked when this game returns to the selector.
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu);
@@ -188,6 +236,7 @@ export class PolarityVanguardGame extends BaseGame {
    * Advances player input, projectiles, enemies, and collision resolution.
    * @protected
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   protected updateGame(deltaSeconds: number): void {
     this.player.setBottomMargin(this.getPlayerBottomMargin());
@@ -229,10 +278,11 @@ export class PolarityVanguardGame extends BaseGame {
    * Fires player shots while the fire key is held and cooldown is clear.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateShooting(deltaSeconds: number): void {
     this.shootCooldown -= deltaSeconds;
-    const wantsToShoot = GameEvents.isKeyPressed(' ');
+    const wantsToShoot = GameInput.isDown('attack');
 
     if (!wantsToShoot || this.shootCooldown > 0) return;
 
@@ -253,6 +303,7 @@ export class PolarityVanguardGame extends BaseGame {
    * Schedules formation shots and activates available enemy projectiles.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateEnemyFire(deltaSeconds: number): void {
     this.enemyShotCooldown -= deltaSeconds;
@@ -483,7 +534,7 @@ export class PolarityVanguardGame extends BaseGame {
 
     this.touchControls.draw();
     const controls = this.getTouchControlsLayout();
-    this.touchControls.setExtraKeys([[controls.polarity, 'c']]);
+    this.touchControls.setExtraActions([[controls.polarity, 'polarity']]);
     this.touchControls.drawExtra(
       controls.polarity,
       this.polarityIcon,
@@ -497,6 +548,10 @@ export class PolarityVanguardGame extends BaseGame {
    * @return {{ polarity: TouchControlCircle }} The polarity button bounds.
    */
   private getTouchControlsLayout(): {
+    /**
+     * Polarity configuration or state owned by PolarityVanguardGame.
+     * @property {TouchControlCircle} polarity
+     */
     polarity: TouchControlCircle;
   } {
     const { shoot } = this.touchControls.layout;
@@ -567,6 +622,7 @@ export class PolarityVanguardGame extends BaseGame {
    * Adds score and advances the next extra-life threshold.
    * @private
    * @return {void}
+   * @param {number} points The points supplied to this operation.
    */
   private addScore(points: number): void {
     this.score += points;
@@ -598,6 +654,7 @@ export class PolarityVanguardGame extends BaseGame {
    * Moves the heart and restores a life when it overlaps the player.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateLifePickup(deltaSeconds: number): void {
     const pickup = this.lifePickup();
@@ -681,6 +738,13 @@ export class PolarityVanguardGame extends BaseGame {
    * Tests a rectangle against a circular projectile hit area.
    * @private
    * @return {boolean} Whether the shapes overlap.
+   * @param {number} circleX The circle x supplied to this operation.
+   * @param {number} circleY The circle y supplied to this operation.
+   * @param {number} radius Radius of the circular shape.
+   * @param {number} rectangleX The rectangle x supplied to this operation.
+   * @param {number} rectangleY The rectangle y supplied to this operation.
+   * @param {number} rectangleWidth The rectangle width supplied to this operation.
+   * @param {number} rectangleHeight The rectangle height supplied to this operation.
    */
   private overlapsCircle(
     circleX: number,

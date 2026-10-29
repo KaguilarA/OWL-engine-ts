@@ -1,6 +1,6 @@
 import {
   BaseGame,
-  GameEvents,
+  GameInput,
   GameContext,
   Collision2D,
   TouchControls,
@@ -8,12 +8,26 @@ import {
   QuestLog
 } from '../../engine';
 
-import { createLevel, type Coin, type Platform } from './level';
-import { PlatformerRenderer } from './renderer';
+import { createLevel, type Coin, type Platform, PlatformerRenderer } from './';
 
-/** A small, original side-scrolling platformer built with the shared engine. */
-export class MeadowQuestGame extends BaseGame {
-  private readonly touchControls = new TouchControls({ showVerticalControls: false });
+/**
+ * A small, original side-scrolling platformer built with the shared engine.
+ * @class MeadowQuestGame
+ */
+export default class extends BaseGame {
+  /**
+   * Touch controls configuration or state owned by MeadowQuestGame.
+   * @property {TouchControls} touchControls
+   * @readonly
+   * @private
+   */
+  private readonly touchControls = new TouchControls({ showVerticalControls: false, primaryAction: 'jump' });
+  /**
+   * Renderer configuration or state owned by MeadowQuestGame.
+   * @property {PlatformerRenderer} renderer
+   * @readonly
+   * @private
+   */
   private readonly renderer = new PlatformerRenderer();
   /**
    * Applies platform movement, gravity, buffered jumps, and coyote time.
@@ -29,24 +43,111 @@ export class MeadowQuestGame extends BaseGame {
    * @readonly
    */
   private readonly questLog = new QuestLog();
+  /**
+   * World width configuration or state owned by MeadowQuestGame.
+   * @property {3600} worldWidth
+   * @readonly
+   * @private
+   */
   private readonly worldWidth = 3600;
+  /**
+   * Platforms configuration or state owned by MeadowQuestGame.
+   * @property {Platform[]} platforms
+   * @private
+   */
   private platforms: Platform[] = [];
+  /**
+   * Coins configuration or state owned by MeadowQuestGame.
+   * @property {Coin[]} coins
+   * @private
+   */
   private coins: Coin[] = [];
+  /**
+   * Player x configuration or state owned by MeadowQuestGame.
+   * @property {number} playerX
+   * @private
+   */
   private playerX = 90;
+  /**
+   * Player y configuration or state owned by MeadowQuestGame.
+   * @property {number} playerY
+   * @private
+   */
   private playerY = 0;
+  /**
+   * Horizontal velocity of the moving object.
+   * @property {number} velocityX
+   * @private
+   */
   private velocityX = 0;
+  /**
+   * Vertical velocity of the moving object.
+   * @property {number} velocityY
+   * @private
+   */
   private velocityY = 0;
+  /**
+   * Grounded configuration or state owned by MeadowQuestGame.
+   * @property {boolean} grounded
+   * @private
+   */
   private grounded = false;
-  private jumpWasPressed = false;
+  /**
+   * Facing configuration or state owned by MeadowQuestGame.
+   * @property {number} facing
+   * @private
+   */
   private facing = 1;
+  /**
+   * Camera x configuration or state owned by MeadowQuestGame.
+   * @property {number} cameraX
+   * @private
+   */
   private cameraX = 0;
+  /**
+   * Score configuration or state owned by MeadowQuestGame.
+   * @property {number} score
+   * @private
+   */
   private score = 0;
+  /**
+   * Lives configuration or state owned by MeadowQuestGame.
+   * @property {number} lives
+   * @private
+   */
   private lives = 3;
+  /**
+   * Won configuration or state owned by MeadowQuestGame.
+   * @property {boolean} won
+   * @private
+   */
   private won = false;
+  /**
+   * Enemy x configuration or state owned by MeadowQuestGame.
+   * @property {number} enemyX
+   * @private
+   */
   private enemyX = 0;
+  /**
+   * Enemy direction configuration or state owned by MeadowQuestGame.
+   * @property {number} enemyDirection
+   * @private
+   */
   private enemyDirection = 1;
+  /**
+   * Damage cooldown configuration or state owned by MeadowQuestGame.
+   * @property {number} damageCooldown
+   * @private
+   */
   private damageCooldown = 0;
 
+  /**
+   * Initializes MeadowQuestGame and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {(() => void) | undefined} [onReturnToMenu] Callback invoked when this game returns to the selector.
+   * @returns {void}
+   * @public
+   */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu, { showResetButton: false });
     this.registerCleanup(() => this.touchControls.dispose());
@@ -54,21 +155,28 @@ export class MeadowQuestGame extends BaseGame {
     this.start();
   }
 
+  /**
+   * Returns is game over from the current MeadowQuestGame state.
+   * @returns {boolean} is game over from the current MeadowQuestGame state.
+   * @protected
+   */
   protected get isGameOver(): boolean { return this.lives <= 0 || this.won; }
 
+  /**
+   * Advances game-specific simulation for one active frame.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @protected
+   */
   protected updateGame(deltaSeconds: number): void {
     this.damageCooldown = Math.max(0, this.damageCooldown - deltaSeconds);
     this.renderer.update(deltaSeconds, this.velocityX !== 0);
     const viewport = GameContext.gameDimensionsModel;
     const height = viewport.getHeight();
     const floor = height * 0.79;
-    const left = GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a');
-    const right = GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d');
-    const jump = GameEvents.isKeyPressed(' ') || GameEvents.isKeyPressed('ArrowUp') || GameEvents.isKeyPressed('w');
-    this.velocityX = (right ? 1 : 0) - (left ? 1 : 0);
+    this.velocityX = GameInput.axis('moveX');
     if (this.velocityX !== 0) this.facing = Math.sign(this.velocityX);
-    if (jump && !this.jumpWasPressed) this.playerController.requestJump();
-    this.jumpWasPressed = jump;
+    if (GameInput.wasPressed('jump')) this.playerController.requestJump();
     this.playerController.body.x.set(this.playerX);
     this.playerController.body.y.set(this.playerY);
     this.playerController.body.velocityY.set(this.velocityY);
@@ -132,6 +240,11 @@ export class MeadowQuestGame extends BaseGame {
     this.cameraX = Math.max(0, Math.min(this.worldWidth - viewport.getWidth(), this.playerX - viewport.getWidth() * 0.36));
   }
 
+  /**
+   * Renders the game scene and its current HUD before shared engine controls.
+   * @returns {void}
+   * @protected
+   */
   protected drawGame(): void {
     this.renderer.draw({
       cameraX: this.cameraX,
@@ -149,6 +262,11 @@ export class MeadowQuestGame extends BaseGame {
     this.touchControls.draw();
   }
 
+  /**
+   * Restores game-specific state for a new run.
+   * @returns {void}
+   * @protected
+   */
   protected restartGame(): void {
     const height = GameContext.gameDimensionsModel.getHeight();
     const level = createLevel(height, this.worldWidth);
@@ -165,7 +283,6 @@ export class MeadowQuestGame extends BaseGame {
     this.playerController.body.velocityX.set(0);
     this.playerController.body.velocityY.set(0);
     this.grounded = true;
-    this.jumpWasPressed = false;
     this.facing = 1;
     this.cameraX = 0;
     this.score = 0;
@@ -176,6 +293,11 @@ export class MeadowQuestGame extends BaseGame {
     this.damageCooldown = 0;
   }
 
+  /**
+   * Applies the lose life operation to MeadowQuestGame.
+   * @returns {void}
+   * @private
+   */
   private loseLife(): void {
     this.lives -= 1;
     this.damageCooldown = 1;

@@ -1,15 +1,73 @@
+/**
+ * Defines the platform contract shared by its consumers.
+ * @typedef {Platform} Platform
+ */
 export type Platform = {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
   x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
   y: number;
+  /**
+   * Width of the represented area.
+   * @property {number} width
+   */
   width: number;
+  /**
+   * Height of the represented area.
+   * @property {number} height
+   */
   height: number;
+  /**
+   * Kind configuration or state owned by Platform.
+   * @property {"ground" | "brick" | "question"} kind
+   */
   kind: 'ground' | 'brick' | 'question';
 };
 
-export type Coin = { x: number; y: number; collected: boolean };
+/**
+ * Defines the coin contract shared by its consumers.
+ * @typedef {Coin} Coin
+ */
+export type Coin = {
+/**
+ * Horizontal coordinate in the owning coordinate space.
+ * @property {number} x
+ */
+x: number;
+/**
+ * Vertical coordinate in the owning coordinate space.
+ * @property {number} y
+ */
+y: number;
+/**
+ * Collected configuration or state owned by Coin.
+ * @property {boolean} collected
+ */
+collected: boolean };
 
-/** Builds the original level layout in logical canvas coordinates. */
-export function createLevel(height: number, worldWidth: number): { platforms: Platform[]; coins: Coin[] } {
+/**
+ * Builds the original level layout in logical canvas coordinates.
+ * @param {number} height Available height in logical canvas coordinates.
+ * @param {number} worldWidth
+ * @returns {{ platforms: Platform[]; coins: Coin[]; }}
+ */
+export default function(height: number, worldWidth: number): {
+/**
+ * Platforms configuration or state owned by level.
+ * @property {Platform[]} platforms
+ */
+platforms: Platform[];
+/**
+ * Coins configuration or state owned by level.
+ * @property {Coin[]} coins
+ */
+coins: Coin[] } {
   const floor = height * 0.79;
   const block = Math.max(28, Math.min(46, height * 0.06));
   const platforms: Platform[] = [

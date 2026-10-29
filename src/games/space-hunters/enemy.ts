@@ -13,7 +13,7 @@ export type EnemyKind = 'beetlemorph' | 'rhinomorph' | 'lobstermorph' | 'eaglemo
  * A single invader with sheet-specific damage and destruction states.
  * @class Enemy
  */
-export class Enemy extends DamageableSpriteEntity {
+export default class extends DamageableSpriteEntity {
   /**
    * Creates an invader with its selected sprite sheet and combat stats.
    * @param x - Horizontal position of the enemy.
@@ -26,6 +26,7 @@ export class Enemy extends DamageableSpriteEntity {
    * @param imageName - Sprite sheet defining the enemy's animation.
    * @public
    * @return {void}
+   * @constructor
    */
   constructor(
     x: number,

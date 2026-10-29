@@ -1,6 +1,9 @@
-import type { PaylineResult } from './interfaces/payline-result';
-import type { WinningCell } from './interfaces/payline-result';
+import type { PaylineResult, WinningCell } from './interfaces';
 
+/**
+ * Shared values used to configure paylines.
+ * @constant
+ */
 const PAYLINES: readonly (readonly number[])[] = [
   [1, 1, 1, 1, 1], [0, 0, 0, 0, 0], [2, 2, 2, 2, 2],
   [0, 1, 2, 1, 0], [2, 1, 0, 1, 2], [0, 0, 1, 2, 2],
@@ -8,10 +11,19 @@ const PAYLINES: readonly (readonly number[])[] = [
   [0, 1, 1, 1, 0]
 ];
 
+/**
+ * Shared values used to configure paylines.
+ * @constant
+ */
 export const PAYLINE_COUNT = PAYLINES.length;
 
-/** Evaluates the Musketeers paytable against the settled reel matrix. */
-export function evaluatePaylines(reels: readonly (readonly string[])[], bet: number): PaylineResult {
+/**
+ * Evaluates the Musketeers paytable against the settled reel matrix.
+ * @param {readonly (readonly string[])[]} reels
+ * @param {number} bet
+ * @returns {PaylineResult}
+ */
+export default function(reels: readonly (readonly string[])[], bet: number): PaylineResult {
   let win = 0;
   const winningCells = new Set<WinningCell>();
 

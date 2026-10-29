@@ -9,28 +9,157 @@ import {
   type CollisionRect
 } from '../../engine';
 
-import { PinballBall } from './ball';
+import { PinballBall } from './';
 
-export interface PinballBounds { x: number; y: number; width: number; height: number; }
-export interface PinballBumper { x: number; y: number; radius: number; }
+/**
+ * Defines the pinball bounds contract shared by its consumers.
+ * @interface PinballBounds
+ */
+export interface PinballBounds {
+/**
+ * Horizontal coordinate in the owning coordinate space.
+ * @property {number} x
+ */
+x: number;
+/**
+ * Vertical coordinate in the owning coordinate space.
+ * @property {number} y
+ */
+y: number;
+/**
+ * Width of the represented area.
+ * @property {number} width
+ */
+width: number;
+/**
+ * Height of the represented area.
+ * @property {number} height
+ */
+height: number; }
+/**
+ * Defines the pinball bumper contract shared by its consumers.
+ * @interface PinballBumper
+ */
+export interface PinballBumper {
+/**
+ * Horizontal coordinate in the owning coordinate space.
+ * @property {number} x
+ */
+x: number;
+/**
+ * Vertical coordinate in the owning coordinate space.
+ * @property {number} y
+ */
+y: number;
+/**
+ * Radius of the circular shape.
+ * @property {number} radius
+ */
+radius: number; }
 
-/** Space-Cadet-inspired table layout, launcher lane, scoring targets, and rails. */
-export class PinballBoard {
+/**
+ * Space-Cadet-inspired table layout, launcher lane, scoring targets, and rails.
+ * @class PinballBoard
+ */
+export default class {
+  /**
+   * Bounds cache configuration or state owned by PinballBoard.
+   * @property {PinballBounds | undefined} boundsCache
+   * @private
+   */
   private boundsCache: PinballBounds | undefined;
+  /**
+   * Cached viewport width configuration or state owned by PinballBoard.
+   * @property {number} cachedViewportWidth
+   * @private
+   */
   private cachedViewportWidth = -1;
+  /**
+   * Cached viewport height configuration or state owned by PinballBoard.
+   * @property {number} cachedViewportHeight
+   * @private
+   */
   private cachedViewportHeight = -1;
+  /**
+   * Bumpers cache configuration or state owned by PinballBoard.
+   * @property {readonly PinballBumper[]} bumpersCache
+   * @private
+   */
   private bumpersCache: readonly PinballBumper[] = [];
+  /**
+   * Targets cache configuration or state owned by PinballBoard.
+   * @property {readonly CollisionRect[]} targetsCache
+   * @private
+   */
   private targetsCache: readonly CollisionRect[] = [];
+  /**
+   * Wall cache configuration or state owned by PinballBoard.
+   * @property {readonly CollisionRect[]} wallCache
+   * @private
+   */
   private wallCache: readonly CollisionRect[] = [];
+  /**
+   * Rail cache configuration or state owned by PinballBoard.
+   * @property {readonly (readonly [number, number, number, number])[]} railCache
+   * @private
+   */
   private railCache: readonly (readonly [number, number, number, number])[] = [];
+  /**
+   * Bumper visuals configuration or state owned by PinballBoard.
+   * @property {readonly Sprite[]} bumperVisuals
+   * @readonly
+   * @private
+   */
   private readonly bumperVisuals: readonly Sprite[];
+  /**
+   * Bumper idle visuals configuration or state owned by PinballBoard.
+   * @property {readonly Sprite[]} bumperIdleVisuals
+   * @readonly
+   * @private
+   */
   private readonly bumperIdleVisuals: readonly Sprite[];
+  /**
+   * Bumper animations configuration or state owned by PinballBoard.
+   * @property {readonly AtlasAnimation[]} bumperAnimations
+   * @readonly
+   * @private
+   */
   private readonly bumperAnimations: readonly AtlasAnimation[];
+  /**
+   * Bumper symbols configuration or state owned by PinballBoard.
+   * @property {readonly ["beetlemorph", "eaglemorph", "squidmorph"]} bumperSymbols
+   * @readonly
+   * @private
+   */
   private readonly bumperSymbols = ['beetlemorph', 'eaglemorph', 'squidmorph'] as const;
+  /**
+   * Bumper animating configuration or state owned by PinballBoard.
+   * @property {(SignalValue<boolean> & (() => boolean))[]} bumperAnimating
+   * @readonly
+   * @private
+   */
   private readonly bumperAnimating = [signalValue(false), signalValue(false), signalValue(false)];
+  /**
+   * Bumper cooldowns configuration or state owned by PinballBoard.
+   * @property {(SignalValue<number> & (() => number))[]} bumperCooldowns
+   * @readonly
+   * @private
+   */
   private readonly bumperCooldowns = [signalValue(0), signalValue(0), signalValue(0)];
+  /**
+   * Slingshot cooldowns configuration or state owned by PinballBoard.
+   * @property {(SignalValue<number> & (() => number))[]} slingshotCooldowns
+   * @readonly
+   * @private
+   */
   private readonly slingshotCooldowns = [signalValue(0), signalValue(0)];
 
+  /**
+   * Initializes PinballBoard and its owned resources from the supplied arguments.
+   * @constructor
+   * @returns {void}
+   * @public
+   */
   public constructor() {
     this.bumperAnimations = this.bumperSymbols.map((symbol) => ({
       ...GameLoader.getAtlas(symbol).getAnimation('idle'),
@@ -48,6 +177,11 @@ export class PinballBoard {
     });
   }
 
+  /**
+   * Returns bounds from the current PinballBoard state.
+   * @returns {PinballBounds} bounds from the current PinballBoard state.
+   * @public
+   */
   public get bounds(): PinballBounds {
     const viewport = GameContext.gameDimensionsModel;
     const viewportWidth = viewport.getWidth();
@@ -77,21 +211,42 @@ export class PinballBoard {
     return this.boundsCache;
   }
 
+  /**
+   * Returns shooter divider x from the current PinballBoard state.
+   * @returns {number} shooter divider x from the current PinballBoard state.
+   * @public
+   */
   public get shooterDividerX(): number {
     const bounds = this.bounds;
     return bounds.x + bounds.width * 0.82;
   }
 
+  /**
+   * Returns shooter exit y from the current PinballBoard state.
+   * @returns {number} shooter exit y from the current PinballBoard state.
+   * @public
+   */
   public get shooterExitY(): number {
     const bounds = this.bounds;
     return bounds.y + bounds.height * 0.2;
   }
 
+  /**
+   * Returns bumpers from the current PinballBoard state.
+   * @returns {readonly PinballBumper[]} bumpers from the current PinballBoard state.
+   * @public
+   */
   public get bumpers(): readonly PinballBumper[] {
     this.bounds;
     return this.bumpersCache;
   }
 
+  /**
+   * Advances PinballBoard simulation and dependent presentation state for one frame.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @public
+   */
   public update(deltaSeconds: number): void {
     for (const cooldown of this.slingshotCooldowns) cooldown.set(Math.max(0, cooldown() - deltaSeconds));
     for (let index = 0; index < this.bumperVisuals.length; index++) {
@@ -103,6 +258,12 @@ export class PinballBoard {
     }
   }
 
+  /**
+   * Constructs bumpers for PinballBoard.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {readonly PinballBumper[]} Constructs bumpers for PinballBoard.
+   * @private
+   */
   private createBumpers(bounds: PinballBounds): readonly PinballBumper[] {
     const radius = Math.max(18, Math.min(31, bounds.width * 0.06));
     return [
@@ -112,14 +273,39 @@ export class PinballBoard {
     ];
   }
 
+  /**
+   * Applies the ball radius operation to PinballBoard.
+   * @returns {number} Applies the ball radius operation to PinballBoard.
+   * @public
+   */
   public ballRadius(): number { return Math.max(8, Math.min(12, this.bounds.width * 0.024)); }
 
-  public launchPosition(): { x: number; y: number } {
+  /**
+   * Launches position for PinballBoard.
+   * @returns {{ x: number; y: number }} Launches position for PinballBoard.
+   * @public
+   */
+  public launchPosition(): {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number } {
     const bounds = this.bounds;
     return { x: bounds.x + bounds.width * 0.91, y: bounds.y + bounds.height * 0.86 };
   }
 
-  /** Returns bumper and target hits as a bitmask. */
+  /**
+   * Returns bumper and target hits as a bitmask.
+   * @param {CircleBody} body
+   * @returns {number}
+   * @public
+   */
   public resolve(body: CircleBody): number {
     const bounds = this.bounds;
     for (let index = 0; index < this.wallCache.length; index++) {
@@ -159,7 +345,12 @@ export class PinballBoard {
     return hitMask;
   }
 
-  /** Curves the ball into the playfield at the open end of the shooter lane. */
+  /**
+   * Curves the ball into the playfield at the open end of the shooter lane.
+   * @param {PinballBall} ball
+   * @returns {boolean}
+   * @public
+   */
   public releaseFromShooter(ball: PinballBall): boolean {
     const body = ball.body;
     if (body.x <= this.shooterDividerX || body.y > this.shooterExitY + body.radius || body.velocityY >= 0) {
@@ -169,6 +360,11 @@ export class PinballBoard {
     return ball.leaveShooter(-horizontalSpeed, 0);
   }
 
+  /**
+   * Renders PinballBoard using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const bounds = this.bounds;
     const { x, y, width, height } = bounds;
@@ -265,6 +461,12 @@ export class PinballBoard {
     GameContext.drawRect(start.x - 3, start.y + this.ballRadius(), 6, height * 0.1, '#8db9db');
   }
 
+  /**
+   * Constructs targets for PinballBoard.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {readonly CollisionRect[]} Constructs targets for PinballBoard.
+   * @private
+   */
   private createTargets(bounds: PinballBounds): readonly CollisionRect[] {
     const targets: CollisionRect[] = [];
     const targetWidth = Math.max(11, bounds.width * 0.035);
@@ -281,6 +483,12 @@ export class PinballBoard {
     return targets;
   }
 
+  /**
+   * Constructs walls for PinballBoard.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {readonly CollisionRect[]} Constructs walls for PinballBoard.
+   * @private
+   */
   private createWalls(bounds: PinballBounds): readonly CollisionRect[] {
     const wall = Math.max(8, bounds.width * 0.025);
     const dividerX = bounds.x + bounds.width * 0.82;
@@ -294,6 +502,12 @@ export class PinballBoard {
     ];
   }
 
+  /**
+   * Constructs rails for PinballBoard.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {readonly (readonly [number, number, number, number])[]} Constructs rails for PinballBoard.
+   * @private
+   */
   private createRails(bounds: PinballBounds): readonly (readonly [number, number, number, number])[] {
     const { x, y, width, height } = bounds;
     const paths = [
@@ -319,6 +533,12 @@ export class PinballBoard {
     return segments;
   }
 
+  /**
+   * Renders orbit rails for PinballBoard.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {void}
+   * @private
+   */
   private drawOrbitRails(bounds: PinballBounds): void {
     const { x, y, width, height } = bounds;
     const context = GameContext.context;
@@ -348,6 +568,13 @@ export class PinballBoard {
     context.restore();
   }
 
+  /**
+   * Resolves slingshots for PinballBoard.
+   * @param {CircleBody} body The body supplied to this operation.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {void}
+   * @private
+   */
   private resolveSlingshots(body: CircleBody, bounds: PinballBounds): void {
     const { x, y, width, height } = bounds;
     const top = y + height * 0.68;
@@ -384,6 +611,12 @@ export class PinballBoard {
     }
   }
 
+  /**
+   * Renders slingshots for PinballBoard.
+   * @param {PinballBounds} bounds Bounds used to position, constrain, or query the object.
+   * @returns {void}
+   * @private
+   */
   private drawSlingshots(bounds: PinballBounds): void {
     const y = bounds.y + bounds.height * 0.68;
     const leftX = bounds.x + bounds.width * 0.1;

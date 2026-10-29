@@ -5,28 +5,27 @@ import {
   CanvasIcon,
   GameBackground,
   GameContext,
-  GameEvents,
+  GameInput,
   GameLoader,
   MathUtils,
   TouchControls
 } from '../../engine';
 import heartSvg from 'lucide-static/icons/heart.svg?raw';
 
-import { Bullet } from './bullet';
-import type { Pickup } from './interfaces/pickup';
-import type { Direction } from './interfaces/direction';
-import type { EnemyBehavior } from './interfaces/enemy-behavior';
-import type { Rect } from './interfaces/rect';
-import type { Wall } from './interfaces/wall';
-import { Tank } from './tank';
+import { Bullet, Tank } from './';
+import type { Pickup, Direction, EnemyBehavior, Rect, Wall } from './interfaces';
 
+/**
+ * Shared values used to configure game.
+ * @constant
+ */
 const ENEMIES_TO_WIN = 15;
 
 /**
  * Tank combat game with a fixed arena, destructible cover, and 15-defeat goal.
  * @class TankFrontierGame
  */
-export class TankFrontierGame extends BaseGame {
+export default class extends BaseGame {
   /**
    * Stores the player state.
    * @property {Tank} player
@@ -165,6 +164,8 @@ export class TankFrontierGame extends BaseGame {
    * Initializes the arena, projectile pools, starting wave, and render loop.
    * @public
    * @return {void}
+   * @constructor
+   * @param {(() => void) | undefined} [onReturnToMenu] Callback invoked when this game returns to the selector.
    */
   public constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu);
@@ -189,6 +190,7 @@ export class TankFrontierGame extends BaseGame {
    * Advances combat, pickups, enemy spawning, and win/loss checks.
    * @protected
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   protected updateGame(deltaSeconds: number): void {
     this.damageCooldown.set(Math.max(0, this.damageCooldown() - deltaSeconds));
@@ -396,6 +398,7 @@ export class TankFrontierGame extends BaseGame {
    * Draws a wall using its material and durability state.
    * @private
    * @return {void}
+   * @param {Wall} wall The wall supplied to this operation.
    */
   private drawWall(wall: Wall): void {
     if (!wall.destructible) {
@@ -446,6 +449,7 @@ export class TankFrontierGame extends BaseGame {
    * Draws enemy progress, wave, and remaining player lives.
    * @private
    * @return {void}
+   * @param {number} scale The scale supplied to this operation.
    */
   private drawHud(scale: number): void {
     const dimensions = GameContext.gameDimensionsModel;
@@ -523,6 +527,7 @@ export class TankFrontierGame extends BaseGame {
    * Reads movement and fire input, then updates the player tank.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updatePlayer(deltaSeconds: number): void {
     this.player.updateAnimation(deltaSeconds);
@@ -545,7 +550,7 @@ export class TankFrontierGame extends BaseGame {
     }
 
     this.shootCooldown.set(Math.max(0, this.shootCooldown() - deltaSeconds));
-    const wantsToShoot = GameEvents.isKeyPressed(' ');
+    const wantsToShoot = GameInput.isDown('attack');
     if (wantsToShoot && this.shootCooldown() === 0) {
       this.fire(this.player, this.playerBullets);
       this.shootCooldown.set(0.28);
@@ -558,10 +563,10 @@ export class TankFrontierGame extends BaseGame {
    * @return {Direction | undefined}
    */
   private getInputDirection(): Direction | undefined {
-    if (GameEvents.isKeyPressed('ArrowUp') || GameEvents.isKeyPressed('w')) return 'up';
-    if (GameEvents.isKeyPressed('ArrowDown') || GameEvents.isKeyPressed('s')) return 'down';
-    if (GameEvents.isKeyPressed('ArrowLeft') || GameEvents.isKeyPressed('a')) return 'left';
-    if (GameEvents.isKeyPressed('ArrowRight') || GameEvents.isKeyPressed('d')) return 'right';
+    if (GameInput.isDown('moveUp')) return 'up';
+    if (GameInput.isDown('moveDown')) return 'down';
+    if (GameInput.isDown('moveLeft')) return 'left';
+    if (GameInput.isDown('moveRight')) return 'right';
     return undefined;
   }
 
@@ -569,6 +574,7 @@ export class TankFrontierGame extends BaseGame {
    * Advances both projectile pools and releases bullets outside the field.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateBullets(deltaSeconds: number): void {
     for (const bullet of this.playerBullets) bullet.update(deltaSeconds);
@@ -579,6 +585,7 @@ export class TankFrontierGame extends BaseGame {
    * Updates enemy strategy, movement, wall attacks, and firing decisions.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateEnemies(deltaSeconds: number): void {
     this.enemies.forEach((enemy) => {
@@ -730,11 +737,23 @@ export class TankFrontierGame extends BaseGame {
    * Selects a target point based on the enemy tank's behavior.
    * @private
    * @return {void}
+   * @param {Tank} enemy The enemy supplied to this operation.
+   * @param {EnemyBehavior} behavior The behavior supplied to this operation.
    */
   private getEnemyTarget(
     enemy: Tank,
     behavior: EnemyBehavior
-  ): { x: number; y: number } {
+  ): {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number } {
     if (behavior === 'guardian') {
       const { bottom, tileSize } = this.getArenaBounds();
       return {
@@ -777,6 +796,8 @@ export class TankFrontierGame extends BaseGame {
    * Chooses the cardinal direction that best aligns a shot with its target.
    * @private
    * @return {Direction}
+   * @param {Tank} shooter The shooter supplied to this operation.
+   * @param {Tank} target The target supplied to this operation.
    */
   private getAimDirection(shooter: Tank, target: Tank): Direction {
     const horizontal = target.x() - shooter.x();
@@ -790,6 +811,7 @@ export class TankFrontierGame extends BaseGame {
    * Returns the direction opposite to the supplied cardinal direction.
    * @private
    * @return {Direction}
+   * @param {Direction} direction The direction supplied to this operation.
    */
   private getOppositeDirection(direction: Direction): Direction {
       if (direction === 'up') return 'down';
@@ -802,6 +824,7 @@ export class TankFrontierGame extends BaseGame {
    * Adds enemies at intervals while the active tank limit allows it.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateEnemySpawning(deltaSeconds: number): void {
     this.enemySpawnCooldown.set(Math.max(0, this.enemySpawnCooldown() - deltaSeconds));
@@ -943,8 +966,19 @@ export class TankFrontierGame extends BaseGame {
    * Finds an unoccupied arena cell away from walls, tanks, and the base.
    * @private
    * @return {void}
+   * @param {number} size The size supplied to this operation.
    */
-  private findLifePickupPosition(size: number): { x: number; y: number } | undefined {
+  private findLifePickupPosition(size: number): {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number } | undefined {
     const dimensions = GameContext.gameDimensionsModel;
     const { margin, top, bottom, tileSize } = this.getArenaBounds();
     const half = size * 0.5;
@@ -959,7 +993,17 @@ export class TankFrontierGame extends BaseGame {
     const columns = Math.max(1, Math.floor((dimensions.getWidth() - margin * 2) / tileSize));
     const rows = Math.max(1, Math.floor((bottom - top) / tileSize));
     const offsetX = (dimensions.getWidth() - columns * tileSize) * 0.5;
-    const candidates: Array<{ x: number; y: number }> = [];
+    const candidates: Array<{
+    /**
+     * Horizontal coordinate in the owning coordinate space.
+     * @property {number} x
+     */
+    x: number;
+    /**
+     * Vertical coordinate in the owning coordinate space.
+     * @property {number} y
+     */
+    y: number }> = [];
 
     for (let row = 0; row < rows; row++) {
       for (let column = 0; column < columns; column++) {
@@ -997,6 +1041,9 @@ export class TankFrontierGame extends BaseGame {
    * Activates a pooled projectile at the muzzle of its firing tank.
    * @private
    * @return {void}
+   * @param {Tank} tank The tank supplied to this operation.
+   * @param {Bullet[]} bullets The bullets supplied to this operation.
+   * @param {Direction} [direction] The direction supplied to this operation.
    */
   private fire(
     tank: Tank,
@@ -1016,6 +1063,11 @@ export class TankFrontierGame extends BaseGame {
    * Moves a tank candidate while keeping it inside arena boundaries.
    * @private
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {Direction | undefined} direction The direction supplied to this operation.
+   * @param {number} distance The distance supplied to this operation.
+   * @param {number} [size] The size supplied to this operation.
    */
   private movePosition(
     x: number,
@@ -1023,7 +1075,17 @@ export class TankFrontierGame extends BaseGame {
     direction: Direction | undefined,
     distance: number,
     size = this.player.size
-  ): { x: number; y: number } {
+  ): {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number } {
     const dimensions = GameContext.gameDimensionsModel;
     const half = size * 0.5;
     const { margin, top, bottom } = this.getArenaBounds();
@@ -1045,6 +1107,9 @@ export class TankFrontierGame extends BaseGame {
    * Checks whether a tank-sized rectangle overlaps any arena wall.
    * @private
    * @return {boolean}
+   * @param {Tank} tank The tank supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
   private collidesWithWalls(tank: Tank, x: number, y: number): boolean {
     const half = tank.size * 0.5;
@@ -1061,6 +1126,8 @@ export class TankFrontierGame extends BaseGame {
    * Tests a bullet against a tank's axis-aligned collision bounds.
    * @private
    * @return {boolean}
+   * @param {Bullet} bullet The bullet supplied to this operation.
+   * @param {Tank} tank The tank supplied to this operation.
    */
   private intersectsTank(bullet: Bullet, tank: Tank): boolean {
     const half = tank.size * 0.5;
@@ -1078,6 +1145,11 @@ export class TankFrontierGame extends BaseGame {
    * Tests two axis-aligned rectangles for overlap.
    * @private
    * @return {boolean} Whether the rectangles overlap.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
+   * @param {Rect} rect The rect supplied to this operation.
    */
   private intersects(
     x: number,
@@ -1237,9 +1309,25 @@ export class TankFrontierGame extends BaseGame {
    * @return {void}
    */
   private getArenaBounds(): {
+    /**
+     * Margin configuration or state owned by TankFrontierGame.
+     * @property {number} margin
+     */
     margin: number;
+    /**
+     * Top configuration or state owned by TankFrontierGame.
+     * @property {number} top
+     */
     top: number;
+    /**
+     * Bottom configuration or state owned by TankFrontierGame.
+     * @property {number} bottom
+     */
     bottom: number;
+    /**
+     * Tile size configuration or state owned by TankFrontierGame.
+     * @property {number} tileSize
+     */
     tileSize: number;
   } {
     const dimensions = GameContext.gameDimensionsModel;

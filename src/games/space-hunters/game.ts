@@ -6,7 +6,7 @@ import {
   FallingPickup,
   GameBackground,
   GameContext,
-  GameEvents,
+  GameInput,
   Weapon,
   GameLoader,
   MathUtils,
@@ -14,16 +14,13 @@ import {
 } from '../../engine';
 import heartSvg from 'lucide-static/icons/heart.svg?raw';
 
-import { Boss, type BossType } from './boss';
-import { Enemy } from './enemy';
-import { Player } from './player';
-import { Projectile } from './projectile';
+import { Boss, type BossType, Enemy, Player, Projectile } from './';
 
 /**
  * Space-invaders style game loop with scoring, waves, and boss encounters.
  * @class Game
  */
-export class Game extends BaseGame {
+export default class extends BaseGame {
   /**
    * Stores the touch controls state.
    * @property {TouchControls} touchControls
@@ -101,7 +98,18 @@ export class Game extends BaseGame {
    * @private
    */
   private readonly waveState = signalValue(1);
+  /**
+   * Returns wave from the current Game state.
+   * @returns {number} wave from the current Game state.
+   * @private
+   */
   private get wave(): number { return this.waveState(); }
+  /**
+   * Updates wave in the Game state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set wave(value: number) { this.waveState.set(value); }
   /**
    * Stores the enemy direction state.
@@ -133,7 +141,18 @@ export class Game extends BaseGame {
    * @private
    */
   private readonly scoreState = signalValue(0);
+  /**
+   * Returns score from the current Game state.
+   * @returns {number} score from the current Game state.
+   * @private
+   */
   private get score(): number { return this.scoreState(); }
+  /**
+   * Updates score in the Game state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set score(value: number) { this.scoreState.set(value); }
   /**
    * Stores the lives state.
@@ -141,7 +160,18 @@ export class Game extends BaseGame {
    * @private
    */
   private readonly livesState = signalValue(3);
+  /**
+   * Returns lives from the current Game state.
+   * @returns {number} lives from the current Game state.
+   * @private
+   */
   private get lives(): number { return this.livesState(); }
+  /**
+   * Updates lives in the Game state.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set lives(value: number) { this.livesState.set(value); }
   /**
    * Stores the next life score state.
@@ -161,7 +191,18 @@ export class Game extends BaseGame {
    * @private
    */
   private readonly gameOverState = signalValue(false);
+  /**
+   * Returns game over from the current Game state.
+   * @returns {boolean} game over from the current Game state.
+   * @private
+   */
   private get gameOver(): boolean { return this.gameOverState(); }
+  /**
+   * Updates game over in the Game state.
+   * @param {boolean} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @private
+   */
   private set gameOver(value: boolean) { this.gameOverState.set(value); }
   /**
    * Stores the shoot cooldown state.
@@ -180,6 +221,8 @@ export class Game extends BaseGame {
    * Initializes the player, first enemy wave, projectiles, and controls.
    * @public
    * @return {void}
+   * @constructor
+   * @param {(() => void) | undefined} [onReturnToMenu] Callback invoked when this game returns to the selector.
    */
   constructor(onReturnToMenu?: () => void) {
     super(onReturnToMenu);
@@ -202,6 +245,7 @@ export class Game extends BaseGame {
    * Advances formation movement, firing, pickups, and collision handling.
    * @protected
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   protected updateGame(deltaSeconds: number): void {
     if (this.lastPortrait !== GameContext.isPortrait) {
@@ -376,6 +420,10 @@ export class Game extends BaseGame {
    * Draws an icon centered on the specified canvas position.
    * @private
    * @return {void}
+   * @param {CanvasIcon} icon The icon supplied to this operation.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} size The size supplied to this operation.
    */
   private drawCenteredIcon(
     icon: CanvasIcon,
@@ -392,7 +440,15 @@ export class Game extends BaseGame {
    * @return {void}
    */
   private getHudLayout(): {
+    /**
+     * Lives x configuration or state owned by Game.
+     * @property {number} livesX
+     */
     livesX: number;
+    /**
+     * Lives y configuration or state owned by Game.
+     * @property {number} livesY
+     */
     livesY: number;
   } {
     return {
@@ -477,6 +533,7 @@ export class Game extends BaseGame {
    * Moves the formation and resolves its edge reversal and descent.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateEnemies(deltaSeconds: number): void {
     if (this.boss !== null) return;
@@ -516,6 +573,7 @@ export class Game extends BaseGame {
    * Advances the boss and marks its appearance as a firing phase.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateBoss(deltaSeconds: number): void {
     if (this.boss === null) return;
@@ -557,6 +615,7 @@ export class Game extends BaseGame {
    * Advances both projectile pools for the current frame.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateProjectiles(deltaSeconds: number): void {
     this.playerProjectiles.forEach((projectile) => {
@@ -571,11 +630,12 @@ export class Game extends BaseGame {
    * Applies player fire input and enforces the shot cooldown.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updatePlayerShooting(deltaSeconds: number): void {
     this.playerWeapon.update(deltaSeconds);
 
-    const wantsToShoot = GameEvents.isKeyPressed(' ');
+    const wantsToShoot = GameInput.isDown('attack');
 
     if (wantsToShoot && this.playerWeapon.tryFire()) {
       this.shootProjectile();
@@ -586,6 +646,7 @@ export class Game extends BaseGame {
    * Schedules formation or boss attacks using available pooled bullets.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateEnemyShooting(deltaSeconds: number): void {
     if (this.boss !== null) return;
@@ -687,6 +748,14 @@ export class Game extends BaseGame {
    * Tests two axis-aligned rectangles for overlap.
    * @private
    * @return {boolean} Whether the rectangles overlap.
+   * @param {number} leftA The left a supplied to this operation.
+   * @param {number} topA The top a supplied to this operation.
+   * @param {number} widthA The width a supplied to this operation.
+   * @param {number} heightA The height a supplied to this operation.
+   * @param {number} leftB The left b supplied to this operation.
+   * @param {number} topB The top b supplied to this operation.
+   * @param {number} widthB The width b supplied to this operation.
+   * @param {number} heightB The height b supplied to this operation.
    */
   private overlaps(
     leftA: number,
@@ -708,6 +777,7 @@ export class Game extends BaseGame {
    * Adds score and spawns an extra-life pickup at score milestones.
    * @private
    * @return {void}
+   * @param {number} points The points supplied to this operation.
    */
   private addScore(points: number): void {
     this.score += points;
@@ -739,6 +809,7 @@ export class Game extends BaseGame {
    * Moves the heart and collects it when it overlaps the player.
    * @private
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   private updateLifePickup(deltaSeconds: number): void {
     if (this.lifePickup === undefined) return;

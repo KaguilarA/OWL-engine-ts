@@ -13,7 +13,9 @@ export const POLARITY_COLORS: Record<Polarity, string> = {
 
 /**
  * Returns the other of the two available polarities.
+ * @param {Polarity} polarity The polarity supplied to this operation.
+ * @returns {Polarity} Applies the opposite polarity operation to polarity.
  */
-export function oppositePolarity(polarity: Polarity): Polarity {
+export default function(polarity: Polarity): Polarity {
   return polarity === 'light' ? 'dark' : 'light';
 }

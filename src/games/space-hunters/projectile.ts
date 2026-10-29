@@ -10,7 +10,7 @@ import {
  * Pooled animated projectile that travels vertically through the playfield.
  * @class Projectile
  */
-export class Projectile extends SpriteEntity {
+export default class extends SpriteEntity {
   /**
    * Stores the direction state.
    * @property {number} direction
@@ -37,6 +37,7 @@ export class Projectile extends SpriteEntity {
    * Creates an inactive projectile using the shared animated bullet sheet.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor() {
     const atlas = GameLoader.getAtlas('enemyProjectile');
@@ -48,6 +49,11 @@ export class Projectile extends SpriteEntity {
     this.sprite.playAtlasClip(atlas.getAnimation('idle'));
   }
 
+  /**
+   * Renders Projectile using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public override draw(): void {
     if (!this.isFree()) {
       super.draw();
@@ -58,6 +64,9 @@ export class Projectile extends SpriteEntity {
    * Activates the projectile at a position and vertical direction.
    * @public
    * @return {void}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} [direction] The direction supplied to this operation.
    */
   public start(x: number, y: number, direction = -1): void {
     this.direction = direction;
@@ -81,6 +90,7 @@ export class Projectile extends SpriteEntity {
    * Moves the projectile and releases it after leaving the viewport.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     if (this.isFree()) return;

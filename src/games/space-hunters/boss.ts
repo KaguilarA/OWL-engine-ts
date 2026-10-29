@@ -7,7 +7,7 @@ import {
   SpriteEntity,
 } from '../../engine';
 
-import type { BossShotOrigin } from './interfaces/boss-shot-origin';
+import type { BossShotOrigin } from './interfaces';
 
 /**
  * Available boss encounters, each with its own health and attack phases.
@@ -18,7 +18,7 @@ export type BossType = 1 | 2 | 3;
  * A boss with a distinct movement, vulnerability, and attack pattern.
  * @class Boss
  */
-export class Boss extends SpriteEntity {
+export default class extends SpriteEntity {
   /**
    * Stores the health state.
    * @property {Health} health
@@ -65,7 +65,18 @@ export class Boss extends SpriteEntity {
    * @public
    */
   private readonly aliveState = signalValue(true);
+  /**
+   * Returns is alive from the current Boss state.
+   * @returns {boolean} is alive from the current Boss state.
+   * @public
+   */
   public get isAlive(): boolean { return this.aliveState(); }
+  /**
+   * Updates is alive in the Boss state.
+   * @param {boolean} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @public
+   */
   public set isAlive(value: boolean) { this.aliveState.set(value); }
 
   /**
@@ -129,6 +140,12 @@ export class Boss extends SpriteEntity {
    * Creates a boss with type-specific health, movement, and animations.
    * @public
    * @return {void}
+   * @constructor
+   * @param {BossType} type Component constructor used to select a matching component.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number | undefined} [width] Width of the represented area.
+   * @param {number | undefined} [height] Height of the represented area.
    */
   constructor(
     type: BossType,
@@ -166,6 +183,8 @@ export class Boss extends SpriteEntity {
    * Advances boss movement, vulnerability phases, and defeat animation.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @param {number} gameWidth The game width supplied to this operation.
    */
   public update(deltaSeconds: number, gameWidth: number): void {
     if (!this.isAlive) return;
@@ -204,6 +223,11 @@ export class Boss extends SpriteEntity {
     this.advanceMovement(deltaSeconds, velocityX, velocityY);
   }
 
+  /**
+   * Renders Boss using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public override draw(): void {
     if (this.isAlive) {
       this.sprite.draw();
@@ -214,6 +238,10 @@ export class Boss extends SpriteEntity {
    * Applies a rectangular hit if the boss is currently vulnerable.
    * @public
    * @return {boolean} Whether the hit damaged the boss.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} width Width of the represented area.
+   * @param {number} height Height of the represented area.
    */
   public hit(
     x: number,
