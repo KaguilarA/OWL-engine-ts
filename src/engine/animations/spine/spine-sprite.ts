@@ -8,7 +8,7 @@ import { SpineRenderer, SpineRuntime } from './';
  * High-level drawable wrapping a Spine skeleton and its runtime lifecycle.
  * @class SpineSprite
  */
-export class SpineSprite {
+export default class {
   /**
    * Stores the reactive dimensions model.
    * @property {Dimensions} dimensions

@@ -1,3 +1,3 @@
-export { Label } from './label';
-export { NumberLabel } from './number-label';
-export { Button } from './button';
+export { default as Label } from './label';
+export { default as NumberLabel } from './number-label';
+export { default as Button } from './button';

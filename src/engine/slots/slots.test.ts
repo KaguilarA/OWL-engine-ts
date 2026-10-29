@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Reel } from './reel';
-import { ReelBank } from './reel-bank';
-import { ReelAnimationProfile } from './reel-animation-profile';
+import { Reel, ReelBank, ReelAnimationProfile } from './';
 
 describe('Slot Machine Primitives (Reel & ReelBank)', () => {
   const symbols = ['CHERRY', 'BELL', 'SEVEN'];
@@ -19,8 +17,8 @@ describe('Slot Machine Primitives (Reel & ReelBank)', () => {
     reel.startSpin(['SEVEN', 'SEVEN', 'SEVEN'], 10, 0.5);
     expect(reel.isActive()).toBe(true);
 
-    // Simulate completion
-    reel.update(1.0);
+    // Advance through anticipation, spin, and settling phases.
+    for (let frame = 0; frame < 20 && reel.isActive(); frame++) reel.update(0.1);
     expect(reel.isActive()).toBe(false);
     expect(reel.symbols()).toEqual(['SEVEN', 'SEVEN', 'SEVEN']);
   });

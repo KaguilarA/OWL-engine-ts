@@ -2,13 +2,48 @@ import { signalValue, type SignalValue } from 'reactive-values';
 import { Dimensions, GameContext } from '../core';
 import type { LabelOptions, LabelStyle } from '../interfaces';
 
-/** Draws a reactive text value with independently resizable dimensions. */
-export class Label {
+/**
+ * Draws a reactive text value with independently resizable dimensions.
+ * @class Label
+ */
+export default class {
+  /**
+   * Dimensions configuration or state owned by Label.
+   * @property {default} dimensions
+   * @readonly
+   * @public
+   */
   public readonly dimensions: Dimensions;
+  /**
+   * Text to parse, display, or assign.
+   * @property {SignalValue<string>} text
+   * @readonly
+   * @protected
+   */
   protected readonly text: SignalValue<string>;
+  /**
+   * Style configuration or state owned by Label.
+   * @property {SignalValue<LabelStyle>} style
+   * @readonly
+   * @protected
+   */
   protected readonly style: SignalValue<LabelStyle>;
+  /**
+   * Resize on draw configuration or state owned by Label.
+   * @property {boolean} resizeOnDraw
+   * @readonly
+   * @private
+   */
   private readonly resizeOnDraw: boolean;
 
+  /**
+   * Initializes Label and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {string} text Text to parse, display, or assign.
+   * @param {LabelOptions} [options] Configuration controlling construction or behavior.
+   * @returns {void}
+   * @public
+   */
   public constructor(text: string, options: LabelOptions = {}) {
     const style: LabelStyle = {
       fontSize: options.fontSize ?? 24,
@@ -25,13 +60,30 @@ export class Label {
     if (this.resizeOnDraw) this.resizeToFit();
   }
 
+  /**
+   * Replaces the label’s reactive text value.
+   * @param {string} text Text to parse, display, or assign.
+   * @returns {void}
+   * @public
+   */
   public setText(text: string): void {
     if (this.text() === text) return;
     this.text.set(text);
     if (this.resizeOnDraw) this.resizeToFit();
   }
+  /**
+   * Returns the label’s current text value.
+   * @returns {string} the label’s current text value.
+   * @public
+   */
   public getText(): string { return this.text(); }
 
+  /**
+   * Applies the supplied text styling options to the label.
+   * @param {Partial<LabelStyle>} style The style supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public setStyle(style: Partial<LabelStyle>): void {
     const current = this.style();
     const next = { ...current, ...style };
@@ -40,6 +92,11 @@ export class Label {
     if (this.resizeOnDraw) this.resizeToFit();
   }
 
+  /**
+   * Resizes the label bounds to fit its measured text.
+   * @returns {void}
+   * @public
+   */
   public resizeToFit(): void {
     const context = GameContext.context;
     const style = this.style();
@@ -53,6 +110,11 @@ export class Label {
     if (this.dimensions.getHeight() !== height) this.dimensions.setHeight(height);
   }
 
+  /**
+   * Renders Label using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const context = GameContext.context;
     const style = this.style();

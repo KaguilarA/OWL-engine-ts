@@ -1,13 +1,12 @@
 import { signalValue, type SignalValue } from 'reactive-values';
-import PhysicsWorld from '../core/physics-world';
-import { Camera2D } from './camera2d';
-import { SceneLayer } from './scene-layer';
+import { PhysicsWorld } from '../core';
+import { Camera2D, SceneLayer } from './';
 
 /**
  * Updates and draws a camera-driven 2D world composed of ordered layers.
  * @class WorldScene
  */
-export class WorldScene {
+export default class {
   /**
    * Scene-scoped fixed-step simulation for circular physics bodies.
    * @property {PhysicsWorld} physics
@@ -51,6 +50,9 @@ export class WorldScene {
    * Creates a world scene with an optional camera.
    * @public
    * @return {void}
+   * @constructor
+   * @param {Camera2D} [camera] The camera supplied to this operation.
+   * @param {PhysicsWorld} [physics] The physics supplied to this operation.
    */
   public constructor(camera = new Camera2D(), physics = new PhysicsWorld()) {
     this.camera = camera;
@@ -61,6 +63,7 @@ export class WorldScene {
    * Registers a layer to the scene.
    * @public
    * @return {void}
+   * @param {SceneLayer} layer The layer supplied to this operation.
    */
   public addLayer(layer: SceneLayer): void {
     if (this.insertionOrder.has(layer)) return;
@@ -72,6 +75,7 @@ export class WorldScene {
    * Removes a layer from the scene.
    * @public
    * @return {boolean}
+   * @param {SceneLayer} layer The layer supplied to this operation.
    */
   public removeLayer(layer: SceneLayer): boolean {
     const layers = this.layers();
@@ -95,6 +99,7 @@ export class WorldScene {
    * Updates camera and all layers for one frame.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     this.physics.update(deltaSeconds);

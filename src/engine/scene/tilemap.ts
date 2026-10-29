@@ -1,27 +1,118 @@
 import { signalValue, type SignalValue } from 'reactive-values';
 import { Dimensions, GameContext } from '../core';
-import type { TilemapOptions } from '../interfaces/tilemap-options';
+import type { TilemapOptions } from '../interfaces';
 
 /**
  * Grid-based tilemap using zero for empty cells and one-based tileset indices.
  * @class Tilemap
  */
-export class Tilemap {
+export default class {
+  /**
+   * Dimensions configuration or state owned by Tilemap.
+   * @property {default} dimensions
+   * @readonly
+   * @public
+   */
   public readonly dimensions: Dimensions;
+  /**
+   * Map width configuration or state owned by Tilemap.
+   * @property {number} mapWidth
+   * @readonly
+   * @public
+   */
   public readonly mapWidth: number;
+  /**
+   * Map height configuration or state owned by Tilemap.
+   * @property {number} mapHeight
+   * @readonly
+   * @public
+   */
   public readonly mapHeight: number;
+  /**
+   * Image source used to render the associated content.
+   * @property {CanvasImageSource} image
+   * @readonly
+   * @private
+   */
   private readonly image: CanvasImageSource;
+  /**
+   * Number or contents of the grid columns.
+   * @property {number} columns
+   * @readonly
+   * @private
+   */
   private readonly columns: number;
+  /**
+   * Tile width configuration or state owned by Tilemap.
+   * @property {number} tileWidth
+   * @readonly
+   * @private
+   */
   private readonly tileWidth: number;
+  /**
+   * Tile height configuration or state owned by Tilemap.
+   * @property {number} tileHeight
+   * @readonly
+   * @private
+   */
   private readonly tileHeight: number;
+  /**
+   * Spacing configuration or state owned by Tilemap.
+   * @property {number} spacing
+   * @readonly
+   * @private
+   */
   private readonly spacing: number;
+  /**
+   * Margin configuration or state owned by Tilemap.
+   * @property {number} margin
+   * @readonly
+   * @private
+   */
   private readonly margin: number;
+  /**
+   * Draw tile width configuration or state owned by Tilemap.
+   * @property {number} drawTileWidth
+   * @readonly
+   * @private
+   */
   private readonly drawTileWidth: number;
+  /**
+   * Draw tile height configuration or state owned by Tilemap.
+   * @property {number} drawTileHeight
+   * @readonly
+   * @private
+   */
   private readonly drawTileHeight: number;
+  /**
+   * Tileset width configuration or state owned by Tilemap.
+   * @property {number} tilesetWidth
+   * @readonly
+   * @private
+   */
   private readonly tilesetWidth: number;
+  /**
+   * Tileset height configuration or state owned by Tilemap.
+   * @property {number} tilesetHeight
+   * @readonly
+   * @private
+   */
   private readonly tilesetHeight: number;
+  /**
+   * Cells configuration or state owned by Tilemap.
+   * @property {SignalValue<readonly number[]>} cells
+   * @readonly
+   * @private
+   */
   private readonly cells: SignalValue<readonly number[]>;
 
+  /**
+   * Initializes Tilemap and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {TilemapOptions} options Configuration controlling construction or behavior.
+   * @returns {void}
+   * @public
+   */
   public constructor(options: TilemapOptions) {
     this.assertPositiveInteger(options.columns, 'columns');
     this.assertPositiveInteger(options.tileWidth, 'tileWidth');
@@ -30,11 +121,35 @@ export class Tilemap {
     this.assertPositiveInteger(options.mapHeight, 'mapHeight');
     this.image = options.image;
     const source = options.image as CanvasImageSource & {
+      /**
+       * Natural width configuration or state owned by Tilemap.
+       * @property {number | undefined} naturalWidth
+       */
       naturalWidth?: number;
+      /**
+       * Natural height configuration or state owned by Tilemap.
+       * @property {number | undefined} naturalHeight
+       */
       naturalHeight?: number;
+      /**
+       * Video width configuration or state owned by Tilemap.
+       * @property {number | undefined} videoWidth
+       */
       videoWidth?: number;
+      /**
+       * Video height configuration or state owned by Tilemap.
+       * @property {number | undefined} videoHeight
+       */
       videoHeight?: number;
+      /**
+       * Width of the represented area.
+       * @property {number | undefined} width
+       */
       width?: number;
+      /**
+       * Height of the represented area.
+       * @property {number | undefined} height
+       */
       height?: number;
     };
     this.tilesetWidth = source.naturalWidth ?? source.videoWidth ?? source.width ?? 0;
@@ -58,11 +173,26 @@ export class Tilemap {
     );
   }
 
+  /**
+   * Returns the tileset index at a validated map cell.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @returns {number} the tileset index at a validated map cell.
+   * @public
+   */
   public getTile(x: number, y: number): number {
     this.assertCell(x, y);
     return this.cells()[y * this.mapWidth + x];
   }
 
+  /**
+   * Updates the tileset index at one validated map cell.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} tileIndex Tileset index assigned to the selected cell; zero represents an empty cell.
+   * @returns {void}
+   * @public
+   */
   public setTile(x: number, y: number, tileIndex: number): void {
     this.assertCell(x, y);
     if (!Number.isInteger(tileIndex) || tileIndex < 0) {
@@ -73,6 +203,12 @@ export class Tilemap {
     this.cells.set(cells);
   }
 
+  /**
+   * Fills the tilemap with a single tileset index.
+   * @param {number} tileIndex Tileset index assigned to the selected cell; zero represents an empty cell.
+   * @returns {void}
+   * @public
+   */
   public fill(tileIndex: number): void {
     if (!Number.isInteger(tileIndex) || tileIndex < 0) {
       throw new RangeError('Tile index must be a non-negative integer.');
@@ -80,6 +216,12 @@ export class Tilemap {
     this.cells.set(this.cells().map(() => tileIndex));
   }
 
+  /**
+   * Replaces the map’s tile indices with the supplied cell data.
+   * @param {ArrayLike<number>} tiles The tiles supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public setTiles(tiles: ArrayLike<number>): void {
     const current = this.cells();
     if (tiles.length !== current.length) {
@@ -96,6 +238,11 @@ export class Tilemap {
     this.cells.set(next);
   }
 
+  /**
+   * Renders Tilemap using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const context = GameContext.context;
     const cells = this.cells();
@@ -158,12 +305,26 @@ export class Tilemap {
     );
   }
 
+  /**
+   * Rejects grid coordinates that do not address a valid map cell.
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @returns {void}
+   * @private
+   */
   private assertCell(x: number, y: number): void {
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= this.mapWidth || y >= this.mapHeight) {
       throw new RangeError(`Tile coordinate (${x}, ${y}) is outside the map.`);
     }
   }
 
+  /**
+   * Rejects non-integer or non-positive configuration values.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @param {string} name Name used to identify or look up this resource.
+   * @returns {void}
+   * @private
+   */
   private assertPositiveInteger(value: number, name: string): void {
     if (!Number.isInteger(value) || value <= 0) throw new RangeError(`${name} must be a positive integer.`);
   }

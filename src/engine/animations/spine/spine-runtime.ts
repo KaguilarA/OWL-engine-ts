@@ -114,7 +114,7 @@ type IkConstraintState = {
  * High-performance Spine 2D runtime evaluating skeleton poses, animations, and inverse kinematics.
  * @class SpineRuntime
  */
-export class SpineRuntime {
+export default class {
   /**
    * Stores internal skeleton bone nodes.
    * @property {BoneState[]} bones

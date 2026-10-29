@@ -5,7 +5,7 @@ import { AtlasAnimationCatalog } from './';
  * Provides page metadata, image ownership, and named region lookups.
  * @class Atlas
  */
-export class Atlas {
+export default class {
   /**
    * Filename identifying the texture page described by this atlas.
    * @property {string} pageName

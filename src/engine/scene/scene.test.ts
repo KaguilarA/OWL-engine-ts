@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Dimensions } from '../core';
-import { Camera2D } from './camera2d';
-import { SceneLayer } from './scene-layer';
-import { WorldScene } from './world-scene';
+import { Camera2D, SceneLayer, WorldScene } from './';
 
 describe('Scene Graph & Camera2D', () => {
   it('converts world coordinates to screen and back', () => {

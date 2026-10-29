@@ -1,7 +1,5 @@
-export { Icon } from './icon';
-export { Reel } from './reel';
-export { ReelIcon } from './reel-icon';
-export { ReelAnimationProfile } from './reel-animation-profile';
-export { ReelBank } from './reel-bank';
-export type { ReelBankOptions } from './reel-bank';
-
+export { default as Icon } from './icon';
+export { default as Reel } from './reel';
+export { default as ReelIcon } from './reel-icon';
+export { default as ReelAnimationProfile } from './reel-animation-profile';
+export { default as ReelBank } from './reel-bank';

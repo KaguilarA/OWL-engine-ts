@@ -1,21 +1,14 @@
-import { signalValue, type SignalValue } from 'reactive-values';
-import type { SceneDrawable } from '../interfaces';
-import type { Camera2D } from './camera2d';
+import { SceneLayer, type Camera2D } from './';
+import type { SceneLayerOptions, SceneDrawable } from '../interfaces';
 
-export interface SceneLayerOptions {
-  name?: string;
-  order?: number;
-  parallaxX?: number;
-  parallaxY?: number;
-  visible?: boolean;
-  updateObjects?: boolean;
-}
+import { signalValue, type SignalValue } from 'reactive-values';
+
 
 /**
  * Holds renderables in stable z-order and applies optional camera parallax.
  * @class SceneLayer
  */
-export class SceneLayer {
+export default class {
   /**
    * Layer display name.
    * @property {string} name
@@ -98,6 +91,8 @@ export class SceneLayer {
    * Creates a scene layer with configured parallax and sorting.
    * @public
    * @return {void}
+   * @constructor
+   * @param {SceneLayerOptions} [options] Configuration controlling construction or behavior.
    */
   public constructor(options: SceneLayerOptions = {}) {
     this.name = options.name ?? 'Layer';
@@ -112,6 +107,8 @@ export class SceneLayer {
    * Adds an object to this layer with an optional update callback.
    * @public
    * @return {void}
+   * @param {SceneDrawable} object The object supplied to this operation.
+   * @param {((deltaSeconds: number) => void) | undefined} [update] The update supplied to this operation.
    */
   public add(object: SceneDrawable, update?: (deltaSeconds: number) => void): void {
     if (this.insertionOrder.has(object)) return;
@@ -124,6 +121,7 @@ export class SceneLayer {
    * Removes an object from this layer.
    * @public
    * @return {boolean}
+   * @param {SceneDrawable} object The object supplied to this operation.
    */
   public remove(object: SceneDrawable): boolean {
     const objects = this.objects();
@@ -150,6 +148,7 @@ export class SceneLayer {
    * Replaces all objects in the layer.
    * @public
    * @return {void}
+   * @param {readonly SceneDrawable[]} objects The objects supplied to this operation.
    */
   public setObjects(objects: readonly SceneDrawable[]): void {
     const current = this.objects();
@@ -171,6 +170,7 @@ export class SceneLayer {
    * Updates all active objects in this layer.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     if (!this.visible()) return;
@@ -183,6 +183,7 @@ export class SceneLayer {
    * Renders objects in z-order with camera transform and parallax.
    * @public
    * @return {void}
+   * @param {Camera2D | undefined} [camera] The camera supplied to this operation.
    */
   public draw(camera?: Camera2D): void {
     if (!this.visible()) return;
@@ -203,9 +204,15 @@ export class SceneLayer {
    * Resolves z-index value from object.
    * @private
    * @return {number}
+   * @param {SceneDrawable} object The object supplied to this operation.
    */
   private static getZIndex(object: SceneDrawable): number {
-    const value = (object as SceneDrawable & { zIndex?: unknown }).zIndex;
+    const value = (object as SceneDrawable & {
+    /**
+     * Z index configuration or state owned by SceneLayer.
+     * @property {unknown} zIndex
+     */
+    zIndex?: unknown }).zIndex;
     if (typeof value === 'number') return value;
     if (typeof value === 'function') return (value as SignalValue<number>)();
     return 0;

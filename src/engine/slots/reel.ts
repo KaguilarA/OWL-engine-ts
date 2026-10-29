@@ -3,33 +3,181 @@ import { MathUtils } from '../core';
 import { Container } from '../scene';
 import type { ReelOptions, VisibleReelSymbol } from '../interfaces/';
 
+/**
+ * Defines the reel phase contract shared by its consumers.
+ * @typedef {ReelPhase} ReelPhase
+ */
 type ReelPhase = 'idle' | 'anticipation' | 'spinning' | 'bounce';
 
-/** Owns a single reel's outcome, strip, anticipation, spin, and settling motion. */
-export class Reel extends Container {
+/**
+ * Owns a single reel's outcome, strip, anticipation, spin, and settling motion.
+ * @class Reel
+ */
+export default class extends Container {
+  /**
+   * Reactive target state owned by Reel.
+   * @property {SignalValue<string[]>} target
+   * @readonly
+   * @private
+   */
   private readonly target: SignalValue<string[]> = signalValue<string[]>([]);
+  /**
+   * Reactive anticipation tail state owned by Reel.
+   * @property {SignalValue<string>} anticipationTail
+   * @readonly
+   * @private
+   */
   private readonly anticipationTail: SignalValue<string> = signalValue('');
+  /**
+   * Reactive phase state owned by Reel.
+   * @property {SignalValue<ReelPhase>} phase
+   * @readonly
+   * @private
+   */
   private readonly phase: SignalValue<ReelPhase> = signalValue<ReelPhase>('idle');
+  /**
+   * Reactive phase elapsed state owned by Reel.
+   * @property {SignalValue<number>} phaseElapsed
+   * @readonly
+   * @private
+   */
   private readonly phaseElapsed: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive spin duration state owned by Reel.
+   * @property {SignalValue<number>} spinDuration
+   * @readonly
+   * @private
+   */
   private readonly spinDuration: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive spin strip state owned by Reel.
+   * @property {SignalValue<string[]>} spinStrip
+   * @readonly
+   * @private
+   */
   private readonly spinStrip: SignalValue<string[]> = signalValue<string[]>([]);
+  /**
+   * Reactive travel cells state owned by Reel.
+   * @property {SignalValue<number>} travelCells
+   * @readonly
+   * @private
+   */
   private readonly travelCells: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive start distance state owned by Reel.
+   * @property {SignalValue<number>} startDistance
+   * @readonly
+   * @private
+   */
   private readonly startDistance: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive target offset state owned by Reel.
+   * @property {SignalValue<number>} targetOffset
+   * @readonly
+   * @private
+   */
   private readonly targetOffset: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive distance cells state owned by Reel.
+   * @property {SignalValue<number>} distanceCells
+   * @readonly
+   * @private
+   */
   private readonly distanceCells: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive fast stop elapsed state owned by Reel.
+   * @property {SignalValue<number>} fastStopElapsed
+   * @readonly
+   * @private
+   */
   private readonly fastStopElapsed: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive fast stop start distance state owned by Reel.
+   * @property {SignalValue<number>} fastStopStartDistance
+   * @readonly
+   * @private
+   */
   private readonly fastStopStartDistance: SignalValue<number> = signalValue(0);
+  /**
+   * Reactive fast stop requested state owned by Reel.
+   * @property {SignalValue<boolean>} fastStopRequested
+   * @readonly
+   * @private
+   */
   private readonly fastStopRequested: SignalValue<boolean> = signalValue(false);
+  /**
+   * Anticipation duration configuration or state owned by Reel.
+   * @property {number} anticipationDuration
+   * @readonly
+   * @private
+   */
   private readonly anticipationDuration: number;
+  /**
+   * Anticipation lift cells configuration or state owned by Reel.
+   * @property {number} anticipationLiftCells
+   * @readonly
+   * @private
+   */
   private readonly anticipationLiftCells: number;
+  /**
+   * Bounce duration configuration or state owned by Reel.
+   * @property {number} bounceDuration
+   * @readonly
+   * @private
+   */
   private readonly bounceDuration: number;
+  /**
+   * Acceleration share configuration or state owned by Reel.
+   * @property {number} accelerationShare
+   * @readonly
+   * @private
+   */
   private readonly accelerationShare: number;
+  /**
+   * Braking share configuration or state owned by Reel.
+   * @property {number} brakingShare
+   * @readonly
+   * @private
+   */
   private readonly brakingShare: number;
+  /**
+   * Symbols configuration or state owned by Reel.
+   * @property {SignalValue<string[]>} symbols
+   * @readonly
+   * @public
+   */
   public readonly symbols: SignalValue<string[]>;
+  /**
+   * Is active configuration or state owned by Reel.
+   * @property {ComputedValue<boolean>} isActive
+   * @readonly
+   * @public
+   */
   public readonly isActive: ComputedValue<boolean>;
+  /**
+   * Random symbol configuration or state owned by Reel.
+   * @property {() => string} randomSymbol
+   * @readonly
+   * @private
+   */
   private readonly randomSymbol: () => string;
+  /**
+   * Configuration controlling construction or behavior.
+   * @property {ReelOptions} options
+   * @readonly
+   * @private
+   */
   private readonly options: ReelOptions;
 
+  /**
+   * Initializes Reel and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {string[]} symbols The symbols supplied to this operation.
+   * @param {() => string} randomSymbol The random symbol supplied to this operation.
+   * @param {ReelOptions} options Configuration controlling construction or behavior.
+   * @returns {void}
+   * @public
+   */
   public constructor(
     symbols: string[],
     randomSymbol: () => string,
@@ -50,11 +198,23 @@ export class Reel extends Container {
     );
   }
 
+  /**
+   * Returns row count from the current Reel state.
+   * @returns {number} row count from the current Reel state.
+   * @public
+   */
   public get rowCount(): number {
     return this.options.rowCount;
   }
 
-  /** Starts a new spin with a supplied result and movement duration. */
+  /**
+   * Starts a new spin with a supplied result and movement duration.
+   * @param {string[]} target
+   * @param {number} travelCells
+   * @param {number} duration
+   * @returns {void}
+   * @public
+   */
   public startSpin(target: string[], travelCells: number, duration: number): void {
     this.target.set([...target]);
     this.spinDuration.set(duration);
@@ -81,7 +241,12 @@ export class Reel extends Container {
     this.phaseElapsed.set(0);
   }
 
-  /** Advances the current phase and fixes the result when the reel settles. */
+  /**
+   * Advances the current phase and fixes the result when the reel settles.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @public
+   */
   public update(deltaSeconds: number): void {
     super.update(deltaSeconds);
     if (!this.isActive()) return;
@@ -132,7 +297,11 @@ export class Reel extends Container {
     }
   }
 
-  /** Brakes the current reel to its already selected result as soon as possible. */
+  /**
+   * Brakes the current reel to its already selected result as soon as possible.
+   * @returns {void}
+   * @public
+   */
   public requestFastStop(): void {
     if (!this.isActive() || this.phase() === 'bounce' || this.fastStopRequested()) return;
     if (this.phase() === 'anticipation') {
@@ -145,7 +314,11 @@ export class Reel extends Container {
     this.fastStopRequested.set(true);
   }
 
-  /** Returns all symbols currently crossing the clipped reel window. */
+  /**
+   * Returns all symbols currently crossing the clipped reel window.
+   * @returns {VisibleReelSymbol[]}
+   * @public
+   */
   public getVisibleSymbols(): VisibleReelSymbol[] {
     const phase = this.phase();
     if (phase === 'spinning' || phase === 'bounce') {
@@ -197,7 +370,12 @@ export class Reel extends Container {
     return visible;
   }
 
-  /** Cancels motion and installs a fresh visible column. */
+  /**
+   * Cancels motion and installs a fresh visible column.
+   * @param {string[]} symbols
+   * @returns {void}
+   * @public
+   */
   public reset(symbols: string[]): void {
     this.symbols.set([...symbols]);
     this.target.set([]);
@@ -211,6 +389,12 @@ export class Reel extends Container {
     this.spinStrip.set([]);
   }
 
+  /**
+   * Returns spin progress for Reel.
+   * @param {number} progress The progress supplied to this operation.
+   * @returns {number} spin progress for Reel.
+   * @private
+   */
   private getSpinProgress(progress: number): number {
     const brakingStart = 1 - this.brakingShare;
     const cruiseShare = brakingStart - this.accelerationShare;
@@ -236,10 +420,22 @@ export class Reel extends Container {
       / totalDistance;
   }
 
+  /**
+   * Returns anticipation progress for Reel.
+   * @param {number} progress The progress supplied to this operation.
+   * @returns {number} anticipation progress for Reel.
+   * @private
+   */
   private getAnticipationProgress(progress: number): number {
     return MathUtils.smoothStep(progress);
   }
 
+  /**
+   * Returns blur amount for Reel.
+   * @param {number} progress The progress supplied to this operation.
+   * @returns {number} blur amount for Reel.
+   * @private
+   */
   private getBlurAmount(progress: number): number {
     const transitionShare = 0.08;
     const fadeIn = this.getAnticipationProgress(progress / transitionShare);
@@ -250,6 +446,12 @@ export class Reel extends Container {
     return fadeIn * (1 - fadeOut);
   }
 
+  /**
+   * Returns bounce offset for Reel.
+   * @param {number} elapsed The elapsed supplied to this operation.
+   * @returns {number} bounce offset for Reel.
+   * @private
+   */
   private getBounceOffset(elapsed: number): number {
     const progress = this.bounceDuration > 0
       ? MathUtils.clamp(elapsed / this.bounceDuration, 0, 1)

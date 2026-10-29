@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Tilemap } from './tilemap';
+import { Tilemap } from './';
 
 describe('Tilemap', () => {
   it('initializes grid cells and updates cell values', () => {

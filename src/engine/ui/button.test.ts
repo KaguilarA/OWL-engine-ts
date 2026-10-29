@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Button } from './button';
+import { Button } from './';
 import { Texture } from '../rendering';
 
 describe('UI Button', () => {
@@ -17,7 +17,7 @@ describe('UI Button', () => {
     expect(button.state()).toBe('idle');
 
     button.setBlocked(true);
-    expect(button.state()).toBe('idle'); // Blocked keeps idle visual but ignores events
+    expect(button.state()).toBe('blocked');
   });
 
   it('updates dimensions and cleans up listeners on destroy', () => {

@@ -16,7 +16,7 @@ import type { AtlasAnimation, AtlasRegion } from '../../interfaces';
  * `x` and `y` identify the image pivot. A pivot of `(0, 0)` draws from the
  * top-left corner, while `(0.5, 0.5)` draws from the center.
  */
-export default class Sprite {
+export default class {
   /**
    * The reactive geometry used for position, size, scale, pivot, and bounds.
    * @property {Dimensions} dimensions

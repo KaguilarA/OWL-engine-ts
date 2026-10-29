@@ -22,7 +22,7 @@ const REGION_TRIANGLES = [0, 1, 2, 2, 3, 0];
  * Canvas renderer for Spine region and mesh attachments.
  * @class SpineRenderer
  */
-export class SpineRenderer {
+export default class {
   /**
    * Context configuration or state owned by SpineRenderer.
    * @property {CanvasRenderingContext2D} context

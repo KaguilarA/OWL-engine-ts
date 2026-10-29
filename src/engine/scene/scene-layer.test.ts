@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SceneLayer } from './scene-layer';
+import { SceneLayer } from './';
 
 describe('SceneLayer', () => {
   it('updates and draws in ascending z order with stable insertion order', () => {

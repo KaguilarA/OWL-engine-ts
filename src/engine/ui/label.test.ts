@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Label } from './label';
-import { NumberLabel } from './number-label';
+import { Label, NumberLabel } from './';
 
 describe('UI Labels', () => {
   it('manages reactive text and styles in Label', () => {

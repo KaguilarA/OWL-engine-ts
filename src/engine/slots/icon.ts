@@ -1,3 +1,4 @@
+import { Icon } from './';
 import { signalValue, type SignalValue } from 'reactive-values';
 import { Atlas, GameLoader } from '../assets';
 import { GameContext, MathUtils } from '../core';
@@ -9,23 +10,101 @@ import type {
   SpineEventHandler
 } from '../interfaces';
 
+/**
+ * Defines the spine icon asset contract shared by its consumers.
+ * @typedef {SpineIconAsset} SpineIconAsset
+ */
 type SpineIconAsset = {
+  /**
+   * Atlas configuration or state owned by SpineIconAsset.
+   * @property {Atlas} atlas
+   */
   atlas: Atlas;
+  /**
+   * Snapshot payload persisted by the save service.
+   * @property {SpineRecord} data
+   */
   data: SpineRecord;
 };
 
-/** A reusable slot symbol with optional blurred art and a Spine win animation. */
-export class Icon implements ReelSymbolVisual {
+/**
+ * A reusable slot symbol with optional blurred art and a Spine win animation.
+ * @class Icon
+ */
+export default class implements ReelSymbolVisual {
+  /**
+   * Reactive win animation active state owned by Icon.
+   * @property {SignalValue<boolean>} winAnimationActive
+   * @readonly
+   * @private
+   */
   private readonly winAnimationActive: SignalValue<boolean> = signalValue(false);
+  /**
+   * Win animation configuration or state owned by Icon.
+   * @property {SpineSprite | undefined} winAnimation
+   * @private
+   */
   private winAnimation: SpineSprite | undefined;
+  /**
+   * Spine event handlers configuration or state owned by Icon.
+   * @property {Map<string, Set<SpineEventHandler>>} spineEventHandlers
+   * @readonly
+   * @private
+   */
   private readonly spineEventHandlers = new Map<string, Set<SpineEventHandler>>();
+  /**
+   * Remove spine event listeners configuration or state owned by Icon.
+   * @property {Set<() => void>} removeSpineEventListeners
+   * @readonly
+   * @private
+   */
   private readonly removeSpineEventListeners = new Set<() => void>();
+  /**
+   * Id configuration or state owned by Icon.
+   * @property {string} id
+   * @readonly
+   * @public
+   */
   public readonly id: string;
+  /**
+   * Normal configuration or state owned by Icon.
+   * @property {Sprite} normal
+   * @readonly
+   * @private
+   */
   private readonly normal: Sprite;
+  /**
+   * Blurred configuration or state owned by Icon.
+   * @property {Sprite} blurred
+   * @readonly
+   * @private
+   */
   private readonly blurred: Sprite;
+  /**
+   * Spine asset configuration or state owned by Icon.
+   * @property {SpineIconAsset | undefined} spineAsset
+   * @readonly
+   * @private
+   */
   private readonly spineAsset?: SpineIconAsset;
+  /**
+   * Idle aspect ratio configuration or state owned by Icon.
+   * @property {number} idleAspectRatio
+   * @readonly
+   * @private
+   */
   private readonly idleAspectRatio: number;
 
+  /**
+   * Initializes Icon and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {string} id The id supplied to this operation.
+   * @param {Sprite} normal The normal supplied to this operation.
+   * @param {Sprite} blurred The blurred supplied to this operation.
+   * @param {SpineIconAsset | undefined} [spineAsset] The spine asset supplied to this operation.
+   * @returns {void}
+   * @private
+   */
   private constructor(
     id: string,
     normal: Sprite,
@@ -39,7 +118,13 @@ export class Icon implements ReelSymbolVisual {
     this.idleAspectRatio = normal.dimensions.getWidth() / normal.dimensions.getHeight();
   }
 
-  /** Loads a symbol's normal, blurred, and optional Spine assets. */
+  /**
+   * Loads a symbol's normal, blurred, and optional Spine assets.
+   * @param {string} id
+   * @param {IconAssetPaths} paths
+   * @returns {Promise<Icon>}
+   * @public
+   */
   public static async load(id: string, paths: IconAssetPaths): Promise<Icon> {
     const [normalImage, blurredImage] = await Promise.all([
       GameLoader.loadImageUrl(paths.normal),
@@ -61,7 +146,7 @@ export class Icon implements ReelSymbolVisual {
     const blurredSourceX = (blurredImage.naturalWidth - blurredSourceWidth) * 0.5;
     const blurredSourceY = (blurredImage.naturalHeight - blurredSourceHeight) * 0.5;
 
-    return new Icon(
+    return new this(
       id,
       new Sprite(normalImage, idleWidth, idleHeight, 0, 0, 0.5, 0.5),
       new Sprite(
@@ -81,7 +166,11 @@ export class Icon implements ReelSymbolVisual {
     );
   }
 
-  /** Starts the Spine presentation used while this symbol is part of a win. */
+  /**
+   * Starts the Spine presentation used while this symbol is part of a win.
+   * @returns {void}
+   * @public
+   */
   public activateWinAnimation(): void {
     const animationName = this.getWinAnimationName();
     if (!this.spineAsset || !animationName) return;
@@ -100,17 +189,32 @@ export class Icon implements ReelSymbolVisual {
     this.advanceWinAnimation(0);
   }
 
-  /** Starts this symbol's win Spine when a reel cell enters its winning state. */
+  /**
+   * Starts this symbol's win Spine when a reel cell enters its winning state.
+   * @param {boolean} isWinning
+   * @returns {void}
+   * @public
+   */
   public setWinning(isWinning: boolean): void {
     if (isWinning) this.activateWinAnimation();
   }
 
-  /** Restores the static presentation before the next reel spin. */
+  /**
+   * Restores the static presentation before the next reel spin.
+   * @returns {void}
+   * @public
+   */
   public resetWinAnimation(): void {
     this.winAnimationActive.set(false);
   }
 
-  /** Subscribes to a named event in this icon's Spine animations, if available. */
+  /**
+   * Subscribes to a named event in this icon's Spine animations, if available.
+   * @param {string} name Name identifying the registered resource.
+   * @param {SpineEventHandler} handler
+   * @returns {() => void}
+   * @public
+   */
   public onSpineEvent(name: string, handler: SpineEventHandler): () => void {
     const handlers = this.spineEventHandlers.get(name) ?? new Set<SpineEventHandler>();
     handlers.add(handler);
@@ -126,7 +230,12 @@ export class Icon implements ReelSymbolVisual {
     return remove;
   }
 
-  /** Advances the icon's active Spine animation, if it has one. */
+  /**
+   * Advances the icon's active Spine animation, if it has one.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @public
+   */
   public update(deltaSeconds: number): void {
     if (!this.winAnimationActive() || !this.winAnimation) return;
     this.advanceWinAnimation(deltaSeconds);
@@ -135,6 +244,12 @@ export class Icon implements ReelSymbolVisual {
     }
   }
 
+  /**
+   * Applies the advance win animation operation to Icon.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @private
+   */
   private advanceWinAnimation(deltaSeconds: number): void {
     if (!this.winAnimation) return;
     try {
@@ -147,6 +262,11 @@ export class Icon implements ReelSymbolVisual {
     }
   }
 
+  /**
+   * Returns win animation name for Icon.
+   * @returns {string | undefined} win animation name for Icon.
+   * @private
+   */
   private getWinAnimationName(): string | undefined {
     const animations = this.spineAsset?.data.animations;
     if (!animations) return undefined;
@@ -157,7 +277,17 @@ export class Icon implements ReelSymbolVisual {
     );
   }
 
-  /** Draws the symbol or its active win animation at the supplied cell bounds. */
+  /**
+   * Draws the symbol or its active win animation at the supplied cell bounds.
+   * @param {number} centerX
+   * @param {number} centerY
+   * @param {number} width Available width in logical canvas coordinates.
+   * @param {number} height Available height in logical canvas coordinates.
+   * @param {number} [blurAmount]
+   * @param {boolean} [isWinning]
+   * @returns {void}
+   * @public
+   */
   public draw(
     centerX: number,
     centerY: number,
@@ -202,7 +332,11 @@ export class Icon implements ReelSymbolVisual {
     context.restore();
   }
 
-  /** Releases the texture pages owned by this icon's Spine atlas. */
+  /**
+   * Releases the texture pages owned by this icon's Spine atlas.
+   * @returns {void}
+   * @public
+   */
   public dispose(): void {
     this.winAnimationActive.set(false);
     this.removeSpineEventListeners.forEach((remove) => remove());
@@ -211,6 +345,13 @@ export class Icon implements ReelSymbolVisual {
     this.winAnimation = undefined;
   }
 
+  /**
+   * Loads spine asset for Icon.
+   * @param {string} id The id supplied to this operation.
+   * @param {{ json: string; atlas: string; }} paths The paths supplied to this operation.
+   * @returns {Promise<SpineIconAsset | undefined>} Loads spine asset for Icon.
+   * @private
+   */
   private static async loadSpineAsset(
     id: string,
     paths: NonNullable<IconAssetPaths['spine']>

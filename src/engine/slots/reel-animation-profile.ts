@@ -1,7 +1,16 @@
 import type { ReelOptions } from '../interfaces';
 
-/** Shared anticipation, acceleration, braking, and stop timing for slot reels. */
-export class ReelAnimationProfile {
+/**
+ * Shared anticipation, acceleration, braking, and stop timing for slot reels.
+ * @class ReelAnimationProfile
+ */
+export default class {
+  /**
+   * Constructs options for ReelAnimationProfile.
+   * @param {number} rowCount The row count supplied to this operation.
+   * @returns {ReelOptions} Constructs options for ReelAnimationProfile.
+   * @public
+   */
   public static createOptions(rowCount: number): ReelOptions {
     return {
       rowCount,
@@ -13,7 +22,23 @@ export class ReelAnimationProfile {
     };
   }
 
-  public static getSpinPlan(reelIndex: number): { travelCells: number; duration: number } {
+  /**
+   * Returns spin plan for ReelAnimationProfile.
+   * @param {number} reelIndex The reel index supplied to this operation.
+   * @returns {{ travelCells: number; duration: number }} spin plan for ReelAnimationProfile.
+   * @public
+   */
+  public static getSpinPlan(reelIndex: number): {
+  /**
+   * Travel cells configuration or state owned by ReelAnimationProfile.
+   * @property {number} travelCells
+   */
+  travelCells: number;
+  /**
+   * Duration configuration or state owned by ReelAnimationProfile.
+   * @property {number} duration
+   */
+  duration: number } {
     if (!Number.isInteger(reelIndex) || reelIndex < 0) {
       throw new RangeError('Reel index must be a non-negative integer.');
     }

@@ -1,3 +1,3 @@
 export { default as CanvasIcon } from './canvas-icon';
-export { Texture } from './texture';
-export { GameBackground } from './background';
+export { default as Texture } from './texture';
+export { default as GameBackground } from './background';
