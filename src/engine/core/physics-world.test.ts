@@ -278,3 +278,45 @@ describe('Queries and one-way platforms', () => {
     expect(world.contacts()).toHaveLength(0);
   });
 });
+
+
+describe('PhysicsWorld fixed-step preparation', () => {
+  it('prepares each consumed step before motion and releases the subscription idempotently', () => {
+    const world = new PhysicsWorld({ fixedTimeStep: 0.1, gravityY: 10 });
+    const body = new CircleBody(0, 0, 1);
+    world.addBody(body);
+    const prepare = vi.fn((seconds: number) => { expect(seconds).toBe(0.1); body.setVelocity(2, body.velocityY); });
+    const unsubscribe = world.onBeforeStep(prepare);
+    world.update(0.05);
+    expect(prepare).not.toHaveBeenCalled();
+    world.update(0.2);
+    expect(prepare).toHaveBeenCalledTimes(2);
+    expect(body.x).toBeCloseTo(0.4);
+    expect(body.y).toBeCloseTo(0.2);
+    unsubscribe(); unsubscribe();
+    world.update(0.1);
+    expect(prepare).toHaveBeenCalledTimes(2);
+  });
+
+  it('allows registration during preparation, rejects nested updates, and survives callback failures', () => {
+    const world = new PhysicsWorld({ fixedTimeStep: 0.1 });
+    const body = new CircleBody(0, 0, 1);
+    body.setVelocity(10, 0);
+    const remove = world.onBeforeStep(() => {
+      world.addBody(body);
+      expect(() => world.update(0.1)).toThrow('nested');
+    });
+    world.update(0.1);
+    expect(body.x).toBeCloseTo(1);
+    remove();
+    const failure = world.onBeforeStep(() => { throw new Error('preparation'); });
+    const other = vi.fn();
+    const stopOther = world.onBeforeStep(other);
+    expect(() => world.update(0.1)).toThrow(AggregateError);
+    expect(other).toHaveBeenCalledOnce();
+    expect(body.x).toBeCloseTo(1);
+    failure(); stopOther();
+    world.update(0.1);
+    expect(body.x).toBeCloseTo(2);
+  });
+});

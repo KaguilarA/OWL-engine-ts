@@ -174,9 +174,21 @@ remaining motion is discarded conservatively rather than permitting tunneling.
 `TilemapCollider` derives owned static colliders from reactive tiles, position,
 and signed scale, including sensor cells and upper-face-only platforms.
 
+Playable integration is available from the existing selector. Meadow Quest uses
+a dynamic hero controlled through shared reactive motion, tilemap ground,
+one-way ledges, a kinematic enemy, collectible and goal sensors, and ground ray
+queries. Pachinko Keno uses circle pegs, box walls, convex lane dividers,
+continuous ball collisions, and payout sensors. Pinball uses rounded static
+rails, convex slingshots, contact-driven scoring, shooter and drain sensors,
+and swept kinematic flipper samples prepared by the world's fixed-step hook.
+All three preserve touch controls,
+rebuild responsive geometry on orientation changes, and release registrations
+and subscriptions when restarted or closed. Other games retain their existing
+collision handling until individually migrated.
+
 Constraints and joints were evaluated against the existing demonstrations:
-prescribed kinematic motion covers moving obstacles, while existing pinball
-flipper behavior remains specialized. Freely articulated assemblies are not yet
+prescribed kinematic motion covers moving obstacles and Pinball flippers. Their
+powered contact impulses remain gameplay rules. Freely articulated assemblies are not yet
 required by a migrated scene. Joint constraints, angular impulses, torque,
 friction, and swept rotation are not implemented by this translational solver;
 they require a separate extension if a game needs those behaviors. Explicit

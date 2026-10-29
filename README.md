@@ -190,6 +190,31 @@ above. `getCellBounds()` matches the tilemap renderer's origin and signed scale.
 Register `adapter.dispose()` in the scene's `SceneResources` or `BaseGame`
 cleanup list; it releases subscriptions and only the adapter-owned colliders.
 
+The existing game selector includes three playable integrations:
+
+| Game | Physics exercised | Controls |
+| --- | --- | --- |
+| Meadow Quest | Dynamic box hero, reactive ground tilemap, one-way ledges, kinematic enemy, coin and goal sensors, ground ray queries | Move and jump with keyboard or simultaneous touch controls |
+| Pachinko Keno | Dynamic circle, static circular pegs, box walls, convex polygon dividers, continuous impacts, payout sensors | Tap a lane and DROP BALL, or use the drop action |
+| Pinball | Dynamic ball, static walls and rounded rails, convex slingshots, bumper and target contacts, swept kinematic flippers, shooter and drain sensors | Hold and release launch; hold either or both flippers with keyboard or simultaneous touch |
+
+All three games use their existing `WorldScene.physics`; `BaseGame` advances it once
+per frame. Meadow Quest injects the hero's `motion` into `PlatformerController`
+and calls `applyInput()` to preserve jump buffering and coyote time without a
+second integration. The existing `update()` method remains available for games
+that own their movement integration. A viewport layout change rebuilds scoped
+colliders while retaining progress; restarting and leaving remove old bodies,
+contact subscriptions, and tilemap effects.
+
+`PhysicsWorld.onBeforeStep(listener)` prepares velocities and forces once per
+consumed fixed step before body snapshots and integration. Its unsubscribe
+callback belongs in scene cleanup. Pinball uses this hook for drag, powered
+contact cooldowns, and flipper motion. Each flipper is a closely spaced row of
+kinematic circles, swept from its previous sample positions to the commanded
+angle every fixed interval. This approximates a rounded bat without adding
+angular dynamics or a separate collision solver. Bumper, slingshot, and flipper
+power impulses remain gameplay rules applied after world contact events.
+
 `PhysicsDebugRenderer.draw(world, camera?)` shows collider outlines and contact
 normals. `drawRay(start, end, hits, camera?)` and `drawArea(area, camera?)` show
 query geometry. These tools are opt-in and restore canvas state after rendering.

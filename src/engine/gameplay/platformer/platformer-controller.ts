@@ -83,13 +83,13 @@ export default class {
    * Creates a platforming controller with a body and movement settings.
    * @param x Initial horizontal position.
    * @param y Initial vertical position.
-   * @param options Movement settings.
+   * @param options Movement settings and optional motion owned by a rigid body.
    * @public
    * @return {void}
    * @constructor
    */
   public constructor(x = 0, y = 0, options: PlatformerOptions = {}) {
-    this.body = new PhysicsBody(x, y);
+    this.body = options.body ?? new PhysicsBody(x, y);
     this.moveSpeed = options.moveSpeed ?? 260;
     this.gravityY = options.gravityY ?? 1200;
     this.jumpVelocity = options.jumpVelocity ?? 480;
@@ -116,6 +116,24 @@ export default class {
    * @return {void}
    */
   public update(deltaSeconds: number, horizontalInput: number, isGrounded: boolean): void {
+    this.applyInput(deltaSeconds, horizontalInput, isGrounded);
+    const delta = Math.min(deltaSeconds, 0.1);
+    this.body.update(delta, this.gravityY);
+    if (isGrounded && this.body.velocityY() > 0 && this.coyoteRemaining() > 0) {
+      this.body.velocityY.set(0);
+    }
+  }
+
+  /**
+   * Applies movement and buffered jumps without integrating position or gravity.
+   * Use this with an injected rigid body's motion when PhysicsWorld advances it.
+   * @param {number} deltaSeconds Elapsed input time in seconds.
+   * @param {number} horizontalInput Movement axis between minus one and one.
+   * @param {boolean} isGrounded Whether a supporting surface was found.
+   * @returns {void}
+   * @public
+   */
+  public applyInput(deltaSeconds: number, horizontalInput: number, isGrounded: boolean): void {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
       throw new RangeError('Platformer delta seconds must be finite and non-negative.');
     }
@@ -134,11 +152,6 @@ export default class {
       this.jumpBufferRemaining.set(0);
       this.coyoteRemaining.set(0);
       this.grounded.set(false);
-    }
-
-    this.body.update(delta, this.gravityY);
-    if (isGrounded && this.body.velocityY() > 0 && this.coyoteRemaining() > 0) {
-      this.body.velocityY.set(0);
     }
   }
 

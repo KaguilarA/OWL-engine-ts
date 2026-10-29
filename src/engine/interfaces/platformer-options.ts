@@ -1,8 +1,16 @@
+import type { PhysicsBody } from '../core';
+
 /**
  * Movement and jump settings for a platforming character controller.
  * @interface PlatformerOptions
  */
 export interface PlatformerOptions {
+  /**
+   * Existing reactive motion to control when a PhysicsWorld owns integration.
+   * @property {PhysicsBody | undefined} body
+   */
+  body?: PhysicsBody;
+
   /**
    * Horizontal movement speed in world units per second.
    * @property {number} moveSpeed

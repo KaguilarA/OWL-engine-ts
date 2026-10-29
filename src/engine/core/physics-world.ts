@@ -79,6 +79,12 @@ export default class {
    */
   private readonly listeners = new Set<(event: PhysicsContactEvent) => void>();
   /**
+   * Scoped callbacks preparing forces and prescribed motion before each fixed step.
+   * @property {Set<Function>} beforeStepListeners
+   * @private
+   */
+  private readonly beforeStepListeners = new Set<(seconds: number) => void>();
+  /**
    * Internal dispatch guard protecting event batches from reentrant registration changes.
    * @property {boolean} dispatching
    * @private
@@ -169,6 +175,18 @@ export default class {
   }
 
   /**
+   * Subscribes to fixed-step preparation before the world snapshots body positions.
+   * Callbacks may register bodies and set velocity; nested updates remain forbidden.
+   * Subscriptions survive clear() for world reuse and must be released by their owner.
+   * @param {Function} listener Callback receiving the fixed interval in seconds.
+   * @returns {Function} Idempotent unsubscribe callback.
+   */
+  public onBeforeStep(listener: (seconds: number) => void): () => void {
+    this.beforeStepListeners.add(listener);
+    return () => { this.beforeStepListeners.delete(listener); };
+  }
+
+  /**
    * Advances bounded fixed steps and preserves only the fractional unconsumed remainder on overload.
    * @param {number} deltaSeconds Finite, nonnegative elapsed duration.
    * @returns {void}
@@ -182,6 +200,11 @@ export default class {
       let steps = 0;
       while (this.accumulatedTime() + 1e-12 >= this.fixedTimeStep && steps < this.maxSubSteps) {
         this.accumulatedTime.set(Math.max(0, this.accumulatedTime() - this.fixedTimeStep));
+        const failures: unknown[] = [];
+        for (const listener of [...this.beforeStepListeners]) {
+          try { listener(this.fixedTimeStep); } catch (error) { failures.push(error); }
+        }
+        if (failures.length) throw new AggregateError(failures, 'Physics step preparation failed.');
         this.stepping.set(true);
         try { this.step(this.fixedTimeStep); }
         finally { this.stepping.set(false); this.flushMutations(); }
