@@ -1,13 +1,13 @@
 import { Sprite } from '../animations';
 import type { AtlasAnimation } from '../interfaces';
-import { SpriteEntity } from './sprite-entity';
+import { SpriteEntity } from './';
 
 /**
  * Shares animated engine-trail behavior between player ships.
  * @class AnimatedShipEntity
  * @abstract
  */
-export abstract class AnimatedShipEntity extends SpriteEntity {
+export default abstract class extends SpriteEntity {
   /**
    * Engine-trail sprite drawn behind the ship body.
    * @property {Sprite} jets

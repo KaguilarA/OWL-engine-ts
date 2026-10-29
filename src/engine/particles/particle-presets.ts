@@ -1,22 +1,16 @@
-import { ParticleEmitter } from './particle-emitter';
-import type { ParticleSystem } from './particle-system';
-
-export interface PresetOptions {
-  x?: number;
-  y?: number;
-  system?: ParticleSystem;
-  texture?: HTMLImageElement;
-}
+import type { PresetOptions } from '../interfaces';
+import { ParticleEmitter } from './';
 
 /**
  * Factory for casino, arcade, and RPG particle emitter presets.
  * @class ParticlePresets
  */
-export class ParticlePresets {
+export default class {
   /**
    * Creates a jackpot coin shower fountain emitter.
    * @public
    * @return {ParticleEmitter}
+   * @param {PresetOptions} [options] Configuration controlling construction or behavior.
    */
   public static coinShower(options: PresetOptions = {}): ParticleEmitter {
     return new ParticleEmitter(options.x ?? 0, options.y ?? 0, {
@@ -44,6 +38,7 @@ export class ParticlePresets {
    * Creates a celebration confetti emitter.
    * @public
    * @return {ParticleEmitter}
+   * @param {PresetOptions} [options] Configuration controlling construction or behavior.
    */
   public static confetti(options: PresetOptions = {}): ParticleEmitter {
     return new ParticleEmitter(options.x ?? 0, options.y ?? 0, {
@@ -70,6 +65,7 @@ export class ParticlePresets {
    * Creates a shimmering sparkle emitter.
    * @public
    * @return {ParticleEmitter}
+   * @param {PresetOptions} [options] Configuration controlling construction or behavior.
    */
   public static sparkle(options: PresetOptions = {}): ParticleEmitter {
     return new ParticleEmitter(options.x ?? 0, options.y ?? 0, {
@@ -95,6 +91,7 @@ export class ParticlePresets {
    * Creates an explosive burst emitter.
    * @public
    * @return {ParticleEmitter}
+   * @param {PresetOptions} [options] Configuration controlling construction or behavior.
    */
   public static explosion(options: PresetOptions = {}): ParticleEmitter {
     return new ParticleEmitter(options.x ?? 0, options.y ?? 0, {
@@ -120,6 +117,7 @@ export class ParticlePresets {
    * Creates a friction/clash sparks emitter.
    * @public
    * @return {ParticleEmitter}
+   * @param {PresetOptions} [options] Configuration controlling construction or behavior.
    */
   public static sparks(options: PresetOptions = {}): ParticleEmitter {
     return new ParticleEmitter(options.x ?? 0, options.y ?? 0, {

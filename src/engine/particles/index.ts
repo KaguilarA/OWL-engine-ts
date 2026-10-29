@@ -1,6 +1,5 @@
-export { ParticleSystem } from './particle-system';
+export { default as ParticleSystem } from './particle-system';
 export type { ParticleShape } from './particle-system';
-export { ParticleEmitter } from './particle-emitter';
-export type { ParticleEmitterOptions } from './particle-emitter';
-export { ParticlePresets } from './particle-presets';
-export type { PresetOptions } from './particle-presets';
+export { default as ParticleEmitter } from './particle-emitter';
+
+export { default as ParticlePresets } from './particle-presets';

@@ -7,13 +7,17 @@ import {
 import { GameContext } from '../core';
 import type { Camera2D } from '../scene';
 
+/**
+ * Defines the particle shape contract shared by its consumers.
+ * @typedef {ParticleShape} ParticleShape
+ */
 export type ParticleShape = 'circle' | 'rect' | 'texture';
 
 /**
  * Continuous Float32Array particle simulation engine with reactive state tracking.
  * @class ParticleSystem
  */
-export class ParticleSystem {
+export default class {
   /**
    * Stores the total capacity of pre-allocated particle buffers.
    * @property {number} capacity
@@ -218,6 +222,8 @@ export class ParticleSystem {
    * Creates a particle system with pre-allocated contiguous buffers.
    * @public
    * @return {void}
+   * @constructor
+   * @param {number} [capacity] The capacity supplied to this operation.
    */
   public constructor(capacity = 1000) {
     this.capacity = Math.max(1, capacity);
@@ -251,6 +257,23 @@ export class ParticleSystem {
    * Spawns a particle into flat buffers without allocating objects.
    * @public
    * @return {boolean}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
+   * @param {number} vx The vx supplied to this operation.
+   * @param {number} vy The vy supplied to this operation.
+   * @param {number} ax The ax supplied to this operation.
+   * @param {number} ay The ay supplied to this operation.
+   * @param {number} maxLife The max life supplied to this operation.
+   * @param {number} startSize The start size supplied to this operation.
+   * @param {number} endSize The end size supplied to this operation.
+   * @param {number} startAlpha The start alpha supplied to this operation.
+   * @param {number} endAlpha The end alpha supplied to this operation.
+   * @param {number} r The r supplied to this operation.
+   * @param {number} g The g supplied to this operation.
+   * @param {number} b The b supplied to this operation.
+   * @param {number} [rotation] The rotation supplied to this operation.
+   * @param {number} [rotationSpeed] The rotation speed supplied to this operation.
+   * @param {ParticleShape} [shape] The shape supplied to this operation.
    */
   public spawn(
     x: number,
@@ -302,6 +325,7 @@ export class ParticleSystem {
    * Updates particle simulation and cleans up expired particles via swap-and-pop.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     let count = this.activeCount();
@@ -331,6 +355,8 @@ export class ParticleSystem {
    * Renders active particles in batch to the graphics context.
    * @public
    * @return {void}
+   * @param {CanvasRenderingContext2D} [context] The context supplied to this operation.
+   * @param {Camera2D | undefined} [camera] The camera supplied to this operation.
    */
   public draw(context = GameContext.context, camera?: Camera2D): void {
     const active = this.activeCount();
@@ -407,6 +433,8 @@ export class ParticleSystem {
    * Swaps two particle slots in contiguous buffers.
    * @private
    * @return {void}
+   * @param {number} a The a supplied to this operation.
+   * @param {number} b The b supplied to this operation.
    */
   private swap(a: number, b: number): void {
     this.posX[a] = this.posX[b];

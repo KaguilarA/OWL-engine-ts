@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ParticleSystem } from './particle-system';
-import { ParticleEmitter } from './particle-emitter';
-import { ParticlePresets } from './particle-presets';
+import { ParticleSystem, ParticleEmitter, ParticlePresets } from './';
 
 describe('ParticleSystem & ParticleEmitter (Zero-Allocation)', () => {
   it('spawns and updates particles in flat typed arrays without object allocation', () => {

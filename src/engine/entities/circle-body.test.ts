@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CircleBody } from './circle-body';
+import { CircleBody } from './';
 
 describe('CircleBody', () => {
   it('manages position, velocity, and radius', () => {

@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Component } from './component';
-import { Entity } from './entity';
-import { Prefab, PrefabRegistry } from './prefab';
-import { TransformComponent } from './transform-component';
+import { Component, Entity, Prefab, PrefabRegistry, TransformComponent } from './';
 
 class CounterComponent extends Component {
   public updates = 0;

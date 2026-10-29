@@ -1,4 +1,4 @@
-import Sprite from '../animations/sprites/sprite';
+import { Sprite } from '../animations/sprites';
 import { PhysicsBody } from '../core';
 
 /**
@@ -6,7 +6,7 @@ import { PhysicsBody } from '../core';
  * @class SpriteEntity
  * @abstract
  */
-export abstract class SpriteEntity {
+export default abstract class {
   /**
    * Stores the sprite state.
    * @property {Sprite} sprite
@@ -26,6 +26,8 @@ export abstract class SpriteEntity {
    * Wraps a sprite so subclasses can use entity-level geometry helpers.
    * @protected
    * @return {void}
+   * @constructor
+   * @param {Sprite} sprite The sprite supplied to this operation.
    */
   protected constructor(sprite: Sprite) {
     this.sprite = sprite;
@@ -158,7 +160,11 @@ export abstract class SpriteEntity {
     this.syncPhysicsPosition();
   }
 
-  /** Synchronizes the wrapped sprite to the physics body's position. */
+  /**
+   * Synchronizes the wrapped sprite to the physics body's position.
+   * @returns {void}
+   * @private
+   */
   private syncPhysicsPosition(): void {
     this.sprite.dimensions.setPosition(this.physics.x(), this.physics.y());
   }

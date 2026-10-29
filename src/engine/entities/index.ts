@@ -1,14 +1,14 @@
-export { SpriteEntity } from './sprite-entity';
-export { AnimatedShipEntity } from './animated-ship-entity';
-export { DamageableSpriteEntity } from './damageable-sprite-entity';
-export type { DamageableSpriteEntityOptions } from './damageable-sprite-entity';
-export { FallingPickup } from './falling-pickup';
-export { CircleBody } from './circle-body';
-export { Component } from './component';
+export { default as Component } from './component';
 export type { ComponentConstructor } from './component';
-export { Entity } from './entity';
-export type { EntityOptions } from './entity';
-export { TransformComponent } from './transform-component';
-export type { TransformOptions } from './transform-component';
-export { SpriteRendererComponent } from './sprite-renderer-component';
-export { Prefab, PrefabRegistry } from './prefab';
+export { default as TransformComponent } from './transform-component';
+
+export { default as Entity } from './entity';
+
+export { default as SpriteRendererComponent } from './sprite-renderer-component';
+export { default as Prefab } from './prefab';
+export { default as PrefabRegistry } from './prefab-registry';
+export { default as CircleBody } from './circle-body';
+export { default as FallingPickup } from './falling-pickup';
+export { default as SpriteEntity } from './sprite-entity';
+export { default as AnimatedShipEntity } from './animated-ship-entity';
+export { default as DamageableSpriteEntity } from './damageable-sprite-entity';

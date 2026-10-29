@@ -1,21 +1,27 @@
-import Dimensions from '../core/dimensions';
-import { Component } from './component';
+import type { TransformOptions } from '../interfaces';
+import { Dimensions } from '../core';
+import { Component } from './';
 
-export interface TransformOptions {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  scaleX?: number;
-  scaleY?: number;
-  pivotX?: number;
-  pivotY?: number;
-}
-
-/** Position, size, scale and pivot data shared by an Entity's components. */
-export class TransformComponent extends Component {
+/**
+ * Position, size, scale and pivot data shared by an Entity's components.
+ * @class TransformComponent
+ */
+export default class extends Component {
+  /**
+   * Dimensions configuration or state owned by TransformComponent.
+   * @property {default} dimensions
+   * @readonly
+   * @public
+   */
   public readonly dimensions: Dimensions;
 
+  /**
+   * Initializes TransformComponent and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {TransformOptions} [options] Configuration controlling construction or behavior.
+   * @returns {void}
+   * @public
+   */
   public constructor(options: TransformOptions = {}) {
     super();
     this.dimensions = new Dimensions(
