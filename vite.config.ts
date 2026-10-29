@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 // import { readdirSync, readFileSync } from 'node:fs';
 // import { join, relative, sep } from 'node:path';
 
@@ -82,5 +82,9 @@ function musketeersManifestPlugin() {
 
 export default defineConfig({
   base: './',
-  plugins: [/* musketeersManifestPlugin() */]
+  plugins: [/* musketeersManifestPlugin() */],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts']
+  }
 });

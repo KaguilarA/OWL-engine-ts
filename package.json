@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check:imports && tsc && vite build",
+    "build": "npm run check:imports && npm run check:docs && tsc && vite build",
     "check:imports": "node scripts/check-barrel-imports.mjs",
+    "check:docs": "node scripts/check-jsdoc.mjs",
     "test": "vitest run",
     "preview": "vite preview"
   },

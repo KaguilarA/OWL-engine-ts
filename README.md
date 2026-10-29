@@ -20,14 +20,27 @@ A browser-based 2D game engine written in TypeScript and built on Canvas 2D. The
 
 ## Design rules
 
-1. **Reactive state (`reactive-values`)**: observable, mutable engine state uses signals (`SignalValue`) and derived values instead of duplicating reactive state in plain fields.
-2. **Module responsibilities**: each module has a clear responsibility and interface. Higher-level modules depend on engine contracts instead of duplicating low-level details.
-3. **Shared services**: follow SOLID principles and keep shared engine services—such as `GameContext`, `GameLoader`, `GameEvents`, `GameAudio`, and `GamePools`—as singletons. State that belongs to a scene or game remains scoped to that scene or game.
+The authoritative project laws are maintained in [AGENTS.md](AGENTS.md).
 
-All local TypeScript imports, including tests and dynamic imports, go through
-directory barrel files (`index.ts`). Group imports from the same source in one
-declaration, using inline `type` modifiers when needed. Implementation-file paths
-belong in barrel re-exports. `npm run check:imports` enforces this during builds.
+1. **Singleton and SOLID:** one responsibility per unit; use a singleton whenever a single instance is appropriate.
+2. **One definition per file:** each independent class, interface, function or constant has its own file. Use default exports, except for interfaces, which use named exports. Barrels only re-export.
+3. **Reactive values:** reactive state always uses `reactive-values`, without parallel mutable copies or alternative reactive systems.
+4. **Multiline JSDoc:** documentation must explain behavior clearly and use the applicable tags, including parameters and return values. Single-line JSDoc is prohibited.
+5. **Barrels always:** all local TypeScript imports, including types, tests and dynamic imports, go through `index.ts`. Group imports from the same source.
+
+Every engine interface lives directly in `src/engine/interfaces`, one per file,
+and is exported by that directory's barrel. Engine modules must not declare
+interfaces alongside implementations or create their own interface directories.
+
+Exported classes and functions are anonymous default declarations. Public names
+are assigned only by barrels: `export { default as GameEngine } from './game-engine';`.
+Each singleton stays in one implementation file and exports the anonymous class's
+`.instance` directly. Do not split its class and instance into separate service
+or facade files.
+
+`npm run check:imports` enforces barrel imports during builds;
+`npm run check:docs` rejects single-line JSDoc. These checks do not replace review
+of responsibilities, reactive state, documentation clarity or file structure.
 
 Every game must be fully playable with touch controls on phones and tablets.
 Map every required gameplay action to visible touch buttons or direct board
