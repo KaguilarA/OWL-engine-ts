@@ -2,8 +2,8 @@ import { signalValue } from 'reactive-values';
 import { MathUtils, GameContext } from './';
 import { GameControls, GameInput } from '../input';
 import { Label } from '../ui';
-import { SceneLayer, WorldScene } from '../scene';
-import type { GameControlsOptions, LabelRenderState } from '../interfaces';
+import { SceneLayer, SceneManager, WorldScene } from '../scene';
+import type { GameControlsOptions, GameScene, LabelRenderState } from '../interfaces';
 
 /**
  * Shared lifecycle for every playable game.
@@ -15,7 +15,7 @@ import type { GameControlsOptions, LabelRenderState } from '../interfaces';
  * @class BaseGame
  * @abstract
  */
-export default abstract class {
+export default abstract class implements GameScene {
   /**
    * Scene graph available to games that use the world APIs.
    * @property {WorldScene} worldScene
@@ -42,6 +42,30 @@ export default abstract class {
    * @private
    */
   private readonly running = signalValue(true);
+  /**
+   * Prevents repeated disposal and late asynchronous starts after leaving a game.
+   * @property {SignalValue<boolean>} disposed
+   * @private
+   */
+  private readonly disposed = signalValue(false);
+  /**
+   * Scheduled animation frame cancelled when this instance is disposed.
+   * @property {SignalValue<number | undefined>} frameId
+   * @private
+   */
+  private readonly frameId = signalValue<number | undefined>(undefined);
+  /**
+   * Input context requested by the subclass, activated only when its prepared scene starts.
+   * @property {SignalValue<string>} inputContext
+   * @private
+   */
+  private readonly inputContext = signalValue('gameplay');
+  /**
+   * Whether subclass initialization completed and its lifecycle may begin rendering.
+   * @property {SignalValue<boolean>} ready
+   * @private
+   */
+  private readonly ready = signalValue(false);
   /**
    * Previous animation-frame timestamp.
    * @property {Signal<number>} lastFrameTime
@@ -127,6 +151,10 @@ export default abstract class {
    * @param {string} [inputContext] The input context supplied to this operation.
    */
   protected start(inputContext = 'gameplay'): void {
+    if (this.disposed() || this.frameId() !== undefined) return;
+    this.inputContext.set(inputContext);
+    this.ready.set(true);
+    if (['loading', 'entering'].includes(SceneManager.state())) return;
     GameInput.activateContext(inputContext);
     this.gameLoop();
   }
@@ -180,6 +208,7 @@ export default abstract class {
    * @return {void}
    */
   protected registerCleanup(cleanup: () => void): void {
+    if (this.disposed()) { cleanup(); return; }
     this.cleanups.push(cleanup);
   }
 
@@ -224,7 +253,7 @@ export default abstract class {
     this.updateFrame(deltaSeconds);
     if (!this.running()) return;
     this.drawFrame();
-    requestAnimationFrame(this.gameLoop);
+    this.frameId.set(requestAnimationFrame(this.gameLoop));
   };
 
   /**
@@ -254,6 +283,7 @@ export default abstract class {
       return;
     }
     if (GameInput.wasPressed('pause') && !this.isGameOver) this.controls.togglePause();
+    if (SceneManager.activeScene === this) SceneManager.setPaused(this.controls.isPaused);
     if (this.isGameOver && GameInput.wasPressed('confirm')) this.restart();
     if (this.controls.isPaused || this.isGameOver) return;
     this.updateGame(deltaSeconds);
@@ -454,6 +484,7 @@ export default abstract class {
    * @return {void}
    */
   private restart(): void {
+    if (SceneManager.activeScene === this) SceneManager.setPaused(false);
     GameInput.activateContext(GameInput.context());
     this.controls.hideEndActions();
     this.restartGame();
@@ -465,15 +496,53 @@ export default abstract class {
    * @return {void}
    */
   private returnToMenu(): void {
+    this.dispose();
+    this.onReturnToMenu?.();
+  }
+
+  /**
+   * Suspends simulation while retaining this game's scene resources.
+   * @returns {void}
+   */
+  public pause(): void { this.controls.setPaused(true); }
+
+  /**
+   * Resumes simulation and resets the frame clock after loading or pause.
+   * @returns {void}
+   */
+  public resume(): void {
+    if (this.disposed()) return;
+    this.controls.setPaused(false);
+    this.lastFrameTime.set(performance.now());
+    if (this.ready() && this.frameId() === undefined) {
+      GameInput.activateContext(this.inputContext());
+      this.gameLoop();
+    }
+  }
+
+  /**
+   * Stops the game and attempts all owned cleanup exactly once, without navigating.
+   * @returns {void}
+   * @throws {AggregateError} When an owned resource cannot be released.
+   */
+  public dispose(): void {
+    if (this.disposed()) return;
+    this.disposed.set(true);
     this.running.set(false);
+    if (this.frameId() !== undefined) cancelAnimationFrame(this.frameId()!);
+    this.frameId.set(undefined);
     if (this.pendingViewportLayout !== undefined) {
       window.clearTimeout(this.pendingViewportLayout);
       this.pendingViewportLayout = undefined;
     }
-    this.controls.dispose();
-    this.cleanups.splice(0).forEach((cleanup) => cleanup());
-    this.disposeGame();
+    const failures: unknown[] = [];
+    for (const cleanup of [() => this.controls.dispose(), ...this.cleanups.splice(0).reverse(),
+      () => this.disposeGame(), () => this.worldScene.clear()]) {
+      try { cleanup(); } catch (error) { failures.push(error); }
+    }
+    this.labels.clear();
+    this.labelRenderStates.length = 0;
     GameInput.clear();
-    this.onReturnToMenu?.();
+    if (failures.length) throw new AggregateError(failures, 'Game cleanup failed.');
   }
 }

@@ -15,7 +15,8 @@ export interface GameChoice {
   description: string;
   /**
    * Start configuration or state owned by GameChoice.
-   * @property {(onReturnToMenu: () => void) => void} start
+   * @property {(onReturnToMenu: () => void) => GameScene} start
    */
-  start: (onReturnToMenu: () => void) => void;
+  start: (onReturnToMenu: () => void) => GameScene;
 }
+import type { GameScene } from '../../engine/interfaces';

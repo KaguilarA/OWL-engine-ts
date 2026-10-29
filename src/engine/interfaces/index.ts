@@ -1,4 +1,9 @@
 export type { AtlasAnimation } from './atlas-animation';
+export type { GameScene } from './game-scene';
+export type { SceneLoadContext } from './scene-load-context';
+export type { SceneInstance } from './scene-instance';
+export type { SceneRequest } from './scene-request';
+export type { default as SceneLifecycleState } from './scene-lifecycle-state';
 export type { default as SaveData } from './save-data';
 export type { SavedGame } from './saved-game';
 export type { default as SaveResult } from './save-result';

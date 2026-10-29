@@ -26,6 +26,7 @@ describe('BaseGame input lifecycle', () => {
   it('samples actions, pauses, restarts after game over, and releases input when leaving', () => {
     let frame: FrameRequestCallback = () => {};
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { frame = callback; return 1; });
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
     const menu = vi.fn();
     const game = new InputTestGame(menu);
     const press = (key: string) => window.dispatchEvent(new KeyboardEvent('keydown', { key }));

@@ -1,9 +1,9 @@
 import './style.css'
 import { GameSelector } from './games';
-import { GameLoader } from './engine';
+import { SceneManager } from './engine';
 
 window.addEventListener('load', async () => {
 
-  await GameLoader.loadAll();
-  new GameSelector();
+  SceneManager.register('menu', () => new GameSelector());
+  await SceneManager.goTo('menu');
 });

@@ -193,6 +193,13 @@ export default class {
   public togglePause(): void { this.paused.set(!this.paused()); }
 
   /**
+   * Synchronizes scene-manager pause state without triggering another input action.
+   * @param {boolean} paused Whether gameplay should be suspended.
+   * @returns {void}
+   */
+  public setPaused(paused: boolean): void { this.paused.set(paused); }
+
+  /**
    * Draws all shared controls and the pause overlay when paused.
    * @public
    * @return {void}

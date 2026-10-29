@@ -96,6 +96,20 @@ export default class {
   }
 
   /**
+   * Releases world references, layer callbacks, physics registrations, and camera following.
+   * Shared render assets remain owned by the asset loader.
+   * @returns {void}
+   */
+  public clear(): void {
+    for (const layer of this.layers()) layer.clear();
+    this.layers.set([]);
+    this.insertionOrder.clear();
+    this.nextInsertionOrder = 0;
+    for (const body of this.physics.getBodies()) this.physics.removeBody(body);
+    this.camera.stopFollowing();
+  }
+
+  /**
    * Updates camera and all layers for one frame.
    * @public
    * @return {void}

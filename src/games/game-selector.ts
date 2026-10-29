@@ -9,6 +9,9 @@ import {
   GameLoader,
   Label,
   MathUtils,
+  SceneManager,
+  type GameScene,
+  type SceneLoadContext,
   Texture
 } from '../engine';
 
@@ -32,7 +35,7 @@ import type { GameChoice } from './interfaces';
  * Presents the game list and starts the selected game.
  * @class GameSelector
  */
-export default class {
+export default class implements GameScene {
   /**
    * Stores the choices state.
    * @property {GameChoice[]} choices
@@ -43,69 +46,69 @@ export default class {
     {
       title: 'SPACE HUNTERS',
       description: 'INSPIRED BY SPACE INVADERS',
-      start: (onReturnToMenu) => { new SpaceHuntersGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new SpaceHuntersGame(onReturnToMenu)
     },
     {
       title: 'POLARITY VANGUARD',
       description: 'INSPIRED BY IKARUGA',
-      start: (onReturnToMenu) => { new PolarityVanguardGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new PolarityVanguardGame(onReturnToMenu)
     },
     {
       title: 'SPACE PATTERNS',
       description: 'INSPIRED BY CANDY CRUSH',
-      start: (onReturnToMenu) => { new SpacePatternsGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new SpacePatternsGame(onReturnToMenu)
     },
     {
       title: 'TANK FRONTIER',
       description: 'INSPIRED BY BATTLE CITY',
-      start: (onReturnToMenu) => { new TankFrontierGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new TankFrontierGame(onReturnToMenu)
     },
     {
       title: 'COSMIC JACKPOT',
       description: 'THREE-REEL SLOT MACHINE',
-      start: (onReturnToMenu) => { new SlotMachineGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new SlotMachineGame(onReturnToMenu)
     },
     /*
     {
       title: 'THE THREE MUSKETEERS',
       description: 'FIVE-REEL ADVENTURE SLOT',
-      start: (onReturnToMenu) => { new MusketeersSlotGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new MusketeersSlotGame(onReturnToMenu)
     },
     */
     {
       title: 'SHOOT ’EM ALL',
       description: 'SURVIVE THE INVASION',
-      start: (onReturnToMenu) => { new ShootEmAllGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new ShootEmAllGame(onReturnToMenu)
     },
     {
       title: 'LUCKY SCRATCH',
       description: 'SCRATCH THE CARD AND MATCH 3',
-      start: (onReturnToMenu) => { new ScratchCardGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new ScratchCardGame(onReturnToMenu)
     },
     {
       title: 'PACHINKO KENO',
       description: 'DROP THE BALL, HIT THE MULTIPLIERS',
-      start: (onReturnToMenu) => { new PachinkoGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new PachinkoGame(onReturnToMenu)
     },
     {
       title: 'PINBALL',
       description: 'FLIP, BUMP, AND KEEP THE BALL ALIVE',
-      start: (onReturnToMenu) => { new PinballGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new PinballGame(onReturnToMenu)
     },
     {
       title: 'MEADOW QUEST',
       description: 'AN ORIGINAL SIDE-SCROLLING PLATFORM ADVENTURE',
-      start: (onReturnToMenu) => { new MeadowQuestGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new MeadowQuestGame(onReturnToMenu)
     },
     {
       title: 'CRYSTAL OATH',
       description: 'EXPLORE, FIND THE SUN CRYSTAL, DEFEAT THE WARDEN',
-      start: (onReturnToMenu) => { new CrystalOathGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new CrystalOathGame(onReturnToMenu)
     },
     {
       title: 'MOONFALL',
       description: 'A METROIDVANIA THROUGH A SUNKEN CITADEL',
-      start: (onReturnToMenu) => { new MoonfallGame(onReturnToMenu); }
+      start: (onReturnToMenu) => new MoonfallGame(onReturnToMenu)
     }
   ];
   /**
@@ -205,7 +208,13 @@ export default class {
    * @property {GameControls} controls
    * @private
    */
-  private controls: GameControls;
+  private readonly controls: GameControls;
+  /**
+   * Scheduled selector frame cancelled before another scene becomes active.
+   * @property {SignalValue<number | undefined>} frameId
+   * @private
+   */
+  private readonly frameId = signalValue<number | undefined>(undefined);
 
   /**
    * Creates the selector, installs its controls, and starts its render loop.
@@ -218,7 +227,58 @@ export default class {
     GameInput.activateContext('menu');
     this.controls = new GameControls(() => {});
     this.createChoiceButtons();
+    for (const choice of this.choices) {
+      const id = `game:${choice.title}`;
+      if (!SceneManager.has(id)) {
+        SceneManager.register(id, () => choice.start(() => { void SceneManager.goTo('menu'); }));
+      }
+    }
+  }
+
+  /**
+   * Loads shared engine assets before the selector begins drawing.
+   * @param {SceneLoadContext} context Preparation scope reporting loader completion.
+   * @returns {Promise<void>} Completion of shared asset loading.
+   */
+  public async load(context: SceneLoadContext): Promise<void> {
+    context.reportProgress(0);
+    await GameLoader.loadAll();
+    context.reportProgress(1);
+  }
+
+  /**
+   * Activates menu input and starts exactly one selector loop.
+   * @returns {void}
+   */
+  public resume(): void {
+    if (!this.started && this.frameId() !== undefined) return;
+    GameInput.activateContext('menu');
+    this.started = false;
+    this.lastFrameTime = performance.now();
     this.gameLoop();
+  }
+
+  /**
+   * Suspends selector interaction and cancels its pending animation frame.
+   * @returns {void}
+   */
+  public pause(): void {
+    this.started = true;
+    if (this.frameId() !== undefined) cancelAnimationFrame(this.frameId()!);
+    this.frameId.set(undefined);
+  }
+
+  /**
+   * Releases selector buttons and container subscriptions before another scene enters.
+   * @returns {void}
+   */
+  public dispose(): void {
+    this.pause();
+    this.choiceButtons.forEach(button => button.destroy());
+    this.choiceButtons = [];
+    this.choicesContainer.clear();
+    this.choicesContainer.destroy();
+    this.controls.dispose();
   }
 
   /**
@@ -235,7 +295,7 @@ export default class {
     this.update(deltaSeconds);
     if (this.started) return;
     this.draw();
-    requestAnimationFrame(this.gameLoop);
+    this.frameId.set(requestAnimationFrame(this.gameLoop));
   };
 
   /**
@@ -445,30 +505,7 @@ export default class {
   private startSelectedGame(): void {
     if (this.started) return;
 
-    this.started = true;
-    this.choiceButtons.forEach((button) => button.destroy());
-    this.choiceButtons = [];
-    this.choicesContainer.visible.set(false);
-    this.controls.dispose();
-
-    this.choices[this.selectedIndex].start(this.returnToMenu);
+    this.pause();
+    void SceneManager.goTo(`game:${this.choices[this.selectedIndex].title}`);
   }
-
-  /**
-   * Restarts the selector loop when a game returns to the menu.
-   * @property {() => void} returnToMenu
-   * @private
-   * @readonly
-   */
-  private readonly returnToMenu = (): void => {
-    GameInput.activateContext('menu');
-    this.started = false;
-    this.lastFrameTime = performance.now();
-    this.choicesContainer.visible.set(true);
-    this.choicesContainer.setScrollY(0);
-    this.selectionNeedsVisibility.set(true);
-    this.controls = new GameControls(() => {});
-    this.createChoiceButtons();
-    this.gameLoop();
-  };
 }

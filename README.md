@@ -5,7 +5,7 @@ A browser-based 2D game engine written in TypeScript and built on Canvas 2D. The
 ## Composition
 
 - **Core (`core/`)**: `GameContext` manages the canvas and game-area dimensions. `BaseGame` centralizes lifecycle, updates, pause, restart, shared controls, and cleanup. This module also provides dimensions, in-place `Vector2`, `ObjectPool` and `GamePools` for zero-allocation recycling, `PhysicsBody`, the scene-scoped fixed-step `PhysicsWorld`, collision helpers, health, and math utilities.
-- **Scene (`scene/`)**: `WorldScene` coordinates the camera and layers; `Camera2D` transforms between world and screen coordinates, follows targets, and supports zoom; `SceneLayer` controls visibility, draw order, parallax, and stable rendering; `Tilemap` renders maps from a tileset; `Container` organizes UI elements.
+- **Scene (`scene/`)**: `SceneManager` coordinates scene loading, entry, pause, exit, retry, and resource disposal; `SceneResources` owns per-instance cleanup. `WorldScene` coordinates the camera and layers; `Camera2D` transforms between world and screen coordinates, follows targets, and supports zoom; `SceneLayer` controls visibility, draw order, parallax, and stable rendering; `Tilemap` renders maps from a tileset; `Container` organizes UI elements.
 - **Entities (`entities/`)**: `Entity` combines components with a transform; `Component` defines a functional unit's lifecycle; `SpriteRendererComponent` connects an entity to a drawable; `Prefab` and `PrefabRegistry` create and register reusable configurations. The module also includes entities for common use cases.
 - **Assets (`assets/`)**: `GameLoader` loads and caches images, audio, and atlases; `AtlasParser`, `Atlas`, and `AtlasAnimationCatalog` handle regions and animations.
 - **Audio (`audio/`)**: `GameAudio` (`AudioManager`) centralizes master, SFX, and BGM volume controls, provides mute toggling, and automatically pauses/resumes audio on window visibility changes.
@@ -77,6 +77,55 @@ import {
 ```
 
 Specialized games extend `BaseGame` and implement their update, drawing, restart, and end-state behavior. They can compose their worlds from the engine's scenes, layers, entities, and components.
+
+## Scene lifecycle
+
+`SceneManager` is the shared lifecycle coordinator. Register factories, then
+await `goTo(id, data)` to load and enter a fresh scene. The arcade registers `menu`
+at startup; the selector registers its games with IDs such as `game:SPACE HUNTERS`.
+Activating the currently running scene does not create another instance.
+
+```ts
+import { SceneManager } from './engine';
+import { GameSelector } from './games';
+
+SceneManager.register('menu', () => new GameSelector());
+await SceneManager.goTo('menu');
+SceneManager.setPaused(true);
+SceneManager.setPaused(false);
+await SceneManager.unload();
+```
+
+The `GameScene` interface has optional `load(context)`, `enter(context)`, `pause`,
+`resume`, `exit`, and `dispose` hooks. All engine interfaces live in
+`src/engine/interfaces` and are exported by its barrel. Scenes own their loops;
+`BaseGame` and the selector implement suspension and idempotent cleanup. The
+manager serializes transitions, suspends the old scene, aborts its cancellation
+signal, awaits exit, and attempts all cleanup before creating the next scene.
+It never runs a second update loop for a scene. Async scene loading must return
+its promise through `load`, rather than launch detached constructor work.
+
+`state`, `progress`, and `error` are reactive values. States are `idle`, `loading`,
+`entering`, `running`, `paused`, `exiting`, and `error`. A DOM overlay displays
+loading progress and an accessible Retry button on failure. `goTo` returns false
+for preparation or cleanup failures; unknown IDs reject without disturbing the
+active scene. `retry()` repeats the failed request. Concurrent requests are queued,
+not overlapped. A loading hook must settle for the next queued transition to run.
+
+Each factory and loading hook receives `SceneLoadContext`: detached transition
+`data`, a cancellation `signal`, `reportProgress(0..1)`, and a `resources` scope.
+Register owned cleanup through `context.resources.own(() => resource.dispose())`.
+Cleanup runs once in reverse acquisition order, including on failed entry, and
+attempts every callback even if one throws. Factories that acquire resources
+before returning should immediately register their cleanup in this scope.
+`GameLoader` owns shared asset caches; do not register those caches as scene-owned
+resources. `BaseGame` also releases registered game callbacks, controls, scheduled
+frames, world references, and physics registrations when disposed.
+
+Use `setSessionData(key, snapshot)` and `getSessionData(key)` for detached JSON
+progress that survives scene changes and unload. `clearSession()` explicitly
+starts a new session. Session data is in memory; use `GameSaves` explicitly to
+persist it. Automatic world serialization belongs to a later roadmap phase.
 
 ## Input actions
 

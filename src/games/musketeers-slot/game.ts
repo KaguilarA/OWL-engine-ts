@@ -2,7 +2,8 @@ import {
   BaseGame,
   Button,
   GameInput,
-  Texture
+  Texture,
+  type SceneLoadContext
 } from '../../engine';
 
 import { MusketeersSlotAssets, MusketeersSlotRound, MusketeersSlotRenderer } from './';
@@ -78,21 +79,28 @@ export default class extends BaseGame {
     this.registerCleanup(() => {
       this.assets?.dispose();
     });
-    void MusketeersSlotAssets.load().then((assets) => {
-      this.assets = assets;
-      this.round = new MusketeersSlotRound(assets);
-      this.renderer = new MusketeersSlotRenderer(
-        assets,
-        this.round,
-        this.spinButton,
-        this.decreaseBetButton,
-        this.increaseBetButton,
-        (text, x, y, size, color, align, maxWidth) => this.drawLabel(text, x, y, size, color, align, maxWidth)
-      );
-      this.start();
-    }).catch((error: unknown) => {
-      console.error('Unable to load the Musketeers slot assets.', error);
-    });
+  }
+
+  /**
+   * Loads optional game assets within the managed scene transition and propagates failures for retry.
+   * @param {SceneLoadContext} context Resource scope and preparation progress reporter.
+   * @returns {Promise<void>} Completion of renderer and round setup.
+   */
+  public async load(context: SceneLoadContext): Promise<void> {
+    context.reportProgress(0);
+    const assets = await MusketeersSlotAssets.load();
+    this.assets = assets;
+    this.round = new MusketeersSlotRound(assets);
+    this.renderer = new MusketeersSlotRenderer(
+      assets,
+      this.round,
+      this.spinButton,
+      this.decreaseBetButton,
+      this.increaseBetButton,
+      (text, x, y, size, color, align, maxWidth) => this.drawLabel(text, x, y, size, color, align, maxWidth)
+    );
+    this.start();
+    context.reportProgress(1);
   }
 
   /**

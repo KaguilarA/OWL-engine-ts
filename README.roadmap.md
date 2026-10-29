@@ -64,13 +64,25 @@ properties, and references without writing code specific to that level.
 
 ## Phase 2 — Scene Lifecycle Management
 
-- [ ] Create a shared manager to register, load, activate, and unload scenes.
-- [ ] Define loading, entry, running, pause, and exit states.
-- [ ] Separate scene-owned resources from shared resources.
-- [ ] Add loading screens, progress, errors, and retry handling.
-- [ ] Support transitions between menus, levels, and results.
-- [ ] Define how progress is preserved across scene changes.
-- [ ] Verify that repeated entry and exit do not duplicate listeners or entities.
+- [x] Create a shared manager to register, load, activate, and unload scenes.
+- [x] Define loading, entry, running, pause, and exit states.
+- [x] Separate scene-owned resources from shared resources.
+- [x] Add loading screens, progress, errors, and retry handling.
+- [x] Support transitions between menus, levels, and results.
+- [x] Define how progress is preserved across scene changes.
+- [x] Verify that repeated entry and exit do not duplicate listeners or entities.
+
+Implemented through the `SceneManager` singleton, the `GameScene` lifecycle
+contract, and per-instance `SceneResources`. The arcade now starts through a
+registered menu scene, loads shared assets before displaying the selector, and
+switches between registered game scenes and fresh menu instances. Existing game
+results remain inside each game's scene; standalone results scenes can use the
+same registration API. Loading failures release partial resources and expose an
+accessible Retry button. Session progress is explicitly retained through
+`setSessionData` and `getSessionData`; persistent game-state restoration remains
+part of phase 9. Automated tests cover repeated real selector/game transitions,
+single-loop ownership, subscription counts, failure cleanup, retries, and queued
+menu/level/results lifecycle ordering. Physical-device validation remains in phase 3.
 
 **Completion criterion:** go through the menu, level, and results, return to the
 menu, and repeat without stuck controls or resources left over from earlier scenes.
