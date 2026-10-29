@@ -4,7 +4,7 @@ import { signalValue, type SignalValue } from 'reactive-values';
  * Reactive rectangular cell storage for board, puzzle, and tactics games.
  * @class GridBoard
  */
-export default class GridBoard<T> {
+export default class<T> {
   /**
    * Number of columns in the board.
    * @property {number} columns
@@ -35,6 +35,7 @@ export default class GridBoard<T> {
    * @param rows Number of rows.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(columns: number, rows: number) {
     this.assertPositiveInteger(columns, 'columns');
@@ -95,7 +96,22 @@ export default class GridBoard<T> {
    * @public
    * @return {Array<{ column: number; row: number; value: T | null }>}
    */
-  public getNeighbors(column: number, row: number): Array<{ column: number; row: number; value: T | null }> {
+  public getNeighbors(column: number, row: number): Array<{
+  /**
+   * Column index within the grid.
+   * @property {number} column
+   */
+  column: number;
+  /**
+   * Row index within the grid.
+   * @property {number} row
+   */
+  row: number;
+  /**
+   * Value to read, validate, format, or assign.
+   * @property {T | null} value
+   */
+  value: T | null }> {
     this.getIndex(column, row);
     return [
       { column: column - 1, row },
@@ -118,12 +134,42 @@ export default class GridBoard<T> {
     column: number,
     row: number,
     matches: (value: T, origin: T) => boolean
-  ): Array<{ column: number; row: number; value: T }> {
+  ): Array<{
+  /**
+   * Column index within the grid.
+   * @property {number} column
+   */
+  column: number;
+  /**
+   * Row index within the grid.
+   * @property {number} row
+   */
+  row: number;
+  /**
+   * Value to read, validate, format, or assign.
+   * @property {T} value
+   */
+  value: T }> {
     const origin = this.get(column, row);
     if (origin === null) return [];
     const visited = new Set<number>();
     const pending = [{ column, row }];
-    const result: Array<{ column: number; row: number; value: T }> = [];
+    const result: Array<{
+    /**
+     * Column index within the grid.
+     * @property {number} column
+     */
+    column: number;
+    /**
+     * Row index within the grid.
+     * @property {number} row
+     */
+    row: number;
+    /**
+     * Value to read, validate, format, or assign.
+     * @property {T} value
+     */
+    value: T }> = [];
     while (pending.length > 0) {
       const cell = pending.pop()!;
       const index = this.getIndex(cell.column, cell.row);

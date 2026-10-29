@@ -1,12 +1,12 @@
 import { signalValue, type SignalValue } from 'reactive-values';
 import { PhysicsBody } from '../../core';
-import type { PlatformerOptions } from '../../interfaces/platformer-options';
+import type { PlatformerOptions } from '../../interfaces';
 
 /**
  * Side-scrolling character movement with gravity, buffered jumps, and coyote time.
  * @class PlatformerController
  */
-export default class PlatformerController {
+export default class {
   /**
    * Physics body containing the character's reactive position and velocity.
    * @property {PhysicsBody} body
@@ -86,6 +86,7 @@ export default class PlatformerController {
    * @param options Movement settings.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(x = 0, y = 0, options: PlatformerOptions = {}) {
     this.body = new PhysicsBody(x, y);

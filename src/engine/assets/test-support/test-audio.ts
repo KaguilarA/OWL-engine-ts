@@ -1,6 +1,5 @@
-type AudioEventName = 'error' | 'canplaythrough';
-
-export class TestAudio {
+import { TestAudio } from './';
+type AudioEventName = 'error' | 'canplaythrough';export default class {
   public currentTime = 0;
   public preload = '';
   private readonly listeners = new Map<AudioEventName, () => void>();

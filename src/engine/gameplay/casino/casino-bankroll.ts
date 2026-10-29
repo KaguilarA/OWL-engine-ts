@@ -4,7 +4,7 @@ import { computedValue, signalValue, type ComputedValue, type SignalValue } from
  * Tracks in-game casino credits and a single active wager.
  * @class CasinoBankroll
  */
-export default class CasinoBankroll {
+export default class {
   /**
    * Available in-game credits.
    * @property {SignalValue<number>} credits
@@ -34,6 +34,7 @@ export default class CasinoBankroll {
    * @param startingCredits Initial credit balance.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(startingCredits: number) {
     this.assertAmount(startingCredits, 'Starting credits', true);

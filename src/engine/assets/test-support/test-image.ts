@@ -1,7 +1,5 @@
 type ImageEventName = 'error' | 'load';
-type ImageListener = () => void;
-
-export class TestImage {
+type ImageListener = () => void;export default class {
   private readonly listeners = new Map<ImageEventName, ImageListener>();
 
   public addEventListener(type: ImageEventName, listener: ImageListener): void {

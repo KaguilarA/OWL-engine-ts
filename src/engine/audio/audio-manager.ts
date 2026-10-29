@@ -6,14 +6,14 @@ import { GameLoader } from '../assets';
  * Centralized audio management for sound effects and background music.
  * @class AudioManager
  */
-export class AudioManager {
+export default (class {
   /**
    * The single audio service shared by engine clients.
    * @property {AudioManager} instance
    * @public
    * @readonly
    */
-  public static readonly instance = new AudioManager();
+  public static readonly instance = new this();
 
   /**
    * Stores master volume multiplier.
@@ -316,6 +316,4 @@ export class AudioManager {
       }
     });
   }
-}
-
-export default AudioManager.instance;
+}).instance;

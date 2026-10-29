@@ -5,7 +5,7 @@ import { PhysicsBody } from '../../core';
  * Reusable timed projectile with reactive motion and pooled reset support.
  * @class Projectile
  */
-export default class Projectile {
+export default class {
   /**
    * Reactive position and velocity of the projectile.
    * @property {PhysicsBody} body
@@ -48,6 +48,7 @@ export default class Projectile {
    * @param lifetime Lifetime in seconds.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(
     x: number,

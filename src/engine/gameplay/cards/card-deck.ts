@@ -4,7 +4,7 @@ import { signalValue, type SignalValue } from 'reactive-values';
  * Generic reactive draw and discard piles for card and deck-building games.
  * @class CardDeck
  */
-export default class CardDeck<T> {
+export default class<T> {
   /**
    * Cards available to draw.
    * @property {SignalValue<readonly T[]>} drawPile
@@ -35,6 +35,7 @@ export default class CardDeck<T> {
    * @param random Random value source in the range from zero to one.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(cards: readonly T[], random: () => number = Math.random) {
     this.drawPile = signalValue<readonly T[]>([...cards]);

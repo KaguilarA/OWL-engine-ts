@@ -1,10 +1,10 @@
-import type { WeightedEntry } from '../../interfaces/weighted-entry';
+import type { WeightedEntry } from '../../interfaces';
 
 /**
  * Selects weighted outcomes for loot, casino reels, and randomized encounters.
  * @class WeightedTable
  */
-export default class WeightedTable<T> {
+export default class<T> {
   /**
    * Immutable weighted outcome entries.
    * @property {readonly WeightedEntry<T>[]} entries
@@ -27,6 +27,7 @@ export default class WeightedTable<T> {
    * @param random Random value source.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(entries: readonly WeightedEntry<T>[], random: () => number = Math.random) {
     if (entries.length === 0 || entries.some((entry) => !Number.isFinite(entry.weight) || entry.weight <= 0)) {

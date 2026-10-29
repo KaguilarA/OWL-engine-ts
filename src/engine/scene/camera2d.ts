@@ -1,20 +1,12 @@
+import type { Camera2DOptions } from '../interfaces';
 import { signalValue, type SignalValue } from 'reactive-values';
 import { GameContext, type Dimensions } from '../core';
-
-export interface Camera2DOptions {
-  x?: number;
-  y?: number;
-  zoom?: number;
-  viewportWidth?: number;
-  viewportHeight?: number;
-  smoothing?: number;
-}
 
 /**
  * Applies a world-to-screen transform and converts coordinates between spaces.
  * @class Camera2D
  */
-export class Camera2D {
+export default class {
   /**
    * Horizontal world look-at coordinate.
    * @property {SignalValue<number>} x
@@ -91,6 +83,8 @@ export class Camera2D {
    * Creates a camera instance with configured viewport and smoothing.
    * @public
    * @return {void}
+   * @constructor
+   * @param {Camera2DOptions} [options] Configuration controlling construction or behavior.
    */
   public constructor(options: Camera2DOptions = {}) {
     this.autoCenterX = options.x === undefined;
@@ -108,6 +102,8 @@ export class Camera2D {
    * Follows a target dimensions model with smoothing.
    * @public
    * @return {void}
+   * @param {default} target The target supplied to this operation.
+   * @param {number} [smoothing] The smoothing supplied to this operation.
    */
   public follow(target: Dimensions, smoothing = this.smoothing()): void {
     this.target.set(target);
@@ -127,6 +123,7 @@ export class Camera2D {
    * Configures smoothing interpolation speed.
    * @public
    * @return {void}
+   * @param {number} value Value to read, validate, format, or assign.
    */
   public setSmoothing(value: number): void {
     if (!Number.isFinite(value) || value <= 0 || value > 1) {
@@ -139,6 +136,7 @@ export class Camera2D {
    * Updates camera follow position and synchronizes viewport dimensions.
    * @public
    * @return {void}
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
    */
   public update(deltaSeconds: number): void {
     const width = GameContext.gameDimensionsModel.getWidth();
@@ -167,8 +165,20 @@ export class Camera2D {
    * Converts world coordinates to screen pixel coordinates.
    * @public
    * @return {{ x: number; y: number }}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
-  public worldToScreen(x: number, y: number): { x: number; y: number } {
+  public worldToScreen(x: number, y: number): {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number } {
     return {
       x: (x - this.x()) * this.zoom() + this.viewportWidth() / 2,
       y: (y - this.y()) * this.zoom() + this.viewportHeight() / 2
@@ -179,8 +189,20 @@ export class Camera2D {
    * Converts screen pixel coordinates to world coordinates.
    * @public
    * @return {{ x: number; y: number }}
+   * @param {number} x Horizontal coordinate in the owning coordinate space.
+   * @param {number} y Vertical coordinate in the owning coordinate space.
    */
-  public screenToWorld(x: number, y: number): { x: number; y: number } {
+  public screenToWorld(x: number, y: number): {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number } {
     return {
       x: (x - this.viewportWidth() / 2) / this.zoom() + this.x(),
       y: (y - this.viewportHeight() / 2) / this.zoom() + this.y()
@@ -191,6 +213,9 @@ export class Camera2D {
    * Executes a render closure under camera matrix transformation with parallax.
    * @public
    * @return {void}
+   * @param {() => void} draw The draw supplied to this operation.
+   * @param {number} [parallaxX] The parallax x supplied to this operation.
+   * @param {number} [parallaxY] The parallax y supplied to this operation.
    */
   public withTransform(draw: () => void, parallaxX = 1, parallaxY = 1): void {
     const context = GameContext.context;

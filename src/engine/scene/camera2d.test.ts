@@ -11,6 +11,15 @@ const { drawingContext } = vi.hoisted(() => ({
 
 vi.mock('../core/context', () => ({
   default: {
+    canvas: { parentElement: null, addEventListener: vi.fn(), removeEventListener: vi.fn() },
+    context: drawingContext,
+    gameDimensionsModel: {
+      getHeight: (): number => 600,
+      getWidth: (): number => 800
+    }
+  },
+  GameContext: {
+    canvas: { parentElement: null, addEventListener: vi.fn(), removeEventListener: vi.fn() },
     context: drawingContext,
     gameDimensionsModel: {
       getHeight: (): number => 600,
@@ -19,7 +28,7 @@ vi.mock('../core/context', () => ({
   }
 }));
 
-import { Camera2D } from './camera2d';
+import { Camera2D } from './';
 
 describe('Camera2D', () => {
   it('converts between world and screen coordinates with zoom', () => {

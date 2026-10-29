@@ -4,7 +4,7 @@ import { signalValue, type SignalValue } from 'reactive-values';
  * Reusable firing cadence and ammunition state for action and shooter games.
  * @class Weapon
  */
-export default class Weapon {
+export default class {
   /**
    * Minimum seconds between shots.
    * @property {number} fireInterval
@@ -35,6 +35,7 @@ export default class Weapon {
    * @param ammunition Initial ammunition, or `undefined` for unlimited.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(fireInterval: number, ammunition?: number) {
     if (!Number.isFinite(fireInterval) || fireInterval < 0) {

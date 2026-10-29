@@ -60,14 +60,14 @@ const atlasModules = import.meta.glob<string>('../../assets/animations/**/*.atla
  * namespaced lookups such as `animations/player/player` are also supported.
  * @class Loader
  */
-class Loader {
+export default (class {
   /**
    * The single asset loader shared by engine clients.
    * @property {Loader} instance
    * @public
    * @readonly
    */
-  public static readonly instance = new Loader();
+  public static readonly instance = new this();
 
   /**
    * Stores the images state.
@@ -528,6 +528,4 @@ class Loader {
       audio.load();
     });
   }
-}
-
-export default Loader.instance;
+}).instance;

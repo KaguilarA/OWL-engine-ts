@@ -1,11 +1,11 @@
 import { PhysicsBody } from '../../core';
-import type { TopDownOptions } from '../../interfaces/top-down-options';
+import type { TopDownOptions } from '../../interfaces';
 
 /**
  * Accelerated eight-direction movement for ships and top-down action games.
  * @class TopDownController
  */
-export default class TopDownController {
+export default class {
   /**
    * Physics body containing the controller's reactive position and velocity.
    * @property {PhysicsBody} body
@@ -45,6 +45,7 @@ export default class TopDownController {
    * @param options Speed, acceleration, and friction settings.
    * @public
    * @return {void}
+   * @constructor
    */
   public constructor(x = 0, y = 0, options: TopDownOptions = {}) {
     this.body = new PhysicsBody(x, y);

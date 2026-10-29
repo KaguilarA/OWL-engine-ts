@@ -1,34 +1,128 @@
+import { Container } from './';
+import type { ScrollbarDrag, ContainerOptions, GamePointer, Renderable } from '../interfaces';
+
 import { signalValue, type SignalValue } from 'reactive-values';
 import { GameContext, Dimensions, MathUtils } from '../core';
 import { GameEvents } from '../input';
-import type { ContainerOptions, GamePointer, Renderable } from '../interfaces';
 
-interface ScrollbarDrag {
-  pointerId: number;
-  pointerY: number;
-  scrollY: number;
-  draggingThumb: boolean;
-  moved: boolean;
-}
-
-/** Groups related drawables under one movable, scalable, reactive transform. */
-export class Container implements Renderable {
+/**
+ * Groups related drawables under one movable, scalable, reactive transform.
+ * @class Container
+ */
+export default class implements Renderable {
+  /**
+   * Dimensions configuration or state owned by Container.
+   * @property {default} dimensions
+   * @readonly
+   * @public
+   */
   public readonly dimensions: Dimensions;
+  /**
+   * Reactive visible state owned by Container.
+   * @property {SignalValue<boolean>} visible
+   * @readonly
+   * @public
+   */
   public readonly visible: SignalValue<boolean> = signalValue(true);
+  /**
+   * Opacity applied when rendering the object.
+   * @property {SignalValue<number>} opacity
+   * @readonly
+   * @public
+   */
   public readonly opacity: SignalValue<number>;
+  /**
+   * Clip children configuration or state owned by Container.
+   * @property {SignalValue<boolean>} clipChildren
+   * @readonly
+   * @public
+   */
   public readonly clipChildren: SignalValue<boolean>;
+  /**
+   * Vertical scroll offset of the container contents.
+   * @property {SignalValue<number>} scrollY
+   * @readonly
+   * @public
+   */
   public readonly scrollY: SignalValue<number>;
+  /**
+   * Target scroll y configuration or state owned by Container.
+   * @property {SignalValue<number>} targetScrollY
+   * @readonly
+   * @private
+   */
   private readonly targetScrollY: SignalValue<number>;
+  /**
+   * Scrollable configuration or state owned by Container.
+   * @property {boolean} scrollable
+   * @readonly
+   * @private
+   */
   private readonly scrollable: boolean;
+  /**
+   * Wheel sensitivity configuration or state owned by Container.
+   * @property {number} wheelSensitivity
+   * @readonly
+   * @private
+   */
   private readonly wheelSensitivity: number;
+  /**
+   * Remove wheel listener configuration or state owned by Container.
+   * @property {() => void} removeWheelListener
+   * @readonly
+   * @private
+   */
   private readonly removeWheelListener: () => void;
+  /**
+   * Remove pointer down listener configuration or state owned by Container.
+   * @property {() => void} removePointerDownListener
+   * @readonly
+   * @private
+   */
   private readonly removePointerDownListener: () => void;
+  /**
+   * Remove pointer move listener configuration or state owned by Container.
+   * @property {() => void} removePointerMoveListener
+   * @readonly
+   * @private
+   */
   private readonly removePointerMoveListener: () => void;
+  /**
+   * Remove pointer end listener configuration or state owned by Container.
+   * @property {() => void} removePointerEndListener
+   * @readonly
+   * @private
+   */
   private readonly removePointerEndListener: () => void;
+  /**
+   * Ordered child objects owned by the container.
+   * @property {SignalValue<readonly Renderable[]>} children
+   * @readonly
+   * @private
+   */
   private readonly children: SignalValue<readonly Renderable[]> = signalValue<readonly Renderable[]>([]);
+  /**
+   * Reactive content bottom state owned by Container.
+   * @property {SignalValue<number> & (() => number)} contentBottom
+   * @readonly
+   * @private
+   */
   private readonly contentBottom = signalValue(0);
+  /**
+   * Reactive scrollbar drag state owned by Container.
+   * @property {SignalValue<ScrollbarDrag | undefined> & (() => ScrollbarDrag | undefined)} scrollbarDrag
+   * @readonly
+   * @private
+   */
   private readonly scrollbarDrag = signalValue<ScrollbarDrag | undefined>(undefined);
 
+  /**
+   * Initializes Container and its owned resources from the supplied arguments.
+   * @constructor
+   * @param {ContainerOptions} [options] Configuration controlling construction or behavior.
+   * @returns {void}
+   * @public
+   */
   public constructor(options: ContainerOptions = {}) {
     this.dimensions = new Dimensions(
       options.width ?? 0,
@@ -59,6 +153,12 @@ export class Container implements Renderable {
       : () => { };
   }
 
+  /**
+   * Adds container for Container.
+   * @param {Renderable} child The child supplied to this operation.
+   * @returns {void}
+   * @public
+   */
   public add(child: Renderable): void {
     if (child === this || (child instanceof Container && child.containsContainer(this))) {
       throw new Error('A Container cannot contain itself or an ancestor.');
@@ -67,6 +167,12 @@ export class Container implements Renderable {
     this.children.set([...this.children(), child]);
   }
 
+  /**
+   * Removes container for Container.
+   * @param {Renderable} child The child supplied to this operation.
+   * @returns {boolean} Removes container for Container.
+   * @public
+   */
   public remove(child: Renderable): boolean {
     const children = this.children();
     const index = children.indexOf(child);
@@ -75,10 +181,21 @@ export class Container implements Renderable {
     return true;
   }
 
+  /**
+   * Removes the contents currently owned by this collection.
+   * @returns {void}
+   * @public
+   */
   public clear(): void {
     if (this.children().length > 0) this.children.set([]);
   }
 
+  /**
+   * Updates children for Container.
+   * @param {readonly Renderable[]} children Ordered child objects owned by the container.
+   * @returns {void}
+   * @public
+   */
   public setChildren(children: readonly Renderable[]): void {
     const current = this.children();
     if (current.length === children.length && current.every((child, index) => child === children[index])) return;
@@ -88,22 +205,42 @@ export class Container implements Renderable {
     this.children.set([...children]);
   }
 
+  /**
+   * Returns children for Container.
+   * @returns {readonly Renderable[]} children for Container.
+   * @public
+   */
   public getChildren(): readonly Renderable[] {
     return this.children();
   }
 
-  /** Maximum vertical offset implied by child bounds and this viewport. */
+  /**
+   * Maximum vertical offset implied by child bounds and this viewport.
+   * @returns {number}
+   * @public
+   */
   public get maxScrollY(): number {
     if (!this.scrollable) return 0;
     return Math.max(0, this.contentBottom() - this.dimensions.getHeight());
   }
 
+  /**
+   * Updates scroll y for Container.
+   * @param {number} value Value to read, validate, format, or assign.
+   * @returns {void}
+   * @public
+   */
   public setScrollY(value: number): void {
     const next = Math.max(0, Math.min(this.maxScrollY, value));
     if (this.targetScrollY() !== next) this.targetScrollY.set(next);
     if (this.scrollY() !== next) this.scrollY.set(next);
   }
 
+  /**
+   * Releases this object’s owned state and subscriptions so it no longer participates in updates.
+   * @returns {void}
+   * @public
+   */
   public destroy(): void {
     this.removeWheelListener();
     this.removePointerDownListener();
@@ -111,6 +248,12 @@ export class Container implements Renderable {
     this.removePointerEndListener();
   }
 
+  /**
+   * Advances Container simulation and dependent presentation state for one frame.
+   * @param {number} deltaSeconds Elapsed simulation time in seconds.
+   * @returns {void}
+   * @public
+   */
   public update(deltaSeconds: number): void {
     if (!this.visible()) return;
     if (this.scrollable) {
@@ -128,6 +271,11 @@ export class Container implements Renderable {
     }
   }
 
+  /**
+   * Renders Container using its current geometry and presentation state.
+   * @returns {void}
+   * @public
+   */
   public draw(): void {
     const opacity = this.opacity();
     if (!this.visible() || opacity <= 0) return;
@@ -163,7 +311,23 @@ export class Container implements Renderable {
     }
   }
 
-  private readonly handleWheel = (pointer: { x: number; y: number }, deltaY: number): boolean => {
+  /**
+   * Callback handling wheel for Container.
+   * @property {(pointer: { x: number; y: number; }, deltaY: number) => boolean} handleWheel
+   * @readonly
+   * @private
+   */
+  private readonly handleWheel = (pointer: {
+  /**
+   * Horizontal coordinate in the owning coordinate space.
+   * @property {number} x
+   */
+  x: number;
+  /**
+   * Vertical coordinate in the owning coordinate space.
+   * @property {number} y
+   */
+  y: number }, deltaY: number): boolean => {
     if (!this.visible() || !this.scrollable) return false;
     if (pointer.x < this.dimensions.left() || pointer.x > this.dimensions.right()
       || pointer.y < this.dimensions.top() || pointer.y > this.dimensions.bottom()) return false;
@@ -173,6 +337,12 @@ export class Container implements Renderable {
     return true;
   };
 
+  /**
+   * Callback handling pointer down for Container.
+   * @property {(pointer: GamePointer) => void} handlePointerDown
+   * @readonly
+   * @private
+   */
   private readonly handlePointerDown = (pointer: GamePointer): void => {
     if (!this.visible() || !this.scrollable || this.maxScrollY <= 0) return;
     const width = this.dimensions.getWidth();
@@ -208,6 +378,12 @@ export class Container implements Renderable {
     });
   };
 
+  /**
+   * Callback handling pointer move for Container.
+   * @property {(pointer: GamePointer) => void} handlePointerMove
+   * @readonly
+   * @private
+   */
   private readonly handlePointerMove = (pointer: GamePointer): void => {
     const drag = this.scrollbarDrag();
     if (drag === undefined || drag.pointerId !== pointer.id) return;
@@ -225,11 +401,22 @@ export class Container implements Renderable {
     this.setScrollY(drag.scrollY - pointerDelta);
   };
 
+  /**
+   * Callback handling pointer end for Container.
+   * @property {(pointer: GamePointer) => void} handlePointerEnd
+   * @readonly
+   * @private
+   */
   private readonly handlePointerEnd = (pointer: GamePointer): void => {
     if (this.scrollbarDrag()?.pointerId === pointer.id) this.scrollbarDrag.set(undefined);
   };
 
-  /** Caches child bounds in content space so rapid wheel events cannot drift past the end. */
+  /**
+   * Caches child bounds in content space so rapid wheel events cannot drift past the end.
+   * @param {readonly Renderable[]} children
+   * @returns {void}
+   * @private
+   */
   private measureContentBottom(children: readonly Renderable[]): void {
     const scaleY = Math.max(Number.EPSILON, this.dimensions.getScaleY());
     const viewportTop = this.dimensions.top();
@@ -243,6 +430,11 @@ export class Container implements Renderable {
     if (this.contentBottom() !== contentBottom) this.contentBottom.set(contentBottom);
   }
 
+  /**
+   * Constrains scroll positions for Container.
+   * @returns {void}
+   * @private
+   */
   private clampScrollPositions(): void {
     const maxScroll = this.maxScrollY;
     const target = Math.max(0, Math.min(maxScroll, this.targetScrollY()));
@@ -251,7 +443,13 @@ export class Container implements Renderable {
     if (this.scrollY() !== current) this.scrollY.set(current);
   }
 
-  /** Draws a viewport-fixed thumb sized from the current content overflow. */
+  /**
+   * Draws a viewport-fixed thumb sized from the current content overflow.
+   * @param {number} width Available width in logical canvas coordinates.
+   * @param {number} height Available height in logical canvas coordinates.
+   * @returns {void}
+   * @private
+   */
   private drawScrollbar(width: number, height: number): void {
     const maxScroll = this.maxScrollY;
     if (maxScroll <= 0 || height <= 0 || width <= 0) return;
@@ -269,21 +467,45 @@ export class Container implements Renderable {
     context.restore();
   }
 
+  /**
+   * Returns scrollbar thumb height for Container.
+   * @param {number} height Height of the represented area.
+   * @returns {number} scrollbar thumb height for Container.
+   * @private
+   */
   private getScrollbarThumbHeight(height: number): number {
     const maxScroll = this.maxScrollY;
     return Math.min(height, Math.max(28, height * height / (height + maxScroll)));
   }
 
+  /**
+   * Returns scrollbar track width for Container.
+   * @param {number} width Width of the represented area.
+   * @returns {number} scrollbar track width for Container.
+   * @private
+   */
   private getScrollbarTrackWidth(width: number): number {
     return Math.min(6, Math.max(3, width * 0.012));
   }
 
+  /**
+   * Applies the contains container operation to Container.
+   * @param {Container} target The target supplied to this operation.
+   * @returns {boolean} Applies the contains container operation to Container.
+   * @private
+   */
   private containsContainer(target: Container): boolean {
     return this === target || this.children().some(
       (child) => child instanceof Container && child.containsContainer(target)
     );
   }
 
+  /**
+   * Constrains opacity for Container.
+   * @param {number} opacity Opacity applied when rendering the object.
+   * @returns {number} Constrains opacity for Container.
+   * @private
+   */
   private static clampOpacity(opacity: number): number {
     if (!Number.isFinite(opacity)) throw new RangeError('Container opacity must be finite.');
     return MathUtils.clamp(opacity, 0, 1);

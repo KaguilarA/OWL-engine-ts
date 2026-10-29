@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Texture } from './texture';
+import { Texture } from './';
 
 describe('Rendering Texture', () => {
   it('manages visual state names and dimensions', () => {
